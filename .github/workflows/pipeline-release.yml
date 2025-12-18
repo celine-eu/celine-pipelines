@@ -45,6 +45,7 @@ jobs:
           # Extract folder names from file paths → compact JSON array
           APPS_JSON=$(echo "$FILES" \
             | jq -r '.[]' \
+            | awk -F'/' '{print $2}' \
             | jq -R . \
             | jq -sc .)
 
