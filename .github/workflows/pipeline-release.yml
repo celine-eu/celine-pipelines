@@ -2,8 +2,6 @@ name: Build & Push Docker Images
 
 on:
   push:
-    paths:
-      - "/**"
   workflow_dispatch:
 
 env:
