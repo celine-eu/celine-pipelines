@@ -1,0 +1,1 @@
+copernicus-downloader~=1.2.0

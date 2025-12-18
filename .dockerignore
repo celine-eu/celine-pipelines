@@ -1,0 +1,14 @@
+data
+.venv
+.env
+logs
+output
+.meltano
+dbt_packages
+.dbt
+__pycache__
+*.egg-info
+target
+.python-version
+cache
+.git

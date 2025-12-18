@@ -1,0 +1,13 @@
+version: 2
+
+sources:
+  # radiation
+  - name: radiation
+    schema: raw
+    tables:
+      - name: cams_solar_radiation_timeseries
+  - name: reanalysis
+    schema: raw
+    tables:
+      - name: reanalysis_era5_single_levels
+      - name: cams_global_reanalysis_eac4_monthly

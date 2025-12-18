@@ -1,0 +1,82 @@
+storage:
+  type: fs
+  data_dir: ${DWD_DATA_DIR}
+  decompress: true
+  # cleanup older forecasts
+  cleanup: true
+  # days to keep
+  keep_days: 1
+  # runs (forecast steps) to keep
+  keep_runs: 1
+
+datasets:
+  - name: icon-d2
+    base_url: https://opendata.dwd.de/weather/nwp/icon-d2/grib
+    runs: ["00", "03", "06", "09", "12", "15", "18", "21"] # only runs you care about
+    variables:
+      - vmax_10m
+      - u_10m
+      - v_10m
+      # - t_2m
+      # - tmax_2m
+      # - td_2m
+      # - relhum_2m
+      # - asob_s
+      # - tot_prec
+      # - rain_con
+      # - rain_gsp
+      # - hzerocl
+      # - snowlmt
+      # - h_snow
+      # - rho_snow
+      # - runoff_s
+      # - cape_ml
+      # - lpi_con_max
+      # - vis
+
+    forecast_steps:
+      [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36, 39, 42, 45, 48]
+
+    grid: germany
+    subgrid: regular-lat-lon
+    level: single-level
+    file_template: "icon-d2_{grid}_{subgrid}_{level}_{date}{run}_{step:03d}_2d_{var}.grib2.bz2"
+
+  # - name: icon-eu
+  #   base_url: https://opendata.dwd.de/weather/nwp/icon-eu/grib
+  #   runs: ["00", "06", "12", "18"]
+  #   variables:
+  #     - vmax_10m
+  #     - pmsl
+  #     - tmax_2m
+  #     - tmin_2m
+  #     - tot_prec
+  #     - cape_con
+  #     - hzerocl
+  #     - snowlmt
+  #     - runoff_s
+  #     # - vmax_10m
+  #     # - u_10m
+  #     # - v_10m
+  #     # - t_2m
+  #     # - tmax_2m
+  #     # - td_2m
+  #     # - relhum_2m
+  #     # - asob_s
+  #     # - tot_prec
+  #     # - rain_con
+  #     # - rain_gsp
+  #     # - hzerocl
+  #     # - snowlmt
+  #     # - h_snow
+  #     # - rho_snow
+  #     # - runoff_s
+  #     # - cape_ml
+  #     # - lpi_con_max
+  #     # - vis
+
+  #   forecast_steps: [0, 3, 6, 9, 12] # only early hours for risk assessment
+  #   grid: europe
+  #   level: single-level
+  #   subgrid: regular-lat-lon
+  #   file_template: "icon-eu_{grid}_{subgrid}_{level}_{date}{run}_{step:03d}_{var_upper}.grib2.bz2"

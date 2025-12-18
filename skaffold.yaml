@@ -1,0 +1,54 @@
+apiVersion: skaffold/v4beta4
+kind: Config
+metadata:
+  name: pipeline-build-only
+
+build:
+  local:
+    push: false # build images inside Minikube’s Docker daemon
+    # required or .dockerignore is skipped
+    useBuildkit: true
+
+  tagPolicy:
+    envTemplate:
+      template: "latest"
+
+  artifacts:
+    - image: ghcr.io/celine-eu/pipeline-base
+      context: .
+      docker:
+        dockerfile: Dockerfile.base
+
+    - image: ghcr.io/celine-eu/pipeline-owm
+      context: .
+      docker:
+        dockerfile: Dockerfile
+        buildArgs:
+          APP_NAME: owm
+      requires:
+        - image: ghcr.io/celine-eu/pipeline-base
+          alias: pipeline_base
+
+    - image: ghcr.io/celine-eu/pipeline-copernicus
+      context: .
+      docker:
+        dockerfile: Dockerfile
+        buildArgs:
+          APP_NAME: copernicus
+      requires:
+        - image: ghcr.io/celine-eu/pipeline-base
+          alias: pipeline_base
+
+    - image: ghcr.io/celine-eu/pipeline-osm
+      context: .
+      docker:
+        dockerfile: Dockerfile
+        buildArgs:
+          APP_NAME: osm
+      requires:
+        - image: ghcr.io/celine-eu/pipeline-base
+          alias: pipeline_base
+
+# Disable deployment completely
+manifests:
+  rawYaml: []

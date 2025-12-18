@@ -1,0 +1,11 @@
+contents:
+  - apps
+  - config/pipeline
+  - scripts
+  - Dockerfile
+  - Dockerfile.base
+  - pyproject.toml
+  - taskfile.yaml
+  - skaffold.yaml
+
+output: data/sources.txt

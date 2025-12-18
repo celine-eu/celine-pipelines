@@ -1,0 +1,15 @@
+.venv
+logs
+target
+cache
+dbt_packages
+*.jsonl
+.python-version
+*.egg-info
+.env
+data
+!data/.gitkeep
+__pycache__
+.idea/
+.venv
+.mypy_cache

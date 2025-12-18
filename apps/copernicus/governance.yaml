@@ -1,0 +1,74 @@
+defaults:
+  license: null
+  ownership: []
+  access_level: internal
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: null
+  attribution: Contains Copernicus Climate Change Service information (2025)
+
+sources:
+  # ---------------------------------------------------------------------------
+  # SILVER – curated Copernicus datasets (internal by default)
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_silver.copernicus_cams_global_reanalysis_eac4_monthly:
+    license: Copernicus-Open-Access
+    source_system: CAMS / ECMWF
+    documentation_url: https://ads.atmosphere.copernicus.eu/
+    tags: [copernicus, cams, reanalysis, silver]
+
+  datasets.ds_dev_silver.copernicus_era5_single_levels:
+    license: Copernicus-Open-Access
+    source_system: ECMWF
+    documentation_url: https://cds.climate.copernicus.eu/
+    tags: [copernicus, era5, reanalysis, silver]
+
+  datasets.ds_dev_silver.copernicus_solar_radiation:
+    license: Copernicus-Open-Access
+    source_system: CAMS
+    documentation_url: https://ads.atmosphere.copernicus.eu/
+    tags: [copernicus, solar, radiation, silver]
+
+  # ---------------------------------------------------------------------------
+  # STAGING – technical transformation layer
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_staging.stg_cams_global_reanalysis_eac4_monthly:
+    license: Copernicus-Open-Access
+    source_system: CAMS / ECMWF
+    tags: [copernicus, cams, staging]
+
+  datasets.ds_dev_staging.stg_era5_single_levels:
+    license: Copernicus-Open-Access
+    source_system: ECMWF
+    tags: [copernicus, era5, staging]
+
+  datasets.ds_dev_staging.stg_radiation_raw:
+    license: Copernicus-Open-Access
+    source_system: CAMS
+    tags: [copernicus, solar, staging]
+
+  # ---------------------------------------------------------------------------
+  # RAW – verbatim ingested datasets
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.cams_global_reanalysis_eac4_monthly:
+    license: Copernicus-Open-Access
+    source_system: CAMS / ECMWF
+    documentation_url: https://ads.atmosphere.copernicus.eu/
+    tags: [copernicus, cams, raw]
+
+  datasets.raw.cams_solar_radiation_timeseries:
+    license: Copernicus-Open-Access
+    source_system: CAMS
+    documentation_url: https://ads.atmosphere.copernicus.eu/
+    tags: [copernicus, solar, raw]
+
+  datasets.raw.reanalysis_era5_single_levels:
+    license: Copernicus-Open-Access
+    source_system: ECMWF
+    documentation_url: https://cds.climate.copernicus.eu/
+    tags: [copernicus, era5, raw]

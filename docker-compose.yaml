@@ -1,0 +1,231 @@
+x-pipeline-service: &pipeline-service
+  entrypoint: /entrypoint.sh
+  command: python3 ./flows/pipeline.py
+  image: ghcr.io/celine-eu/pipeline
+  pull_policy: never
+  build: .
+  restart: unless-stopped
+  env_file:
+    - path: .env
+      required: true
+  environment:
+    POSTGRES_HOST: ${POSTGRES_HOST:-datasets-db}
+    POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+    POSTGRES_USER: ${POSTGRES_USER:-postgres}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    POSTGRES_DB: ${POSTGRES_DB:-datasets}
+
+    PREFECT_MODE: dev
+    PREFECT_API_URL: "http://prefect.celine.localhost:4200/api"
+
+    # https://docs.meltano.com/guide/production
+    MELTANO_DATABASE_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@datasets-db:${POSTGRES_PORT:-5432}/meltano
+
+    # https://docs.meltano.com/concepts/state_backends/
+    # MELTANO_STATE_BACKEND_URI: s3://your_bucket/meltano/state
+
+    OPENLINEAGE_URL: http://marquez-api:5000
+
+  volumes:
+    - ./apps:/pipelines/apps
+    - ./config/pipeline/entrypoint.sh:/entrypoint.sh
+    - ./data:/data
+    - ../../../celine-utils:/deps/celine-utils
+  networks:
+    - celine_pipelines
+  depends_on:
+    datasets-db:
+      condition: service_healthy
+    pipeline-base:
+      condition: service_completed_successfully
+  extra_hosts:
+    - "prefect.celine.localhost:172.17.0.1"
+
+volumes:
+  postgres_data:
+  marquez-data:
+
+networks:
+  celine_pipelines:
+
+services:
+  datasets-db:
+    image: postgis/postgis:17-3.5-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-datasets}
+      MARQUEZ_DB: ${MARQUEZ_DB:-marquez}
+      MARQUEZ_USER: ${MARQUEZ_USER:-marquez}
+      MARQUEZ_PASSWORD: ${MARQUEZ_PASSWORD:-marquez}
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./config/postgres/init:/docker-entrypoint-initdb.d
+    networks:
+      - celine_pipelines
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  marquez-web:
+    image: "ilum/marquez-web:0.53.0"
+    environment:
+      - MARQUEZ_HOST=marquez-api
+      - MARQUEZ_PORT=5000
+      - WEB_PORT=5002
+    networks:
+      - celine_pipelines
+    depends_on:
+      marquez-api:
+        condition: service_started
+
+  marquez-api:
+    image: "ilum/marquez:0.53.0"
+    environment:
+      - MARQUEZ_PORT=5000
+      - MARQUEZ_ADMIN_PORT=5001
+      - MARQUEZ_CONFIG=/usr/src/app/marquez.yaml
+
+      - POSTGRES_HOST=datasets-db
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=marquez
+      - POSTGRES_USER=marquez
+      - POSTGRES_PASSWORD=marquez
+
+      - SEARCH_ENABLED=false
+      # - SEARCH_HOST=opensearch
+      # - SEARCH_PORT=9200
+
+    volumes:
+      - ./config/marquez/marquez.yaml:/usr/src/app/marquez.yaml
+      - marquez-data:/opt/marquez
+
+    depends_on:
+      datasets-db:
+        condition: service_healthy
+      # opensearch:
+      #   condition: service_started
+
+    networks:
+      - celine_pipelines
+
+    expose:
+      - 5000
+      - 5001
+
+    restart: unless-stopped
+
+  # opensearch:
+  #   image: opensearchproject/opensearch:2.5.0
+  #   hostname: opensearch
+  #   ulimits:
+  #     memlock:
+  #       soft: -1
+  #       hard: -1
+  #     nofile:
+  #       soft: 65536
+  #       hard: 65536
+  #   environment:
+  #     - cluster.name=opensearch-cluster
+  #     - node.name=opensearch
+  #     - discovery.seed_hosts=opensearch
+  #     - cluster.initial_cluster_manager_nodes=opensearch
+  #     - bootstrap.memory_lock=true
+  #     - plugins.security.ssl.http.enabled=false
+  #     - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+  #     - OPENSEARCH_PASSWORD=admin
+  #   volumes:
+  #     - opensearch-data:/usr/share/opensearch/data
+  #   cap_add:
+  #     - IPC_LOCK
+  #   networks:
+  #     - celine_pipelines
+
+  prefect-server:
+    image: prefecthq/prefect:3.4-python3.12
+    command: prefect server start --host 0.0.0.0 --port 4200
+    environment:
+      PREFECT_API_URL: "http://prefect.celine.localhost:4200/api"
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    networks:
+      - celine_pipelines
+    extra_hosts:
+      - "prefect.celine.localhost:172.17.0.1"
+
+  prefect-worker:
+    image: prefecthq/prefect:3.4-python3.12
+    command: prefect worker start --pool docker-pool
+    environment:
+      PREFECT_API_URL: "http://prefect-server:4200/api"
+      PREFECT_LOGGING_LEVEL: INFO
+    networks:
+      - celine_pipelines
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    restart: unless-stopped
+    extra_hosts:
+      - "prefect.celine.localhost:172.17.0.1"
+
+  # ------
+  # Pipelines section
+  # ------
+
+  pipeline-base:
+    entrypoint: /bin/bash -c
+    command: exit 0
+    image: ghcr.io/celine-eu/pipeline:latest
+    pull_policy: never
+    build:
+      context: .
+      dockerfile: Dockerfile.base
+
+  pipeline-owm:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-owm
+    build:
+      context: .
+      args:
+        APP_NAME: owm
+    env_file:
+      - path: ./apps/owm/.env
+        required: false
+
+  pipeline-copernicus:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-copernicus
+    build:
+      context: .
+      args:
+        APP_NAME: copernicus
+    env_file:
+      - path: ./apps/copernicus/.env
+        required: false
+
+  pipeline-osm:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-osm
+    build:
+      context: .
+      args:
+        APP_NAME: osm
+    env_file:
+      - path: ./apps/osm/.env
+        required: false
+
+  pipeline-dwd:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-dwd
+    build:
+      context: .
+      args:
+        APP_NAME: dwd
+    env_file:
+      - path: ./apps/dwd/.env
+        required: false

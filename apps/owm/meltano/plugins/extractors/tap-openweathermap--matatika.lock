@@ -1,0 +1,99 @@
+{
+  "plugin_type": "extractors",
+  "name": "tap-openweathermap",
+  "namespace": "tap_openweathermap",
+  "variant": "matatika",
+  "label": "OpenWeatherMap",
+  "docs": "https://hub.meltano.com/extractors/tap-openweathermap--matatika",
+  "repo": "https://github.com/Matatika/tap-openweathermap",
+  "pip_url": "git+https://github.com/Matatika/tap-openweathermap.git",
+  "description": "Current and Forecast Weather Data Collection",
+  "logo_url": "https://hub.meltano.com/assets/logos/extractors/openweathermap.png",
+  "capabilities": [
+    "about",
+    "catalog",
+    "discover",
+    "schema-flattening",
+    "state",
+    "stream-maps"
+  ],
+  "settings_group_validation": [
+    [
+      "api_key",
+      "current_weather_city_name",
+      "forecast_weather_lattitude",
+      "forecast_weather_longitude"
+    ]
+  ],
+  "settings": [
+    {
+      "name": "api_key",
+      "kind": "string",
+      "label": "API Key",
+      "description": "API Key is a required parameter to query the api endpoints",
+      "sensitive": true
+    },
+    {
+      "name": "current_weather_city_name",
+      "kind": "string",
+      "label": "Current Weather City Name",
+      "description": "City name that you want to get weather for"
+    },
+    {
+      "name": "flattening_enabled",
+      "kind": "boolean",
+      "label": "Flattening Enabled",
+      "description": "'True' to enable schema flattening and automatically expand nested properties."
+    },
+    {
+      "name": "flattening_max_depth",
+      "kind": "integer",
+      "label": "Flattening Max Depth",
+      "description": "The max depth to flatten schemas."
+    },
+    {
+      "name": "forecast_weather_lattitude",
+      "kind": "string",
+      "label": "Forecast Weather Lattitude",
+      "description": "Lattitude of city to get forecast for"
+    },
+    {
+      "name": "forecast_weather_longitude",
+      "kind": "string",
+      "label": "Forecast Weather Longitude",
+      "description": "Longitude of city to get forecast for"
+    },
+    {
+      "name": "stream_map_config",
+      "kind": "object",
+      "label": "Stream Map Config",
+      "description": "User-defined config values to be used within map expressions."
+    },
+    {
+      "name": "stream_maps",
+      "kind": "object",
+      "label": "Stream Maps",
+      "description": "Config object for stream maps capability. For more information check out [Stream Maps](https://sdk.meltano.com/en/latest/stream_maps.html)."
+    },
+    {
+      "name": "weather_units",
+      "kind": "options",
+      "label": "Weather Units",
+      "description": "Units to use: standard (default), metric or imperial",
+      "options": [
+        {
+          "label": "Standard",
+          "value": "standard"
+        },
+        {
+          "label": "Metric",
+          "value": "metric"
+        },
+        {
+          "label": "Imperial",
+          "value": "imperial"
+        }
+      ]
+    }
+  ]
+}

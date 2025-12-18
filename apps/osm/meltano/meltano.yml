@@ -1,0 +1,53 @@
+version: 1
+default_environment: prod
+project_id: energy_community_platform
+
+environments:
+  - name: prod
+
+plugins:
+  extractors:
+    - name: tap-osm-alpecimbra
+      inherit_from: tap-geo
+      config:
+        files:
+          - paths:
+              - s3://${S3_BUCKET}/alpe_cimbra_trentino/*.geojson
+            table_name: openstreetmap_it_alpecimbra
+            primary_keys: [element, id]
+            geometry_format: wkt
+
+    - name: tap-osm-lap
+      inherit_from: tap-geo
+      config:
+        files:
+          - paths:
+              - s3://${S3_BUCKET}/lappeenranta_finland/*.geojson
+            table_name: openstreetmap_fi_lappeenranta
+            primary_keys: [element, id]
+            geometry_format: wkt
+
+    - name: tap-geo
+      variant: celine-eu
+      pip_url: tap-geo>=0.1.2
+
+  loaders:
+    - name: target-postgres
+      variant: meltanolabs
+      pip_url: meltanolabs-target-postgres
+      config:
+        host: ${POSTGRES_HOST}
+        port: ${POSTGRES_PORT}
+        user: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        database: ${POSTGRES_DB}
+        default_target_schema: raw
+    - name: target-jsonl
+      variant: andyh1203
+      pip_url: target-jsonl
+
+jobs:
+  - name: import
+    tasks:
+      - tap-osm-alpecimbra target-postgres
+      - tap-osm-lap target-postgres

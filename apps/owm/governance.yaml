@@ -1,0 +1,178 @@
+defaults:
+  license: proprietary
+  ownership: []
+  access_level: internal
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: null
+  attribution: |
+    Weather data derived from OpenWeatherMap One Call API 3.0.
+    © OpenWeather Ltd.
+    Data is provided under the OpenWeatherMap terms of service and is redistributed in a derived, aggregated form.
+    Source: https://openweathermap.org/api/one-call-3
+
+sources:
+  # ---------------------------------------------------------------------------
+  # GOLD – exposed to partners (derived, curated, license-compatible)
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.folgaria_weather_alerts:
+    license: CC-BY-NC-4.0
+    access_level: external
+    source_system: openweathermap-onecall-3.0
+    documentation_url: https://openweathermap.org/api/one-call-3
+    tags: [weather, alerts, gold, folgaria]
+
+  datasets.ds_dev_gold.folgaria_weather_current:
+    license: CC-BY-NC-4.0
+    access_level: external
+    source_system: openweathermap-onecall-3.0
+    tags: [weather, current, gold, folgaria]
+
+  datasets.ds_dev_gold.folgaria_weather_daily:
+    license: CC-BY-NC-4.0
+    access_level: external
+    source_system: openweathermap-onecall-3.0
+    tags: [weather, daily, forecast, gold, folgaria]
+
+  datasets.ds_dev_gold.folgaria_weather_hourly:
+    license: CC-BY-NC-4.0
+    access_level: external
+    source_system: openweathermap-onecall-3.0
+    tags: [weather, hourly, forecast, gold, folgaria]
+
+  datasets.ds_dev_gold.folgaria_weather_minutely:
+    license: CC-BY-NC-4.0
+    access_level: external
+    source_system: openweathermap-onecall-3.0
+    tags: [weather, minutely, forecast, gold, folgaria]
+
+  datasets.ds_dev_gold.weather_alerts:
+    license: CC-BY-NC-4.0
+    access_level: external
+    source_system: openweathermap-onecall-3.0
+    tags: [weather, alerts, gold]
+
+  datasets.ds_dev_gold.weather_feature_of_interest:
+    license: CC-BY-NC-4.0
+    access_level: external
+    tags: [weather, foi, gold, derived]
+
+  datasets.ds_dev_gold.weather_observations_current:
+    license: CC-BY-NC-4.0
+    access_level: external
+    tags: [weather, observations, current, gold]
+
+  datasets.ds_dev_gold.weather_observations_daily:
+    license: CC-BY-NC-4.0
+    access_level: external
+    tags: [weather, observations, daily, gold]
+
+  datasets.ds_dev_gold.weather_observations_hourly:
+    license: CC-BY-NC-4.0
+    access_level: external
+    tags: [weather, observations, hourly, gold]
+
+  datasets.ds_dev_gold.weather_observations_minutely:
+    license: CC-BY-NC-4.0
+    access_level: external
+    tags: [weather, observations, minutely, gold]
+
+  datasets.ds_dev_gold.weather_observations_unpivoted:
+    license: CC-BY-NC-4.0
+    access_level: external
+    tags: [weather, observations, gold, wide]
+
+  datasets.ds_dev_gold.weather_observed_properties:
+    license: CC-BY-NC-4.0
+    access_level: external
+    tags: [weather, metadata, gold]
+
+  # ---------------------------------------------------------------------------
+  # SILVER – internal only (not shareable)
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_silver.weather_alerts:
+    license: proprietary
+    access_level: internal
+    tags: [weather, alerts, silver]
+
+  datasets.ds_dev_silver.weather_current:
+    license: proprietary
+    access_level: internal
+    tags: [weather, current, silver]
+
+  datasets.ds_dev_silver.weather_daily:
+    license: proprietary
+    access_level: internal
+    tags: [weather, daily, silver]
+
+  datasets.ds_dev_silver.weather_hourly:
+    license: proprietary
+    access_level: internal
+    tags: [weather, hourly, silver]
+
+  datasets.ds_dev_silver.weather_minutely:
+    license: proprietary
+    access_level: internal
+    tags: [weather, minutely, silver]
+
+  # ---------------------------------------------------------------------------
+  # STAGING – internal technical layer
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_staging.stg_forecast_stream:
+    license: proprietary
+    access_level: internal
+    tags: [weather, staging]
+
+  # ---------------------------------------------------------------------------
+  # RAW – verbatim ingested data (restricted)
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.current_weather_stream:
+    license: proprietary
+    access_level: internal
+    source_system: openweathermap-onecall-3.0
+    tags: [weather, raw]
+
+  datasets.raw.forecast_stream:
+    license: proprietary
+    access_level: internal
+    source_system: openweathermap-onecall-3.0
+    tags: [weather, raw]
+
+  # ---------------------------------------------------------------------------
+  # SINGER / TAP – ingestion artifacts (never exposed)
+  # ---------------------------------------------------------------------------
+
+  singer.tap-openweathermap-folgaria.current_weather_stream:
+    access_level: internal
+    tags: [singer, tap, weather]
+
+  singer.tap-openweathermap-folgaria.forecast_stream:
+    license: proprietary
+    access_level: internal
+    tags: [singer, tap, weather]
+
+  singer.tap-openweathermap-lappeenranta.current_weather_stream:
+    license: proprietary
+    access_level: internal
+    tags: [singer, tap, weather]
+
+  singer.tap-openweathermap-lappeenranta.forecast_stream:
+    license: proprietary
+    access_level: internal
+    tags: [singer, tap, weather]
+
+  singer.tap-openweathermap-valencia.current_weather_stream:
+    license: proprietary
+    access_level: internal
+    tags: [singer, tap, weather]
+
+  singer.tap-openweathermap-valencia.forecast_stream:
+    license: proprietary
+    access_level: internal
+    tags: [singer, tap, weather]

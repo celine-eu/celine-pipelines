@@ -1,0 +1,118 @@
+name: Build & Push Docker Images
+
+on:
+  push:
+    paths:
+      - "/**"
+  workflow_dispatch:
+
+env:
+  PIPELINE_PATH: services/pipelines
+  REGISTRY: ghcr.io
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      base_changed: ${{ steps.filter.outputs.base }}
+      apps_json: ${{ steps.apps.outputs.apps_json }}
+    steps:
+      - uses: actions/checkout@v6
+
+      # Detect changed files (no diff, no history issues)
+      - id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          list-files: json
+          filters: |
+            base:
+              - "version-base.txt"
+            apps:
+              - "apps/*/version.txt"
+
+      # Extract app names from changed version.txt files
+      - id: apps
+        run: |
+          FILES='${{ steps.filter.outputs.apps_files }}'
+
+          if [ "$FILES" = "" ]; then
+            echo "apps_json=[]" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Extract folder names from file paths → compact JSON array
+          APPS_JSON=$(echo "$FILES" \
+            | jq -r '.[]' \
+            | awk -F'/' '{print $4}' \
+            | jq -R . \
+            | jq -sc .)
+
+          echo "apps_json=$APPS_JSON" >> $GITHUB_OUTPUT
+
+  build-base:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.base_changed == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push base image
+        run: |
+          IMAGE=${REGISTRY}/${{ github.repository_owner }}/pipeline
+          VERSION=$(cat ${PIPELINE_PATH}/version-base.txt)
+
+          docker build \
+            -f ${PIPELINE_PATH}/Dockerfile.base \
+            -t ${IMAGE}:${VERSION} \
+            -t ${IMAGE}:latest \
+            ${PIPELINE_PATH}
+
+          docker push ${IMAGE}:${VERSION}
+          docker push ${IMAGE}:latest
+
+  build-apps:
+    needs: detect-changes
+    if: fromJson(needs.detect-changes.outputs.apps_json)[0] != null
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJson(needs.detect-changes.outputs.apps_json) }}
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push app image
+        run: |
+          APP=${{ matrix.app }}
+          IMAGE=${REGISTRY}/${{ github.repository_owner }}/pipeline-${APP}
+          VERSION=$(cat ${PIPELINE_PATH}/apps/${APP}/version.txt)
+          BASE_VERSION=$(cat ${PIPELINE_PATH}/version-base.txt)
+
+          docker build \
+            -f ${PIPELINE_PATH}/Dockerfile \
+            --build-arg APP_NAME=$APP \
+            --build-arg BASE_TAG=${BASE_VERSION} \
+            -t ${IMAGE}:${VERSION} \
+            -t ${IMAGE}:latest \
+            ${PIPELINE_PATH}
+
+          docker push ${IMAGE}:${VERSION}
+          docker push ${IMAGE}:latest

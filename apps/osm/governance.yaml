@@ -1,0 +1,111 @@
+defaults:
+  license: null
+  ownership: []
+  access_level: internal
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: null
+  attribution: © OpenStreetMap contributors. Data available under the Open Database License (ODbL). https://www.openstreetmap.org/copyright
+
+sources:
+  # ---------------------------------------------------------------------------
+  # RAW – verbatim OpenStreetMap extracts
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_raw.openstreetmap_fi_lappeenranta:
+    license: ODbL-1.0
+    source_system: OpenStreetMap
+    documentation_url: https://www.openstreetmap.org/copyright
+    tags: [osm, raw, finland]
+
+  datasets.ds_dev_raw.openstreetmap_it_alpecimbra:
+    license: ODbL-1.0
+    source_system: OpenStreetMap
+    documentation_url: https://www.openstreetmap.org/copyright
+    tags: [osm, raw, italy]
+
+  datasets.raw.openstreetmap_fi_lappeenranta:
+    license: ODbL-1.0
+    source_system: OpenStreetMap
+    documentation_url: https://www.openstreetmap.org/copyright
+    tags: [osm, raw, finland]
+
+  datasets.raw.openstreetmap_it_alpecimbra:
+    license: ODbL-1.0
+    source_system: OpenStreetMap
+    documentation_url: https://www.openstreetmap.org/copyright
+    tags: [osm, raw, italy]
+
+  # ---------------------------------------------------------------------------
+  # SILVER – curated thematic datasets (shareable under ODbL)
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_silver.openstreetmap_fi_lappeenranta_base:
+    license: ODbL-1.0
+    access_level: external
+    source_system: OpenStreetMap
+    tags: [osm, silver, finland, base]
+
+  datasets.ds_dev_silver.openstreetmap_fi_lappeenranta_social_buildings:
+    license: ODbL-1.0
+    access_level: external
+    source_system: OpenStreetMap
+    tags: [osm, silver, finland, social]
+
+  datasets.ds_dev_silver.openstreetmap_it_alpecimbra_base:
+    license: ODbL-1.0
+    access_level: external
+    source_system: OpenStreetMap
+    tags: [osm, silver, italy, base]
+
+  datasets.ds_dev_silver.openstreetmap_it_alpecimbra_amusement:
+    license: ODbL-1.0
+    access_level: external
+    source_system: OpenStreetMap
+    tags: [osm, silver, italy, amusement]
+
+  datasets.ds_dev_silver.openstreetmap_it_alpecimbra_ev_charging:
+    license: ODbL-1.0
+    access_level: external
+    source_system: OpenStreetMap
+    tags: [osm, silver, italy, ev, charging]
+
+  datasets.ds_dev_silver.openstreetmap_it_alpecimbra_hospitality:
+    license: ODbL-1.0
+    access_level: external
+    source_system: OpenStreetMap
+    tags: [osm, silver, italy, hospitality]
+
+  datasets.ds_dev_silver.openstreetmap_it_alpecimbra_parking:
+    license: ODbL-1.0
+    access_level: external
+    source_system: OpenStreetMap
+    tags: [osm, silver, italy, parking]
+
+  datasets.ds_dev_silver.openstreetmap_it_alpecimbra_piste_and_lifts:
+    license: ODbL-1.0
+    access_level: external
+    source_system: OpenStreetMap
+    tags: [osm, silver, italy, ski]
+
+  datasets.ds_dev_silver.openstreetmap_it_alpecimbra_tourism_culture:
+    license: ODbL-1.0
+    access_level: external
+    source_system: OpenStreetMap
+    tags: [osm, silver, italy, tourism, culture]
+
+  # ---------------------------------------------------------------------------
+  # SINGER / TAP – ingestion artifacts (never exposed)
+  # ---------------------------------------------------------------------------
+
+  singer.tap-osm-alpecimbra.openstreetmap_it_alpecimbra:
+    license: proprietary
+    access_level: internal
+    tags: [osm, singer, tap]
+
+  singer.tap-osm-lap.openstreetmap_fi_lappeenranta:
+    license: proprietary
+    access_level: internal
+    tags: [osm, singer, tap]

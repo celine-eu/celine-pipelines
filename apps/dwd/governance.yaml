@@ -1,0 +1,52 @@
+defaults:
+  license: null
+  ownership: []
+  access_level: internal
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: null
+
+sources:
+  # ---------------------------------------------------------------------------
+  # GOLD – exposed derived indicators
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.dwd_icon_d2_gusts:
+    license: dl-de/by-2-0
+    access_level: external
+    source_system: Deutscher Wetterdienst (DWD)
+    documentation_url: https://www.dwd.de/EN/ourservices/opendata/opendata.html
+    tags: [dwd, icon-d2, wind, gusts, gold]
+
+  # ---------------------------------------------------------------------------
+  # SILVER – enriched internal datasets
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_silver.dwd_icon_d2_wind:
+    license: dl-de/by-2-0
+    access_level: internal
+    source_system: Deutscher Wetterdienst (DWD)
+    tags: [dwd, icon-d2, wind, silver]
+
+  # ---------------------------------------------------------------------------
+  # STAGING – technical preparation layer
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_raw.stg_dwd_icon_d2:
+    license: dl-de/by-2-0
+    access_level: internal
+    source_system: Deutscher Wetterdienst (DWD)
+    tags: [dwd, icon-d2, staging]
+
+  # ---------------------------------------------------------------------------
+  # RAW – verbatim ICON-D2 model output
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.dwd_icon_d2:
+    license: dl-de/by-2-0
+    access_level: internal
+    source_system: Deutscher Wetterdienst (DWD)
+    documentation_url: https://www.dwd.de/EN/ourservices/opendata/opendata.html
+    tags: [dwd, icon-d2, raw]

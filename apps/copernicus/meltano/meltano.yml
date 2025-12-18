@@ -1,0 +1,73 @@
+version: 1
+default_environment: prod
+project_id: energy_community_platform
+
+environments:
+  - name: prod
+
+plugins:
+  extractors:
+    - name: tap-solar
+      inherit_from: tap-spreadsheets
+      config:
+        files:
+          - path: s3://${S3_BUCKET}/cams-solar-radiation-timeseries/**/*_normalized.csv
+            table_name: cams_solar_radiation_timeseries
+            primary_keys: [date_start]
+            format: csv
+
+    - name: tap-era5
+      inherit_from: tap-grib
+      config:
+        paths:
+          - path: s3://${S3_BUCKET}/reanalysis-era5-single-levels/**/*.grib
+            table_name: reanalysis_era5_single_levels
+            ignore_fields:
+              - ensemble
+              - grid_type
+              - centre
+              - edition
+
+    - name: tap-cams
+      inherit_from: tap-grib
+      config:
+        paths:
+          - path: s3://${S3_BUCKET}/cams-global-reanalysis-eac4-monthly/**/*.grib
+            table_name: cams_global_reanalysis_eac4_monthly
+            ignore_fields:
+              - ensemble
+              - grid_type
+              - centre
+              - edition
+
+    - name: tap-grib
+      namespace: tap_grib
+      pip_url: git+https://github.com/celine-eu/tap-grib.git
+
+    - name: tap-spreadsheets
+      namespace: tap_spreadsheets
+      variant: celine-eu
+      pip_url: tap-spreadsheets>=1.1.0
+      capabilities:
+        - discover
+        - catalog
+        - state
+
+  loaders:
+    - name: target-postgres
+      variant: meltanolabs
+      pip_url: meltanolabs-target-postgres
+      config:
+        host: ${POSTGRES_HOST}
+        port: ${POSTGRES_PORT}
+        user: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        database: ${POSTGRES_DB}
+        default_target_schema: raw
+
+jobs:
+  - name: import
+    tasks:
+      - tap-solar target-postgres
+      - tap-era5 target-postgres
+      - tap-cams target-postgres

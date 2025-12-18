@@ -1,0 +1,161 @@
+version: "3"
+
+tasks:
+  build:
+    desc: Build all Docker images
+    cmds:
+      - docker compose build
+
+  setup:
+    desc: Setup the service
+    cmds:
+      - task: setup-env
+      - task: setup-dev
+      - docker compose build
+
+  create-worker-pool:
+    cmds:
+      - docker compose exec -it prefect-server prefect work-pool create celine --type docker || true
+
+  setup-dev:
+    desc: Setup development environment
+    cmds:
+      - uv sync
+      - |
+        for app in ./apps/*; do
+          if [ -f "$app/requirements.txt" ]; then
+            echo "Adding requirements from $app/requirements.txt"
+            uv pip install -r "$app/requirements.txt"
+          fi
+        done
+      - |
+        CELINE_UTILS_PATH=../celine-utils
+        if [ ! -d CELINE_UTILS_PATH ]; then
+          echo "Clone celine-eu/celine-utils in $CELINE_UTILS_PATH"
+          exit 0
+        fi
+        uv pip install -e $CELINE_UTILS_PATH
+
+  setup-env:
+    desc: Copy .env.example to .env if .env does not exist
+    cmds:
+      - |
+        if [ ! -f .env ]; then
+          cp .env.example .env
+        fi
+        for dir in ./apps/*/; do
+          if [ -d "$dir" ]; then
+            if [ ! -f "$dir/.env" ]; then
+              if [ -f "$dir/.env.example" ]; then
+                echo "Creating .env in $dir"
+                cp "$dir/.env.example" "$dir/.env"
+              else
+                echo "Warning: .env.example not found in $dir"
+              fi
+            fi
+          fi
+        done
+
+  start:
+    desc: Start all services
+    deps: [setup-env]
+    cmds:
+      - docker compose up -d
+      - task: create-worker-pool
+
+  stop:
+    desc: Stop all services
+    cmds:
+      - docker compose down
+
+  restart:
+    desc: Restart all services
+    cmds:
+      - task: stop
+      - task: start
+
+  logs:
+    desc: View logs for all services
+    cmds:
+      - docker compose logs -f {{.CLI_ARGS}}
+
+  clean:
+    desc: Remove all containers, volumes, and generated files
+    prompt: This will delete all data. Are you sure?
+    cmds:
+      - docker compose down -v
+
+  db:start:
+    desc: Start the datasets-db container
+    cmds:
+      - docker compose up -d datasets-db
+
+  db:stop:
+    desc: Stop the datasets-db container
+    cmds:
+      - docker compose down datasets-db
+
+  dump-sources:
+    desc: Dump sources
+    cmds:
+      - uv run python scripts/dump_source.py
+
+  pipeline:owm:bash:
+    desc: Open pipeline bash
+    cmds:
+      - docker compose run --rm pipeline-owm bash
+
+  pipeline:owm:run:
+    desc: Run prefect flow
+    cmds:
+      - docker compose exec pipeline-owm prefect deployment run 'openweathermap-flow/openweathermap-hourly'
+
+  pipeline:owm:release:
+    cmds:
+      - .venv/bin/python scripts/bump_version.py owm minor --commit
+
+  pipeline:copernicus:bash:
+    desc: Open pipeline bash
+    cmds:
+      - docker compose run --rm pipeline-copernicus bash
+
+  pipeline:copernicus:run:
+    desc: Run prefect flow
+    cmds:
+      - docker compose exec pipeline-copernicus prefect deployment run 'copernicus-flow/copernicus-daily'
+
+  pipeline:copernicus:release:
+    cmds:
+      - .venv/bin/python scripts/bump_version.py copernicus minor --commit
+
+  pipeline:osm:bash:
+    desc: Open pipeline bash
+    cmds:
+      - docker compose run --rm pipeline-osm bash
+
+  pipeline:osm:run:
+    desc: Run prefect flow
+    cmds:
+      - docker compose exec pipeline-osm prefect deployment run 'osm-flow/osm-daily'
+
+  pipeline:osm:release:
+    cmds:
+      - .venv/bin/python scripts/bump_version.py osm minor --commit
+
+  pipeline:dwd:bash:
+    desc: Open pipeline bash
+    cmds:
+      - docker compose run --rm pipeline-dwd bash
+
+  pipeline:dwd:run:
+    desc: Run prefect flow
+    cmds:
+      - docker compose exec pipeline-dwd prefect deployment run 'dwd-flow/dwd-daily'
+
+  pipeline:dwd:release:
+    cmds:
+      - .venv/bin/python scripts/bump_version.py dwd minor --commit
+
+  pipeline:base:release:
+    cmds:
+      - .venv/bin/python scripts/bump_version.py base minor --commit

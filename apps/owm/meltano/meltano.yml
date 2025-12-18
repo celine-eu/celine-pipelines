@@ -1,0 +1,84 @@
+version: 1
+default_environment: prod
+project_id: energy_community_platform
+
+environments:
+  - name: prod
+
+plugins:
+  extractors:
+    - name: tap-openweathermap
+      variant: matatika
+
+    - name: tap-openweathermap-folgaria
+      inherit_from: tap-openweathermap
+      config:
+        forecast_weather_lattitude: "45.914347"
+        forecast_weather_longitude: "11.173210"
+        current_weather_city_name: Folgaria, IT
+        weather_units: metric
+        stream_maps:
+          forecast_stream:
+            location_id: str("it_folgaria")
+          current_weather_stream:
+            location_id: str("it_folgaria")
+
+    - name: tap-openweathermap-lappeenranta
+      inherit_from: tap-openweathermap
+      config:
+        forecast_weather_lattitude: "61.050009"
+        forecast_weather_longitude: "28.187390"
+        current_weather_city_name: Lappeenranta, FI
+        weather_units: metric
+        stream_maps:
+          forecast_stream:
+            location_id: str("fi_lappeenranta")
+          current_weather_stream:
+            location_id: str("fi_lappeenranta")
+
+    - name: tap-openweathermap-valencia
+      inherit_from: tap-openweathermap
+      config:
+        forecast_weather_lattitude: "39.6752377"
+        forecast_weather_longitude: "-0.2047335"
+        current_weather_city_name: Valencia, ES
+        weather_units: metric
+        stream_maps:
+          forecast_stream:
+            location_id: str("es_valencia")
+          current_weather_stream:
+            location_id: str("es_valencia")
+  loaders:
+    - name: target-postgres
+      variant: meltanolabs
+      pip_url: meltanolabs-target-postgres
+      config:
+        host: ${POSTGRES_HOST}
+        port: ${POSTGRES_PORT}
+        user: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        database: ${POSTGRES_DB}
+        default_target_schema: raw
+      schema_mapping:
+        tap-openweathermap-folgaria:
+          raw: openweathermap
+        tap-openweathermap-lappeenranta:
+          raw: openweathermap
+        tap-openweathermap-valencia:
+          raw: openweathermap
+
+    # - name: target-jsonl
+    #   variant: andyh1203
+    #   pip_url: target-jsonl
+
+schedules:
+  - name: weather_hourly
+    interval: "@hourly"
+    job: import
+
+jobs:
+  - name: import
+    tasks:
+      - tap-openweathermap-valencia target-postgres
+      - tap-openweathermap-lappeenranta target-postgres
+      - tap-openweathermap-folgaria target-postgres

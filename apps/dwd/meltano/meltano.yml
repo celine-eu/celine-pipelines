@@ -1,0 +1,55 @@
+version: 1
+default_environment: prod
+project_id: energy_community_platform
+
+environments:
+  - name: prod
+
+plugins:
+  extractors:
+    - name: tap-dwd
+      inherit_from: tap-grib
+      config:
+        paths:
+          # icon-d2 data for Trentino region area
+          - path: ${MELTANO_GRIB_BASEPATH}/icon-d2/**/*.grib2
+            table_name: dwd_icon_d2
+            bboxes:
+              - [46.4, 10.5, 45.7, 11.9]
+            primary_keys:
+              [
+                "datetime",
+                "base_datetime",
+                "lat",
+                "lon",
+                "name",
+                "forecast_step",
+              ]
+            skip_past: true
+
+          # icon-d2 data for other areas eg. FI or ES
+          # - path: /data/dwd/icon-eu/**/*.grib2
+          #   table_name: dwd_icon_eu
+          #   bboxes:
+          #     - [46.4, 10.5, 45.7, 11.9]
+
+    - name: tap-grib
+      namespace: tap_grib
+      pip_url: tap-grib>=1.4.3
+
+  loaders:
+    - name: target-postgres
+      variant: meltanolabs
+      pip_url: meltanolabs-target-postgres
+      config:
+        host: ${POSTGRES_HOST}
+        port: ${POSTGRES_PORT}
+        user: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        database: ${POSTGRES_DB}
+        default_target_schema: raw
+
+jobs:
+  - name: import
+    tasks:
+      - tap-dwd target-postgres
