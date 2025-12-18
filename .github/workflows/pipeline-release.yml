@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  PIPELINE_PATH: .
+  PIPELINE_PATH: "."
   REGISTRY: ghcr.io
 
 permissions:
