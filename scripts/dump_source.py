@@ -24,6 +24,7 @@ TEXT_EXTENSIONS = {
     ".txt",
     ".rst",
     ".ini",
+    ".sql",
 }
 
 

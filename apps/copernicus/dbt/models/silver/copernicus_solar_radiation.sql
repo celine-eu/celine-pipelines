@@ -5,6 +5,7 @@
 
 with base as (
     select
+    
         cast(toa as float)                 as toa,
         cast(clear_sky_ghi as float)       as clear_sky_ghi,
         cast(clear_sky_bhi as float)       as clear_sky_bhi,

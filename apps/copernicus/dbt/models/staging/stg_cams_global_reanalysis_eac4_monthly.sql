@@ -2,25 +2,39 @@
     materialized='view'
 ) }}
 
-with source as (
+{% set rel = source('reanalysis','cams_global_reanalysis_eac4_monthly') %}
 
-    select * 
-    from {{ source('reanalysis', 'cams_global_reanalysis_eac4_monthly') }}
+{% if adapter.get_relation(
+      database=rel.database,
+      schema=rel.schema,
+      identifier=rel.identifier
+   ) %}
 
-)
-
-, cleaned as (
     select
-        cast(datetime as timestamp)                   as datetime_utc,
-        nullif(lat, null)::float                     as latitude,
-        nullif(lon, null)::float                     as longitude,
-        nullif(level_type, '')                        as level_type,
-        nullif(level, null)::int                     as level,
-        nullif(name, '')                              as variable_name,
-        nullif(value, null)::float                   as value,
-        nullif(forecast_step, null)::int             as forecast_step,
-        nullif(data_type, '')                         as data_type
-    from source
-)
+        cast(datetime as timestamp) as datetime_utc,
+        lat::float as latitude,
+        lon::float as longitude,
+        level_type,
+        level::int,
+        name as variable_name,
+        value::float,
+        forecast_step::int,
+        data_type
+    from {{ rel }}
 
-select * from cleaned
+{% else %}
+
+    -- empty but schema-compatible
+    select
+        null::timestamp as datetime_utc,
+        null::float as latitude,
+        null::float as longitude,
+        null::text as level_type,
+        null::int as level,
+        null::text as variable_name,
+        null::float as value,
+        null::int as forecast_step,
+        null::text as data_type
+    where false
+
+{% endif %}

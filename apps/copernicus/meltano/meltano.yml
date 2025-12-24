@@ -42,7 +42,11 @@ plugins:
 
     - name: tap-grib
       namespace: tap_grib
-      pip_url: git+https://github.com/celine-eu/tap-grib.git
+      pip_url: tap-grib>=1.4.3
+      capabilities:
+        - discover
+        - catalog
+        - state
 
     - name: tap-spreadsheets
       namespace: tap_spreadsheets

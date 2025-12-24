@@ -1,6 +1,6 @@
 contents:
   - apps
-  - config/pipeline
+  - config
   - scripts
   - Dockerfile
   - Dockerfile.base
@@ -8,4 +8,4 @@ contents:
   - taskfile.yaml
   - skaffold.yaml
 
-output: data/sources.txt
+output: sources.txt

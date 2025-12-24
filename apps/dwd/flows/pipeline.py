@@ -4,6 +4,7 @@ import os
 import datetime
 from celine.utils.pipelines.pipeline import (
     PipelineConfig,
+    PipelineTaskResult,
     dbt_run,
     dbt_run_operation,
     meltano_run,
@@ -16,7 +17,7 @@ script_dir = os.path.dirname(__file__)
 
 # Prefect tasks wrapping functional helpers
 @task(name="Download data", retries=3, retry_delay_seconds=60)
-def download_data(cfg: PipelineConfig) -> Dict[str, Any]:
+def download_data(cfg: PipelineConfig):
     # pt = PipelineRunner(cfg)
 
     # status = True
@@ -28,52 +29,51 @@ def download_data(cfg: PipelineConfig) -> Dict[str, Any]:
     #     details = f"dwd_downloader error: {e} {traceback.format_exc()}"
 
     dwd_downloader(f"{script_dir}/config.yaml")
-    return {
-        "status": "success",
-        "command": "dwd_downloader",
-        "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
-    }
-    # return pt._task_result(status=status, command="dwd_downloader", details=details)
+
+    return PipelineTaskResult(
+        status="success",
+        command="dwd_downloader",
+    )
 
 
 # Prefect tasks wrapping functional helpers
 @task(name="Extract Data", retries=3, retry_delay_seconds=60)
-def import_raw_data(cfg: PipelineConfig) -> Dict[str, Any]:
+def import_raw_data(cfg: PipelineConfig):
     return meltano_run("run import", cfg)
 
 
 @task(name="Transform Staging Layer")
-def transform_staging_layer_task(cfg: PipelineConfig) -> Dict[str, Any]:
+def transform_staging_layer_task(cfg: PipelineConfig):
     return dbt_run("staging", cfg)
 
 
 @task(name="Clean up tables")
-def cleanup_tables(cfg: PipelineConfig) -> Dict[str, Any]:
+def cleanup_tables(cfg: PipelineConfig):
     return dbt_run_operation("cleanup_icon_d2_models", {}, cfg)
 
 
 @task(name="Clean up raw")
-def cleanup_raw(cfg: PipelineConfig) -> Dict[str, Any]:
+def cleanup_raw(cfg: PipelineConfig):
     return dbt_run_operation("cleanup_icon_d2_raw", {}, cfg)
 
 
 @task(name="Transform Silver Layer")
-def transform_silver_layer_task(cfg: PipelineConfig) -> Dict[str, Any]:
+def transform_silver_layer_task(cfg: PipelineConfig):
     return dbt_run("silver", cfg)
 
 
 @task(name="Transform Gold Layer")
-def transform_gold_layer_task(cfg: PipelineConfig) -> Dict[str, Any]:
+def transform_gold_layer_task(cfg: PipelineConfig):
     return dbt_run("gold", cfg)
 
 
 @task(name="Run dbt Tests")
-def run_dbt_tests_task(cfg: PipelineConfig) -> Dict[str, Any]:
+def run_dbt_tests_task(cfg: PipelineConfig):
     return dbt_run("test", cfg)
 
 
 @flow(name="dwd-flow")
-def dwd_flow(config: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def dwd_flow(config: Dict[str, Any] | None = None):
     cfg = PipelineConfig.model_validate(config or {})
 
     downloader = download_data(cfg)

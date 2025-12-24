@@ -3,55 +3,31 @@
 ) }}
 
 with source as (
-
     select * 
     from {{ source('radiation', 'cams_solar_radiation_timeseries') }}
-
 )
 
-, cleaned as (
-    select
-        -- Top-of-atmosphere irradiance [W/m²]
-        -- Incoming solar radiation at the edge of Earth's atmosphere (no atmosphere effects)
-        nullif(toa, 'nan')::float               as toa,
+select
+    -- optional TOA (not always provided by CAMS)
+    {% if 'toa' in adapter.get_columns_in_relation(
+         source('radiation','cams_solar_radiation_timeseries')
+       ) | map(attribute='name') | list %}
+      nullif(toa, 'nan')::float as toa,
+    {% else %}
+      null::float as toa,
+    {% endif %}
 
-        -- --- Clear-sky (theoretical, no clouds) radiation components ---
-        -- Global Horizontal Irradiance under clear sky [W/m²]
-        -- Direct + diffuse radiation on a flat horizontal surface
-        nullif(clear_sky_ghi, 'nan')::float     as clear_sky_ghi,
 
-        -- Beam (direct) Horizontal Irradiance under clear sky [W/m²]
-        -- Sunbeam projected onto a horizontal plane
-        nullif(clear_sky_bhi, 'nan')::float     as clear_sky_bhi,
+    nullif(trim(clear_sky_ghi), '')::float as clear_sky_ghi,
+    nullif(trim(clear_sky_bhi), '')::float as clear_sky_bhi,
+    nullif(trim(clear_sky_dhi), '')::float as clear_sky_dhi,
+    nullif(trim(clear_sky_bni), '')::float as clear_sky_bni,
 
-        -- Diffuse Horizontal Irradiance under clear sky [W/m²]
-        -- Scattered light from the sky dome (excluding direct beam)
-        nullif(clear_sky_dhi, 'nan')::float     as clear_sky_dhi,
+    nullif(trim(ghi), '')::float as ghi,
+    nullif(trim(bhi), '')::float as bhi,
+    nullif(trim(dhi), '')::float as dhi,
+    nullif(trim(bni), '')::float as bni,
 
-        -- Beam Normal Irradiance under clear sky [W/m²]
-        -- Direct solar irradiance on a surface aimed directly at the sun
-        nullif(clear_sky_bni, 'nan')::float     as clear_sky_bni,
-
-        -- --- Actual modeled radiation (with atmosphere, clouds, aerosols) ---
-        -- Global Horizontal Irradiance [W/m²]
-        nullif(ghi, 'nan')::float               as ghi,
-
-        -- Beam (direct) Horizontal Irradiance [W/m²]
-        nullif(bhi, 'nan')::float               as bhi,
-
-        -- Diffuse Horizontal Irradiance [W/m²]
-        nullif(dhi, 'nan')::float               as dhi,
-
-        -- Beam Normal Irradiance [W/m²]
-        nullif(bni, 'nan')::float               as bni,
-
-        -- Reliability score [0–1]
-        -- Model confidence in the radiation estimates (1.0 = high confidence)
-        nullif(reliability, 'nan')::float       as reliability,
-
-        -- Start datetime (UTC) of the measurement/forecast
-        date_start
-    from source
-)
-
-select * from cleaned
+    nullif(trim(reliability), '')::float as reliability,
+    date_start
+from source
