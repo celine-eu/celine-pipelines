@@ -15,16 +15,15 @@ plugins:
           - path: ${MELTANO_GRIB_BASEPATH}/icon-d2/**/*.grib2
             table_name: dwd_icon_d2
             bboxes:
+              # trentino region
               - [46.4, 10.5, 45.7, 11.9]
             primary_keys:
-              [
-                "datetime",
-                "base_datetime",
-                "lat",
-                "lon",
-                "name",
-                "forecast_step",
-              ]
+              - "run_datetime"
+              - "interval_start_datetime"
+              - "interval_end_datetime"
+              - "lat"
+              - "lon"
+              - "name"
             skip_past: true
 
           # icon-d2 data for other areas eg. FI or ES
@@ -35,9 +34,13 @@ plugins:
 
     - name: tap-grib
       namespace: tap_grib
-      pip_url: tap-grib>=1.4.3
+      pip_url: tap-grib>=1.5.0
 
   loaders:
+    # - name: target-jsonl
+    #   variant: andyh1203
+    #   pip_url: target-jsonl
+
     - name: target-postgres
       variant: meltanolabs
       pip_url: meltanolabs-target-postgres

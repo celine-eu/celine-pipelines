@@ -27,3 +27,7 @@ models:
     gold:
       +materialized: table
       +schema: gold
+
+vars:
+  pv:
+    performance_ratio: 0.80

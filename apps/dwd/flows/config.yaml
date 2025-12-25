@@ -14,14 +14,17 @@ datasets:
     base_url: https://opendata.dwd.de/weather/nwp/icon-d2/grib
     runs: ["00", "03", "06", "09", "12", "15", "18", "21"] # only runs you care about
     variables:
+      # wind related
       - vmax_10m
       - u_10m
       - v_10m
+      # solar potential
+      - asob_s
+      # temperature
       # - t_2m
       # - tmax_2m
       # - td_2m
       # - relhum_2m
-      # - asob_s
       # - tot_prec
       # - rain_con
       # - rain_gsp
