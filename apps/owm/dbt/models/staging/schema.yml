@@ -3,5 +3,6 @@ version: 2
 sources:
   - name: raw
     schema: raw
+    database: datasets
     tables:
       - name: forecast_stream
