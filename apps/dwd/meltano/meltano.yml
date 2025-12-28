@@ -1,4 +1,3 @@
-version: 1
 default_environment: prod
 project_id: energy_community_platform
 
@@ -35,6 +34,10 @@ plugins:
     - name: tap-grib
       namespace: tap_grib
       pip_url: tap-grib>=1.5.0
+      capabilities:
+        - catalog
+        - discover
+        - state
 
   loaders:
     # - name: target-jsonl

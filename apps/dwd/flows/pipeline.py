@@ -49,12 +49,7 @@ def transform_staging_layer_task(cfg: PipelineConfig):
 
 @task(name="Clean up tables")
 def cleanup_tables(cfg: PipelineConfig):
-    return dbt_run_operation("cleanup_icon_d2_models", {}, cfg)
-
-
-@task(name="Clean up raw")
-def cleanup_raw(cfg: PipelineConfig):
-    return dbt_run_operation("cleanup_icon_d2_raw", {}, cfg)
+    return dbt_run_operation("cleanup_icon_d2_all", {}, cfg)
 
 
 @task(name="Transform Silver Layer")
@@ -79,7 +74,6 @@ def dwd_flow(config: Dict[str, Any] | None = None):
     downloader = download_data(cfg)
 
     #  cleanup old forecasts
-    cleanup_raw_data = cleanup_raw(cfg)
     cleanup_tables_data = cleanup_tables(cfg)
 
     importer = import_raw_data(cfg)
@@ -91,7 +85,6 @@ def dwd_flow(config: Dict[str, Any] | None = None):
     return {
         "status": "success",
         "downloader": downloader,
-        "cleanup_raw_data": cleanup_raw_data,
         "cleanup_tables_data": cleanup_tables_data,
         "importer": importer,
         "staging": staging,
