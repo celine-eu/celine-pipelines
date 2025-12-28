@@ -156,14 +156,20 @@ tasks:
     cmds:
       - .venv/bin/python scripts/bump_version.py dwd minor --commit
 
-  pipeline:release:base:
+  pipeline:run:all:
     cmds:
-      - .venv/bin/python scripts/bump_version.py base minor --commit
+      - task: pipeline:copernicus:run
+      - task: pipeline:dwd:run
+      - task: pipeline:osm:run
+      - task: pipeline:owm:run
 
-  pipeline:release:apps:
-    desc: Release all apps
+  pipeline:release:all:
     cmds:
       - task: pipeline:copernicus:release
       - task: pipeline:dwd:release
       - task: pipeline:osm:release
       - task: pipeline:owm:release
+
+  pipeline:release:base:
+    cmds:
+      - .venv/bin/python scripts/bump_version.py base minor --commit
