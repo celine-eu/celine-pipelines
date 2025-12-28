@@ -15,151 +15,375 @@ defaults:
 
 sources:
   # ---------------------------------------------------------------------------
-  # GOLD – exposed to partners (derived, curated, license-compatible)
+  # GOLD - exposed to partners (derived, curated, license-compatible)
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_gold.folgaria_weather_alerts:
+    title: "Weather Alerts - Folgaria (Gold)"
+    description: >
+      Gold-layer subset of normalized weather alert records for the Folgaria area.
+      Derived from parsed OpenWeatherMap alert payloads and filtered by location,
+      suitable for redistribution under aggregated, non-commercial terms.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: openweathermap-onecall-3.0
     documentation_url: https://openweathermap.org/api/one-call-3
     tags: [weather, alerts, gold, folgaria]
 
   datasets.ds_dev_gold.folgaria_weather_current:
+    title: "Current Weather Conditions - Folgaria (Gold)"
+    description: >
+      Latest current weather observations for the Folgaria location derived from
+      normalized OpenWeatherMap current conditions. Deduplicates by spatial and
+      temporal keys and exposes the most recent valid observation.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, current, gold, folgaria]
 
   datasets.ds_dev_gold.folgaria_weather_daily:
+    title: "Daily Weather Forecast - Folgaria (Gold)"
+    description: >
+      Daily weather forecast for the Folgaria area derived from OpenWeatherMap
+      daily forecast payloads. Includes temperature ranges, precipitation
+      probability, wind, and summary conditions.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, daily, forecast, gold, folgaria]
 
   datasets.ds_dev_gold.folgaria_weather_hourly:
+    title: "Hourly Weather Forecast - Folgaria (Gold)"
+    description: >
+      Hourly weather forecast for the Folgaria area derived from normalized
+      OpenWeatherMap hourly payloads. Records are deduplicated per ingestion
+      cycle and timestamp.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, hourly, forecast, gold, folgaria]
 
   datasets.ds_dev_gold.folgaria_weather_minutely:
+    title: "Minutely Precipitation Forecast - Folgaria (Gold)"
+    description: >
+      Minutely precipitation forecast for the Folgaria area derived from
+      OpenWeatherMap minutely payloads, providing short-term rainfall intensity
+      information.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, minutely, forecast, gold, folgaria]
 
   datasets.ds_dev_gold.weather_alerts:
+    title: "Weather Alerts (Gold)"
+    description: >
+      Aggregated and normalized weather alert records derived from OpenWeatherMap
+      alert payloads, exposed in a license-compatible, shareable form.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, alerts, gold]
 
   datasets.ds_dev_gold.weather_feature_of_interest:
+    title: "Weather Feature of Interest (Gold)"
+    description: >
+      Distinct set of weather features of interest (locations) derived from
+      current weather observations, providing stable identifiers for semantic
+      and RDF-style modelling.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, foi, gold, derived]
 
   datasets.ds_dev_gold.weather_observations_current:
+    title: "Weather Observations - Current (Gold)"
+    description: >
+      Gold-layer projection of current weather observations derived from
+      normalized OpenWeatherMap payloads, suitable for analytical and semantic
+      consumption.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, observations, current, gold]
 
   datasets.ds_dev_gold.weather_observations_daily:
+    title: "Weather Observations - Daily (Gold)"
+    description: >
+      Daily weather observation projection derived from normalized daily
+      forecasts, exposed in a compact analytical form.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, observations, daily, gold]
 
   datasets.ds_dev_gold.weather_observations_hourly:
+    title: "Weather Observations - Hourly (Gold)"
+    description: >
+      Hourly weather observation projection derived from normalized hourly
+      forecasts, providing time-resolved meteorological variables.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, observations, hourly, gold]
 
   datasets.ds_dev_gold.weather_observations_minutely:
+    title: "Weather Observations - Minutely (Gold)"
+    description: >
+      Minutely precipitation observations derived from normalized OpenWeatherMap
+      payloads, suitable for short-term precipitation analysis.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, observations, minutely, gold]
 
   datasets.ds_dev_gold.weather_observations_unpivoted:
+    title: "Weather Observations - Unpivoted (Gold)"
+    description: >
+      Unpivoted observation dataset combining current, hourly, daily, and
+      minutely weather observations into a property/value representation.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, observations, gold, wide]
 
   datasets.ds_dev_gold.weather_observed_properties:
+    title: "Weather Observed Properties (Gold)"
+    description: >
+      Metadata lookup table enumerating observed weather properties used across
+      gold-layer weather observation datasets.
     license: CC-BY-NC-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, metadata, gold]
 
   # ---------------------------------------------------------------------------
-  # SILVER – internal only (not shareable)
+  # SILVER - internal only (not shareable)
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_silver.weather_alerts:
+    title: "Weather Alerts (Silver)"
+    description: >
+      Normalized weather alert records parsed from raw OpenWeatherMap forecast
+      payloads. Internal dataset used as source for gold projections.
     license: proprietary
     access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, alerts, silver]
 
   datasets.ds_dev_silver.weather_current:
+    title: "Current Weather Conditions (Silver)"
+    description: >
+      Normalized current weather conditions parsed from raw OpenWeatherMap API
+      responses. Internal dataset used for gold-level projections.
     license: proprietary
     access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, current, silver]
 
   datasets.ds_dev_silver.weather_daily:
+    title: "Daily Weather Forecast (Silver)"
+    description: >
+      Normalized daily weather forecast records parsed from OpenWeatherMap daily
+      payloads and prepared for analytical transformation.
     license: proprietary
     access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, daily, silver]
 
   datasets.ds_dev_silver.weather_hourly:
+    title: "Hourly Weather Forecast (Silver)"
+    description: >
+      Normalized hourly weather forecast records parsed from raw OpenWeatherMap
+      hourly payloads and deduplicated for internal analytics.
     license: proprietary
     access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, hourly, silver]
 
   datasets.ds_dev_silver.weather_minutely:
+    title: "Minutely Precipitation Forecast (Silver)"
+    description: >
+      Normalized minutely precipitation records parsed from OpenWeatherMap API
+      payloads for short-term precipitation analysis.
     license: proprietary
     access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     tags: [weather, minutely, silver]
 
   # ---------------------------------------------------------------------------
-  # STAGING – internal technical layer
+  # STAGING - internal technical layer
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_staging.stg_forecast_stream:
+    title: "Staging - OpenWeatherMap Forecast Stream"
+    description: >
+      Technical staging view over raw OpenWeatherMap forecast payloads exposing
+      JSON structures and ingestion metadata for downstream parsing.
     license: proprietary
     access_level: internal
     tags: [weather, staging]
 
   # ---------------------------------------------------------------------------
-  # RAW – verbatim ingested data (restricted)
+  # RAW - verbatim ingested data (restricted)
   # ---------------------------------------------------------------------------
 
   datasets.raw.current_weather_stream:
+    title: "OpenWeatherMap Current Weather Stream (Raw)"
+    description: >
+      Raw current weather API responses ingested directly from OpenWeatherMap and
+      stored verbatim under proprietary licensing.
     license: proprietary
     access_level: internal
+    ownership:
+      - name: OpenWeather Ltd.
+        type: company
     source_system: openweathermap-onecall-3.0
     tags: [weather, raw]
 
   datasets.raw.forecast_stream:
+    title: "OpenWeatherMap Forecast Stream (Raw)"
+    description: >
+      Raw forecast API responses ingested directly from OpenWeatherMap One Call
+      API and stored verbatim under proprietary licensing.
     license: proprietary
     access_level: internal
+    ownership:
+      - name: OpenWeather Ltd.
+        type: company
     source_system: openweathermap-onecall-3.0
     tags: [weather, raw]
 
   # ---------------------------------------------------------------------------
-  # SINGER / TAP – ingestion artifacts (never exposed)
+  # SINGER / TAP - ingestion artifacts (never exposed)
   # ---------------------------------------------------------------------------
 
   singer.tap-openweathermap-folgaria.current_weather_stream:
+    title: "Tap Config - OpenWeatherMap Folgaria Current Stream"
+    description: >
+      Meltano tap configuration for ingesting current weather data for the
+      Folgaria location.
     access_level: internal
     tags: [singer, tap, weather]
 
   singer.tap-openweathermap-folgaria.forecast_stream:
+    title: "Tap Config - OpenWeatherMap Folgaria Forecast Stream"
+    description: >
+      Meltano tap configuration for ingesting forecast data for the Folgaria
+      location.
     license: proprietary
     access_level: internal
     tags: [singer, tap, weather]
 
   singer.tap-openweathermap-lappeenranta.current_weather_stream:
+    title: "Tap Config - OpenWeatherMap Lappeenranta Current Stream"
+    description: >
+      Meltano tap configuration for ingesting current weather data for the
+      Lappeenranta location.
     license: proprietary
     access_level: internal
     tags: [singer, tap, weather]
 
   singer.tap-openweathermap-lappeenranta.forecast_stream:
+    title: "Tap Config - OpenWeatherMap Lappeenranta Forecast Stream"
+    description: >
+      Meltano tap configuration for ingesting forecast data for the
+      Lappeenranta location.
     license: proprietary
     access_level: internal
     tags: [singer, tap, weather]
 
   singer.tap-openweathermap-valencia.current_weather_stream:
+    title: "Tap Config - OpenWeatherMap Valencia Current Stream"
+    description: >
+      Meltano tap configuration for ingesting current weather data for the
+      Valencia location.
     license: proprietary
     access_level: internal
     tags: [singer, tap, weather]
 
   singer.tap-openweathermap-valencia.forecast_stream:
+    title: "Tap Config - OpenWeatherMap Valencia Forecast Stream"
+    description: >
+      Meltano tap configuration for ingesting forecast data for the Valencia
+      location.
     license: proprietary
     access_level: internal
     tags: [singer, tap, weather]

@@ -10,43 +10,80 @@ defaults:
 
 sources:
   # ---------------------------------------------------------------------------
-  # GOLD – exposed derived indicators
+  # GOLD - exposed derived indicators
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_gold.dwd_icon_d2_gusts:
+    title: "ICON-D2 Wind Gust Indicators (Daily, Gold)"
+    description: >
+      Daily wind gust indicators derived from ICON-D2 numerical weather
+      prediction outputs. Aggregates daily maxima of wind speed and gust
+      variables per grid point, computes gust excess, and classifies conditions
+      into NORMAL, WARNING, or ALERT tiers for downstream analytics and alerts.
     license: dl-de/by-2-0
-    access_level: external
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: Deutscher Wetterdienst (DWD)
     documentation_url: https://www.dwd.de/EN/ourservices/opendata/opendata.html
     tags: [dwd, icon-d2, wind, gusts, gold]
 
   # ---------------------------------------------------------------------------
-  # SILVER – enriched internal datasets
+  # SILVER - enriched internal datasets
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_silver.dwd_icon_d2_wind:
+    title: "ICON-D2 Wind Fields (Silver)"
+    description: >
+      Enriched wind dataset derived from ICON-D2 model outputs. Pivots 10-meter
+      u and v wind components and maximum gust values per forecast interval and
+      grid point, computing wind speed as the vector magnitude. Serves as the
+      basis for derived gust and energy indicators.
     license: dl-de/by-2-0
     access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: Deutscher Wetterdienst (DWD)
     tags: [dwd, icon-d2, wind, silver]
 
   # ---------------------------------------------------------------------------
-  # STAGING – technical preparation layer
+  # STAGING - technical preparation layer
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_raw.stg_dwd_icon_d2:
+    title: "Staging - ICON-D2 Model Output"
+    description: >
+      Technical staging view over raw ICON-D2 GRIB imports. Deduplicates records
+      by forecast run, interval, grid point, and variable, normalizes timestamps
+      and numeric types, and filters out expired forecast intervals prior to
+      silver-layer enrichment.
     license: dl-de/by-2-0
     access_level: internal
     source_system: Deutscher Wetterdienst (DWD)
     tags: [dwd, icon-d2, staging]
 
   # ---------------------------------------------------------------------------
-  # RAW – verbatim ICON-D2 model output
+  # RAW - verbatim ICON-D2 model output
   # ---------------------------------------------------------------------------
 
   datasets.raw.dwd_icon_d2:
+    title: "ICON-D2 Numerical Weather Prediction Output (Raw)"
+    description: >
+      Raw ICON-D2 numerical weather prediction data produced by the Deutscher
+      Wetterdienst and ingested from DWD Open Data as GRIB files via Meltano.
+      Data is stored verbatim and serves as immutable input for staging and
+      downstream transformations.
     license: dl-de/by-2-0
     access_level: internal
+    ownership:
+      - name: Deutscher Wetterdienst (DWD)
+        type: public_authority
     source_system: Deutscher Wetterdienst (DWD)
     documentation_url: https://www.dwd.de/EN/ourservices/opendata/opendata.html
     tags: [dwd, icon-d2, raw]

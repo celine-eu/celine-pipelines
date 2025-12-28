@@ -11,64 +11,146 @@ defaults:
 
 sources:
   # ---------------------------------------------------------------------------
-  # SILVER – curated Copernicus datasets (internal by default)
+  # SILVER - curated Copernicus datasets (internal by default)
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_silver.copernicus_cams_global_reanalysis_eac4_monthly:
+    title: "CAMS Global Atmospheric Reanalysis (EAC4) - Monthly Curated Dataset"
+    description: >
+      Monthly global atmospheric reanalysis produced by the Copernicus Atmosphere
+      Monitoring Service (CAMS) and curated from raw GRIB imports. The staging
+      layer normalizes timestamps, spatial coordinates, and numeric values,
+      while the silver model generates deterministic surrogate identifiers and
+      enriches records with month-level and hourly temporal attributes.
     license: Copernicus-Open-Access
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: CAMS / ECMWF
     documentation_url: https://ads.atmosphere.copernicus.eu/
     tags: [copernicus, cams, reanalysis, silver]
 
   datasets.ds_dev_silver.copernicus_era5_single_levels:
+    title: "ERA5 Reanalysis - Single Levels (Curated)"
+    description: >
+      Curated ERA5 single-level atmospheric reanalysis dataset derived from raw
+      ERA5 GRIB files. Applies normalization of timestamps, coordinates, and data
+      types, generates a deterministic surrogate record identifier, and enriches
+      records with daily and hourly temporal dimensions for analytical use.
     license: Copernicus-Open-Access
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: ECMWF
     documentation_url: https://cds.climate.copernicus.eu/
     tags: [copernicus, era5, reanalysis, silver]
 
   datasets.ds_dev_silver.copernicus_solar_radiation:
+    title: "Copernicus Solar Radiation - Curated Time Series"
+    description: >
+      Curated solar radiation time series derived from CAMS solar products
+      ingested as CSV files. Normalizes numeric fields, aligns timestamps to UTC,
+      enriches data with daily and hourly temporal breakdowns, and computes
+      derived indicators such as the clearness index for solar analytics.
     license: Copernicus-Open-Access
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
     source_system: CAMS
     documentation_url: https://ads.atmosphere.copernicus.eu/
     tags: [copernicus, solar, radiation, silver]
 
   # ---------------------------------------------------------------------------
-  # STAGING – technical transformation layer
+  # STAGING - technical transformation layer
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_staging.stg_cams_global_reanalysis_eac4_monthly:
+    title: "Staging - CAMS Global Reanalysis EAC4 Monthly"
+    description: >
+      Technical staging view over raw CAMS EAC4 monthly GRIB imports. Performs
+      schema alignment, timestamp casting to UTC, coordinate normalization, and
+      numeric type normalization prior to silver-layer curation.
     license: Copernicus-Open-Access
+    access_level: internal
     source_system: CAMS / ECMWF
     tags: [copernicus, cams, staging]
 
   datasets.ds_dev_staging.stg_era5_single_levels:
+    title: "Staging - ERA5 Single Levels"
+    description: >
+      Technical staging view over raw ERA5 single-level GRIB imports. Normalizes
+      timestamps, coordinates, and data types and prepares the dataset for
+      curated silver-layer modelling.
     license: Copernicus-Open-Access
+    access_level: internal
     source_system: ECMWF
     tags: [copernicus, era5, staging]
 
   datasets.ds_dev_staging.stg_radiation_raw:
+    title: "Staging - CAMS Solar Radiation"
+    description: >
+      Technical staging layer over raw CAMS solar radiation CSV imports. Trims
+      and casts numeric fields, preserves temporal semantics, and ensures schema
+      compatibility prior to silver-level enrichment.
     license: Copernicus-Open-Access
+    access_level: internal
     source_system: CAMS
     tags: [copernicus, solar, staging]
 
   # ---------------------------------------------------------------------------
-  # RAW – verbatim ingested datasets
+  # RAW - verbatim ingested datasets
   # ---------------------------------------------------------------------------
 
   datasets.raw.cams_global_reanalysis_eac4_monthly:
+    title: "CAMS Global Atmospheric Reanalysis (EAC4) - Raw Monthly Data"
+    description: >
+      Raw monthly CAMS EAC4 atmospheric reanalysis data ingested from Copernicus
+      ADS as GRIB files via Meltano. Data is stored verbatim, without semantic
+      transformation, and serves as immutable input for staging and curation.
     license: Copernicus-Open-Access
+    access_level: internal
+    ownership:
+      - name: copernicus
+        type: public_authority
     source_system: CAMS / ECMWF
     documentation_url: https://ads.atmosphere.copernicus.eu/
     tags: [copernicus, cams, raw]
 
   datasets.raw.cams_solar_radiation_timeseries:
+    title: "CAMS Solar Radiation Time Series - Raw Data"
+    description: >
+      Raw CAMS solar radiation time series ingested from CSV exports via Meltano.
+      Records are stored as provided by the source system prior to numeric
+      normalization and derivation of analytical indicators.
     license: Copernicus-Open-Access
+    access_level: internal
+    ownership:
+      - name: copernicus
+        type: public_authority
     source_system: CAMS
     documentation_url: https://ads.atmosphere.copernicus.eu/
     tags: [copernicus, solar, raw]
 
   datasets.raw.reanalysis_era5_single_levels:
+    title: "ERA5 Reanalysis - Single Levels (Raw)"
+    description: >
+      Raw ERA5 single-level atmospheric reanalysis ingested from the Copernicus
+      Climate Data Store as GRIB files. Stored verbatim and used as the immutable
+      source for staging and silver-layer curation.
     license: Copernicus-Open-Access
+    access_level: internal
+    ownership:
+      - name: copernicus
+        type: public_authority
     source_system: ECMWF
     documentation_url: https://cds.climate.copernicus.eu/
     tags: [copernicus, era5, raw]

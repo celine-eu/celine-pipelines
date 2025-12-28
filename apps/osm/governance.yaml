@@ -11,101 +11,216 @@ defaults:
 
 sources:
   # ---------------------------------------------------------------------------
-  # RAW – verbatim OpenStreetMap extracts
+  # RAW - verbatim OpenStreetMap extracts
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_raw.openstreetmap_fi_lappeenranta:
+    title: "OpenStreetMap Extract - Lappeenranta (Raw, Dev)"
+    description: >
+      Raw OpenStreetMap extract for the Lappeenranta (Finland) area ingested via
+      Meltano. Geometry and tags are stored verbatim as provided by OpenStreetMap,
+      without semantic transformation, serving as immutable input for downstream
+      staging and curation.
     license: ODbL-1.0
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     documentation_url: https://www.openstreetmap.org/copyright
     tags: [osm, raw, finland]
 
   datasets.ds_dev_raw.openstreetmap_it_alpecimbra:
+    title: "OpenStreetMap Extract - Alpe Cimbra (Raw, Dev)"
+    description: >
+      Raw OpenStreetMap extract for the Alpe Cimbra (Trentino, Italy) area ingested
+      via Meltano. Geometry and tags are preserved verbatim under ODbL, prior to
+      any enrichment or thematic filtering.
     license: ODbL-1.0
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     documentation_url: https://www.openstreetmap.org/copyright
     tags: [osm, raw, italy]
 
   datasets.raw.openstreetmap_fi_lappeenranta:
+    title: "OpenStreetMap Extract - Lappeenranta (Raw)"
+    description: >
+      Raw OpenStreetMap extract for the Lappeenranta (Finland) area ingested via
+      Meltano and stored as the canonical raw dataset for staging and silver
+      thematic layers.
     license: ODbL-1.0
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     documentation_url: https://www.openstreetmap.org/copyright
     tags: [osm, raw, finland]
 
   datasets.raw.openstreetmap_it_alpecimbra:
+    title: "OpenStreetMap Extract - Alpe Cimbra (Raw)"
+    description: >
+      Raw OpenStreetMap extract for the Alpe Cimbra (Trentino, Italy) area, stored
+      verbatim after ingestion and used as immutable source for curated OSM
+      thematic datasets.
     license: ODbL-1.0
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     documentation_url: https://www.openstreetmap.org/copyright
     tags: [osm, raw, italy]
 
   # ---------------------------------------------------------------------------
-  # SILVER – curated thematic datasets (shareable under ODbL)
+  # SILVER - curated thematic datasets (shareable under ODbL)
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_silver.openstreetmap_fi_lappeenranta_base:
+    title: "OSM Base Layer - Lappeenranta (Silver)"
+    description: >
+      Base curated geospatial layer derived from the Lappeenranta OSM extract.
+      Parses geometry to EPSG:4326, exposes tags as structured attributes, and
+      emits GeoJSON features suitable for analysis and visualization.
     license: ODbL-1.0
-    access_level: external
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     tags: [osm, silver, finland, base]
 
   datasets.ds_dev_silver.openstreetmap_fi_lappeenranta_social_buildings:
+    title: "OSM Social Facilities - Lappeenranta (Silver)"
+    description: >
+      Thematic dataset derived from the Lappeenranta base layer, filtering OSM
+      features related to social facilities based on amenity and
+      social_facility tags.
     license: ODbL-1.0
-    access_level: external
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     tags: [osm, silver, finland, social]
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_base:
+    title: "OSM Base Layer - Alpe Cimbra (Silver)"
+    description: >
+      Base curated geospatial layer for the Alpe Cimbra OSM extract. Normalizes
+      geometry, extracts key tags, and exposes GeoJSON features for downstream
+      thematic modelling.
     license: ODbL-1.0
-    access_level: external
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, base]
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_amusement:
+    title: "OSM Amusement & Parks - Alpe Cimbra (Silver)"
+    description: >
+      Thematic dataset filtering leisure-related features (parks, amusement
+      areas, water parks, theme parks) from the Alpe Cimbra base layer.
     license: ODbL-1.0
-    access_level: external
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, amusement]
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_ev_charging:
+    title: "OSM EV Charging Stations - Alpe Cimbra (Silver)"
+    description: >
+      Thematic dataset identifying electric vehicle charging infrastructure
+      derived from the Alpe Cimbra base layer where amenity='charging_station'.
     license: ODbL-1.0
-    access_level: external
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, ev, charging]
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_hospitality:
+    title: "OSM Hospitality - Alpe Cimbra (Silver)"
+    description: >
+      Hospitality-related features derived from the Alpe Cimbra base layer,
+      including hotels, guest houses, alpine huts, campsites, and related
+      tourism accommodations.
     license: ODbL-1.0
-    access_level: external
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, hospitality]
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_parking:
+    title: "OSM Parking - Alpe Cimbra (Silver)"
+    description: >
+      Thematic dataset of parking areas and parking spaces derived from the
+      Alpe Cimbra base layer using amenity-based filters.
     license: ODbL-1.0
-    access_level: external
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, parking]
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_piste_and_lifts:
+    title: "OSM Ski Pistes & Lifts - Alpe Cimbra (Silver)"
+    description: >
+      Ski piste and lift infrastructure derived from the Alpe Cimbra base layer,
+      using piste:type and aerialway tags to identify winter sports assets.
     license: ODbL-1.0
-    access_level: external
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, ski]
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_tourism_culture:
+    title: "OSM Tourism & Culture - Alpe Cimbra (Silver)"
+    description: >
+      Cultural and tourism-related features derived from the Alpe Cimbra base
+      layer, including museums, artworks, attractions, heritage sites, and
+      cultural amenities.
     license: ODbL-1.0
-    access_level: external
+    access_level: open
+    ownership:
+      - name: openstreetmap
+        type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, tourism, culture]
 
   # ---------------------------------------------------------------------------
-  # SINGER / TAP – ingestion artifacts (never exposed)
+  # SINGER / TAP - ingestion artifacts (never exposed)
   # ---------------------------------------------------------------------------
 
   singer.tap-osm-alpecimbra.openstreetmap_it_alpecimbra:
+    title: "Tap Config - OSM Alpe Cimbra Extract"
+    description: >
+      Meltano tap configuration for ingesting the Alpe Cimbra OpenStreetMap
+      extract. This is an internal ingestion artifact and not a user-facing
+      dataset.
     license: proprietary
     access_level: internal
     tags: [osm, singer, tap]
 
   singer.tap-osm-lap.openstreetmap_fi_lappeenranta:
+    title: "Tap Config - OSM Lappeenranta Extract"
+    description: >
+      Meltano tap configuration for ingesting the Lappeenranta OpenStreetMap
+      extract. This artifact supports ingestion only and is not exposed via
+      the Dataset API.
     license: proprietary
     access_level: internal
     tags: [osm, singer, tap]

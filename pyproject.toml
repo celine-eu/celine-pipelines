@@ -5,7 +5,7 @@ description = "CELINE pipelines toolkit"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "celine-utils>=1.4.2",
+    "celine-utils>=1.4.3",
 ]
 
 [dependency-groups]
