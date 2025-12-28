@@ -154,3 +154,41 @@ sources:
     source_system: ECMWF
     documentation_url: https://cds.climate.copernicus.eu/
     tags: [copernicus, era5, raw]
+
+  datasets.ds_dev_gold.copernicus_era5_analysis:
+    title: "ERA5 Analysis Indicators"
+    description: >
+      Derived analytical indicators computed from ERA5 reanalysis data,
+      optimized for downstream modelling and analytical use cases.
+    license: Copernicus-Open-Access
+    source_system: ECMWF
+    documentation_url: https://cds.climate.copernicus.eu/
+    tags: [copernicus, era5, analysis, gold]
+
+  datasets.ds_dev_gold.copernicus_era5_forecast:
+    title: "ERA5 Forecast Indicators"
+    description: >
+      Forecast-oriented indicators derived from ERA5 data products,
+      exposed as gold-layer datasets for external and internal consumption.
+    license: Copernicus-Open-Access
+    source_system: ECMWF
+    documentation_url: https://cds.climate.copernicus.eu/
+    tags: [copernicus, era5, forecast, gold]
+
+  singer.tap-era5.reanalysis_era5_single_levels:
+    title: "ERA5 Reanalysis – Single Levels (Singer Extract)"
+    description: >
+      Singer ingestion stream for ERA5 reanalysis data at single atmospheric levels,
+      extracted from the Copernicus Climate Data Store.
+    license: Copernicus-Open-Access
+    source_system: ECMWF
+    tags: [copernicus, era5, singer, raw]
+
+  singer.tap-solar.cams_solar_radiation_timeseries:
+    title: "CAMS Solar Radiation Time Series (Singer Extract)"
+    description: >
+      Singer ingestion stream providing solar radiation time series data
+      from the Copernicus Atmosphere Monitoring Service.
+    license: Copernicus-Open-Access
+    source_system: CAMS
+    tags: [copernicus, solar, singer, raw]

@@ -82,8 +82,90 @@ sources:
     license: dl-de/by-2-0
     access_level: internal
     ownership:
-      - name: Deutscher Wetterdienst (DWD)
+      - name: dwd
         type: public_authority
     source_system: Deutscher Wetterdienst (DWD)
     documentation_url: https://www.dwd.de/EN/ourservices/opendata/opendata.html
     tags: [dwd, icon-d2, raw]
+
+  datasets.ds_dev_gold.dwd_icon_d2_solar_energy:
+    title: "ICON-D2 Solar Energy Indicators"
+    description: >
+      Solar energy indicators derived from ICON-D2 solar radiation outputs,
+      designed for photovoltaic and energy-related applications.
+    license: dl-de/by-2-0
+    source_system: Deutscher Wetterdienst (DWD)
+    tags: [dwd, icon-d2, solar, energy, gold]
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+
+  datasets.ds_dev_gold.pv_potential_forecast_daily:
+    title: "Photovoltaic Potential Forecast – Daily"
+    description: >
+      Daily photovoltaic potential forecasts derived from ICON-D2
+      meteorological model outputs.
+    license: dl-de/by-2-0
+    source_system: Deutscher Wetterdienst (DWD)
+    tags: [pv, solar, forecast, daily, gold]
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+
+  datasets.ds_dev_gold.pv_potential_forecast_hourly:
+    title: "Photovoltaic Potential Forecast – Hourly"
+    description: >
+      Hourly photovoltaic potential forecasts derived from ICON-D2
+      meteorological model outputs.
+    license: dl-de/by-2-0
+    source_system: Deutscher Wetterdienst (DWD)
+    tags: [pv, solar, forecast, hourly, gold]
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+
+  datasets.ds_dev_silver.dwd_icon_d2_solar_forecast_hourly:
+    title: "ICON-D2 Solar Forecast – Hourly"
+    description: >
+      Hourly solar radiation forecast data derived from ICON-D2 outputs,
+      enriched for internal analytical use.
+    license: dl-de/by-2-0
+    source_system: Deutscher Wetterdienst (DWD)
+    tags: [dwd, icon-d2, solar, forecast, silver]
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+
+  datasets.ds_dev_silver.dwd_icon_d2_solar_forecast_interval:
+    title: "ICON-D2 Solar Forecast – Interval"
+    description: >
+      Interval-based solar radiation forecast data derived from ICON-D2 outputs,
+      used as an intermediate enrichment layer.
+    license: dl-de/by-2-0
+    source_system: Deutscher Wetterdienst (DWD)
+    tags: [dwd, icon-d2, solar, forecast, silver]
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+
+  singer.tap-dwd.dwd_icon_d2:
+    title: "ICON-D2 Model Output (Singer Extract)"
+    description: >
+      Singer ingestion stream extracting ICON-D2 numerical weather
+      prediction outputs from DWD open data services.
+    license: dl-de/by-2-0
+    source_system: Deutscher Wetterdienst (DWD)
+    tags: [dwd, icon-d2, singer, raw]
+    ownership:
+      - name: dwd
+        type: public_authority
