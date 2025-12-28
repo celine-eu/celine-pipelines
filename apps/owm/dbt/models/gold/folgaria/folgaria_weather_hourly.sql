@@ -9,11 +9,7 @@
 ) }}
 
 with source as (
-    select *
-    from {{ ref('weather_hourly') }}
-),
 
-filtered as (
     select
         synced_at,
         lat,
@@ -29,8 +25,37 @@ filtered as (
         weather_main,
         weather_description,
         dt_lat_lon
-    from source
+    from {{ ref('weather_hourly') }}
     where lower(location_id) like '%folgaria%'
+
+),
+
+dedup as (
+
+    select
+        *,
+        row_number() over (
+            partition by synced_at, dt_lat_lon
+            order by ts desc
+        ) as rn
+    from source
+
 )
 
-select * from filtered
+select
+    synced_at,
+    lat,
+    lon,
+    location_id,
+    ts,
+    temp,
+    humidity,
+    pressure,
+    uvi,
+    clouds,
+    wind_deg,
+    weather_main,
+    weather_description,
+    dt_lat_lon
+from dedup
+where rn = 1

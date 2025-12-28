@@ -20,74 +20,61 @@ sources:
 
   datasets.ds_dev_gold.folgaria_weather_alerts:
     license: CC-BY-NC-4.0
-    access_level: external
     source_system: openweathermap-onecall-3.0
     documentation_url: https://openweathermap.org/api/one-call-3
     tags: [weather, alerts, gold, folgaria]
 
   datasets.ds_dev_gold.folgaria_weather_current:
     license: CC-BY-NC-4.0
-    access_level: external
     source_system: openweathermap-onecall-3.0
     tags: [weather, current, gold, folgaria]
 
   datasets.ds_dev_gold.folgaria_weather_daily:
     license: CC-BY-NC-4.0
-    access_level: external
     source_system: openweathermap-onecall-3.0
     tags: [weather, daily, forecast, gold, folgaria]
 
   datasets.ds_dev_gold.folgaria_weather_hourly:
     license: CC-BY-NC-4.0
-    access_level: external
     source_system: openweathermap-onecall-3.0
     tags: [weather, hourly, forecast, gold, folgaria]
 
   datasets.ds_dev_gold.folgaria_weather_minutely:
     license: CC-BY-NC-4.0
-    access_level: external
     source_system: openweathermap-onecall-3.0
     tags: [weather, minutely, forecast, gold, folgaria]
 
   datasets.ds_dev_gold.weather_alerts:
     license: CC-BY-NC-4.0
-    access_level: external
     source_system: openweathermap-onecall-3.0
     tags: [weather, alerts, gold]
 
   datasets.ds_dev_gold.weather_feature_of_interest:
     license: CC-BY-NC-4.0
-    access_level: external
     tags: [weather, foi, gold, derived]
 
   datasets.ds_dev_gold.weather_observations_current:
     license: CC-BY-NC-4.0
-    access_level: external
     tags: [weather, observations, current, gold]
 
   datasets.ds_dev_gold.weather_observations_daily:
     license: CC-BY-NC-4.0
-    access_level: external
     tags: [weather, observations, daily, gold]
 
   datasets.ds_dev_gold.weather_observations_hourly:
     license: CC-BY-NC-4.0
-    access_level: external
     tags: [weather, observations, hourly, gold]
 
   datasets.ds_dev_gold.weather_observations_minutely:
     license: CC-BY-NC-4.0
-    access_level: external
     tags: [weather, observations, minutely, gold]
 
   datasets.ds_dev_gold.weather_observations_unpivoted:
     license: CC-BY-NC-4.0
-    access_level: external
     tags: [weather, observations, gold, wide]
 
   datasets.ds_dev_gold.weather_observed_properties:
     license: CC-BY-NC-4.0
-    access_level: external
     tags: [weather, metadata, gold]
 
   # ---------------------------------------------------------------------------
