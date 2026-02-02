@@ -49,19 +49,6 @@ networks:
   celine_pipelines:
 
 services:
-  caddy:
-    image: caddy:2.8
-    restart: unless-stopped
-    ports:
-      - 8080:80
-    volumes:
-      - ./config/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
-    networks:
-      - celine_pipelines
-    depends_on:
-      - marquez-web
-      - prefect-server
-
   datasets-db:
     image: postgis/postgis:17-3.5-alpine
     environment:
@@ -93,6 +80,8 @@ services:
       - WEB_PORT=5002
     networks:
       - celine_pipelines
+    ports:
+      - 5002:5002
     depends_on:
       marquez-api:
         condition: service_started
