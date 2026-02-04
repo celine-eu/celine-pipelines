@@ -1,5 +1,7 @@
 {
     "python.analysis.extraPaths": [
-        "scripts"
+        "scripts",
+        "../celine-utils/src",
+        "../celine-sdk/src",
     ]
 }
