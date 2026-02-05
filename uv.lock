@@ -302,6 +302,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "celine-utils" },
     { name = "dumpster-cli" },
     { name = "semver" },
 ]
@@ -311,6 +312,7 @@ requires-dist = [{ name = "celine-utils", specifier = ">=1.4.4" }]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "celine-utils", specifier = ">=1.4.4" },
     { name = "dumpster-cli", specifier = ">=1.4.0" },
     { name = "semver", specifier = ">=3.0.4" },
 ]

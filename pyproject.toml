@@ -10,6 +10,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "celine-utils>=1.4.4",
     "dumpster-cli>=1.4.0",
     "semver>=3.0.4",
 ]
