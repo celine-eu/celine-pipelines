@@ -1,0 +1,48 @@
+name: "energy_community"
+version: "1.0.0"
+config-version: 2
+profile: "energy_community"
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["data"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+clean-targets: ["target", "dbt_packages", "logs"]
+
+vars:
+  # Location
+  om_latitude: 45.9167
+
+  # Temperature thresholds
+  om_heating_base_temp: 18
+  om_cooling_base_temp: 24
+  om_pv_ref_temp: 25
+  om_pv_temp_loss_rate: 0.004
+
+  # Cloud weights
+  om_cloud_weight_low: 0.6
+  om_cloud_weight_mid: 0.3
+  om_cloud_weight_high: 0.1
+
+  # Solar
+  om_bifacial_gain_factor: 0.9
+  om_clearsky_ghi_threshold: 50
+  om_clearsky_index_cap: 1.5
+
+  # Snow
+  om_snowfall_rolling_hours: 6
+
+  # Daylight
+  om_daylight_start_hour: 6
+  om_daylight_end_hour: 20
+
+models:
+  energy_community:
+    staging:
+      +materialized: view
+      +schema: staging
+    silver:
+      +materialized: table
+      +schema: silver

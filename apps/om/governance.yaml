@@ -1,0 +1,66 @@
+defaults:
+  license: null
+  ownership: []
+  access_level: internal
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: null
+
+sources:
+  # ---------------------------------------------------------------------------
+  # SILVER - enriched internal datasets
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_silver.om_weather_hourly:
+    title: "Open-Meteo Hourly Weather Features (Silver)"
+    description: >
+      Hourly weather data with physics-informed derived features for energy
+      forecasting. Includes solar position calculations, clear-sky indices,
+      weighted cloud cover, heating/cooling degree hours, PV temperature
+      correction, and rolling snowfall accumulation.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, weather, forecast, silver]
+
+  # ---------------------------------------------------------------------------
+  # STAGING - technical preparation layer
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_raw.stg_om_weather:
+    title: "Staging - Open-Meteo Hourly Weather"
+    description: >
+      Technical staging view over raw Open-Meteo weather data. Casts column
+      types and deduplicates records by datetime prior to silver-layer
+      enrichment.
+    license: CC-BY-4.0
+    access_level: internal
+    source_system: Open-Meteo
+    tags: [open-meteo, weather, staging]
+
+  # ---------------------------------------------------------------------------
+  # RAW - verbatim API data
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.om_weather:
+    title: "Open-Meteo Hourly Weather (Raw)"
+    description: >
+      Raw hourly weather data ingested from the Open-Meteo forecast and
+      archive APIs. Data is stored verbatim and serves as immutable input
+      for staging and downstream transformations.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: Open-Meteo
+        type: open_source
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, weather, raw]

@@ -234,3 +234,14 @@ services:
     env_file:
       - path: ./apps/dwd/.env
         required: false
+
+  pipeline-om:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-om
+    build:
+      context: .
+      args:
+        APP_NAME: om
+    env_file:
+      - path: ./apps/om/.env
+        required: false

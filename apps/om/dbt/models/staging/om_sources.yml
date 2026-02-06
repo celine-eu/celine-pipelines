@@ -1,0 +1,48 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: om_weather
+        description: >
+          Hourly weather data from the Open-Meteo API.
+          Includes historical archive and forecast data.
+        columns:
+          - name: datetime
+            description: "Hourly timestamp (Europe/Rome timezone)"
+            tests:
+              - not_null
+              - unique
+          - name: direct_radiation
+            description: "Direct beam radiation on horizontal surface (W/m2)"
+          - name: diffuse_radiation
+            description: "Scattered radiation (W/m2)"
+          - name: direct_normal_irradiance
+            description: "Direct Normal Irradiance - DNI (W/m2)"
+          - name: global_tilted_irradiance
+            description: "Global Tilted Irradiance - GTI (W/m2), historical only"
+          - name: shortwave_radiation
+            description: "Total solar radiation - GHI (W/m2)"
+          - name: cloud_cover
+            description: "Total cloud cover (%)"
+          - name: cloud_cover_low
+            description: "Low-level cloud cover (%, most impact on solar)"
+          - name: cloud_cover_mid
+            description: "Mid-level cloud cover (%)"
+          - name: cloud_cover_high
+            description: "High-level cloud cover (%, cirrus)"
+          - name: temperature_2m
+            description: "Air temperature at 2m (C)"
+          - name: apparent_temperature
+            description: "Feels-like temperature (C)"
+          - name: precipitation
+            description: "Total precipitation (mm)"
+          - name: rain
+            description: "Rainfall (mm)"
+          - name: snowfall
+            description: "Snowfall (cm)"
+          - name: snow_depth
+            description: "Snow depth (m), historical only"
+          - name: relative_humidity_2m
+            description: "Relative humidity at 2m (%)"

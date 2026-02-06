@@ -12,3 +12,4 @@ target
 .python-version
 cache
 .git
+temp*

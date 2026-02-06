@@ -1,0 +1,57 @@
+# Open-Meteo weather pipeline configuration
+# All previously hardcoded constants extracted here.
+
+# Location
+location:
+  name: folgaria
+  latitude: 45.9167
+  longitude: 11.1667
+  timezone: "Europe/Rome"
+
+# Open-Meteo API
+api:
+  forecast_url: "https://api.open-meteo.com/v1/forecast"
+  archive_url: "https://archive-api.open-meteo.com/v1/archive"
+  timeout_seconds: 60
+  retry_sleep_seconds: 0.5
+
+# Forecast parameters
+forecast:
+  days: 7
+  past_days: 5
+
+# Historical backfill defaults
+historical:
+  start_date: "2024-12-01"
+  chunk_months: 3
+
+# Variables to fetch
+variables:
+  forecast:
+    - direct_radiation
+    - diffuse_radiation
+    - direct_normal_irradiance
+    - shortwave_radiation
+    - cloud_cover
+    - cloud_cover_low
+    - cloud_cover_mid
+    - cloud_cover_high
+    - temperature_2m
+    - apparent_temperature
+    - precipitation
+    - rain
+    - snowfall
+    - relative_humidity_2m
+  historical_extra:
+    - global_tilted_irradiance
+    - snow_depth
+
+# Raw storage
+raw:
+  table: om_weather
+  schema: raw
+
+# Schedule
+schedule:
+  cron: "0 6 * * *"
+  name: "om-weather-daily"

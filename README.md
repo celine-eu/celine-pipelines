@@ -177,3 +177,22 @@ This work is part of the **CELINE project**, funded under the European Union fra
 - Deutscher Wetterdienst (DWD)
 - OpenStreetMap contributors
 - OpenWeather Ltd.
+
+
+---
+
+## OM pipeline:
+Run in Docker
+```bash
+docker compose up datasets-db -d  # ensure Postgres is up
+docker compose build pipeline-om
+docker compose run --rm pipeline-om python3 -c "
+from flows.pipeline import om_flow
+om_flow(config={'mode': 'forecast'})
+"
+```
+
+Or to start it as a service (with the scheduled cron job):
+```bash
+docker compose up pipeline-om -d
+```
