@@ -3,53 +3,20 @@ version: 2
 models:
   - name: om_weather_hourly
     description: >
-      Hourly weather data with physics-informed derived features
-      for energy forecasting. Includes solar position calculations, cloud impact
-      metrics, temperature-driven consumption indicators, and snow risk flags.
-      All thresholds are parameterized via dbt vars (om_* prefix).
+      Hourly weather data for energy forecasting. Contains only the 4
+      natural weather variables, identical across historical and forecast
+      sources to ensure train/test consistency.
     columns:
       - name: datetime
         description: "Hourly timestamp (Europe/Rome timezone)"
         tests:
           - not_null
           - unique
-
-      # Solar features
       - name: shortwave_radiation
-        description: "Total solar radiation GHI (W/m2) - main solar feature"
-      - name: solar_elevation
-        description: "Sun elevation angle (degrees)"
-      - name: clearsky_ghi_approx
-        description: "Theoretical clear-sky GHI (W/m2, Ineichen-Perez simplified)"
-      - name: clearsky_index
-        description: "Ratio actual/theoretical GHI. <1 = cloud attenuation, capped at var('om_clearsky_index_cap')"
-      - name: effective_solar_pv
-        description: "PV-optimized irradiance: direct + var('om_bifacial_gain_factor') * diffuse (W/m2)"
-
-      # Cloud features
-      - name: cloud_cover_weighted
-        description: "Weighted cloud cover using var('om_cloud_weight_*') weights"
-      - name: cloud_cover_diff
-        description: "Hour-to-hour cloud cover variability (abs delta)"
-
-      # Temperature features
-      - name: heating_degree
-        description: "Heating degree hours (base var('om_heating_base_temp') C, winter consumption driver)"
-      - name: cooling_degree
-        description: "Cooling degree hours (base var('om_cooling_base_temp') C, summer consumption driver)"
-      - name: pv_temp_factor
-        description: "PV efficiency multiplier (var('om_pv_temp_loss_rate') loss per C above var('om_pv_ref_temp') C)"
-
-      # Snow features
-      - name: recent_snowfall
-        description: "Rolling var('om_snowfall_rolling_hours')-hour snowfall accumulation (cm)"
-
-      # Time features
-      - name: hour
-        description: "Hour of day (0-23)"
-      - name: day_of_week
-        description: "Day of week (0=Sunday in Postgres)"
-      - name: month
-        description: "Month (1-12)"
-      - name: is_daylight
-        description: "True if hour between var('om_daylight_start_hour') and var('om_daylight_end_hour')"
+        description: "Total solar radiation GHI (W/m2)"
+      - name: cloud_cover
+        description: "Total cloud cover (%)"
+      - name: temperature_2m
+        description: "Air temperature at 2m (C)"
+      - name: precipitation
+        description: "Total precipitation (mm)"

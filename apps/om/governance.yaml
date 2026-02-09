@@ -14,12 +14,11 @@ sources:
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_silver.om_weather_hourly:
-    title: "Open-Meteo Hourly Weather Features (Silver)"
+    title: "Open-Meteo Hourly Weather (Silver)"
     description: >
-      Hourly weather data with physics-informed derived features for energy
-      forecasting. Includes solar position calculations, clear-sky indices,
-      weighted cloud cover, heating/cooling degree hours, PV temperature
-      correction, and rolling snowfall accumulation.
+      Hourly weather data for energy forecasting. Contains the 4 natural
+      weather variables (shortwave_radiation, cloud_cover, temperature_2m,
+      precipitation), identical across historical and forecast sources.
     license: CC-BY-4.0
     access_level: internal
     ownership:
@@ -30,6 +29,28 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, weather, forecast, silver]
+
+  # ---------------------------------------------------------------------------
+  # GOLD - ML feature layer
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.om_weather_features:
+    title: "Open-Meteo Weather ML Features (Gold)"
+    description: >
+      29 ML features for energy consumption forecasting, computed from the
+      4 natural weather variables plus datetime. Includes temporal/Fourier
+      encodings, temperature dynamics, rolling statistics, and interaction
+      features. Identical output for historical and forecast data.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, weather, features, gold]
 
   # ---------------------------------------------------------------------------
   # STAGING - technical preparation layer

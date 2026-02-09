@@ -1,0 +1,86 @@
+version: 2
+
+models:
+  - name: om_weather_features
+    description: >
+      Gold-layer ML features for energy consumption forecasting.
+      29 features computed from the 4 natural weather variables
+      (shortwave_radiation, cloud_cover, temperature_2m, precipitation)
+      plus datetime. Identical output for historical and forecast data,
+      ensuring train/test consistency.
+    columns:
+      - name: datetime
+        description: "Hourly timestamp (Europe/Rome timezone)"
+        tests:
+          - not_null
+          - unique
+
+      # --- Temporal / Fourier (11 features) ---
+      - name: hour_sin
+        description: "sin(2*pi*hour/24) — cyclical hour encoding"
+      - name: hour_cos
+        description: "cos(2*pi*hour/24) — cyclical hour encoding"
+      - name: dow_sin
+        description: "sin(2*pi*day_of_week/7) — cyclical day-of-week encoding"
+      - name: dow_cos
+        description: "cos(2*pi*day_of_week/7) — cyclical day-of-week encoding"
+      - name: annual_sin
+        description: "sin(2*pi*hours_since_epoch/8766) — annual cycle encoding"
+      - name: annual_cos
+        description: "cos(2*pi*hours_since_epoch/8766) — annual cycle encoding"
+      - name: semi_annual_sin
+        description: "sin(2*pi*hours_since_epoch/4383) — 6-month cycle encoding"
+      - name: semi_annual_cos
+        description: "cos(2*pi*hours_since_epoch/4383) — 6-month cycle encoding"
+      - name: is_weekend
+        description: "1 if Saturday or Sunday, 0 otherwise"
+      - name: is_holiday
+        description: "1 if Italian public holiday, 0 otherwise"
+      - name: is_daylight
+        description: "1 if hour between 6 and 20 (Italian time), 0 otherwise"
+
+      # --- Temperature-derived (11 features) ---
+      - name: temperature_2m
+        description: "Air temperature at 2m (C)"
+      - name: heating_degree_hour
+        description: "max(0, 18 - temperature_2m) — heating demand indicator"
+      - name: temp_rolling_mean_24h
+        description: "24-hour rolling mean of temperature_2m"
+      - name: temp_rolling_std_24h
+        description: "24-hour rolling std of temperature_2m"
+      - name: temp_change_rate_3h
+        description: "(T[t] - T[t-3]) / 3 — temperature change rate (C/h)"
+      - name: thermal_inertia_12h
+        description: "EWM of temperature_2m with halflife=12h — thermal inertia"
+      - name: temp_gradient_24h
+        description: "T[t] - T[t-24] — 24-hour temperature gradient"
+      - name: heating_degree_rolling_mean_24h
+        description: "24-hour rolling mean of heating_degree_hour"
+      - name: cumulative_hdd_48h
+        description: "48-hour rolling sum of heating_degree_hour"
+      - name: temp_x_hour_sin
+        description: "temperature_2m * hour_sin — temp x time-of-day interaction"
+      - name: heating_x_night
+        description: "heating_degree_hour * is_night — heating x nighttime interaction"
+
+      # --- Radiation-derived (3 features) ---
+      - name: shortwave_radiation
+        description: "Total solar radiation GHI (W/m2)"
+      - name: radiation_rolling_mean_24h
+        description: "24-hour rolling mean of shortwave_radiation"
+      - name: radiation_x_daytime
+        description: "shortwave_radiation * is_daylight — radiation x daytime interaction"
+
+      # --- Cloud-derived (2 features) ---
+      - name: cloud_cover
+        description: "Total cloud cover (%)"
+      - name: cloud_cover_rolling_mean_24h
+        description: "24-hour rolling mean of cloud_cover"
+
+      # --- Precipitation (1 feature) ---
+      - name: precipitation
+        description: "Total precipitation (mm)"
+
+      # --- Interaction (1 feature) ---
+      - name: weekend_x_hour_cos
+        description: "is_weekend * hour_cos — weekend x time-of-day interaction"

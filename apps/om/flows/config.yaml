@@ -9,47 +9,61 @@ location:
   timezone: "Europe/Rome"
 
 # Open-Meteo API
+# To switch provider, change forecast_url and forecast settings:
+#   Best Match (default):  /v1/forecast                  → use forecast_days: 7
+#   DWD ICON-D2 (2 km):   /v1/dwd-icon?models=icon_d2   → use forecast_hours: 48
 api:
-  forecast_url: "https://api.open-meteo.com/v1/forecast"
+  # forecast_url: "https://api.open-meteo.com/v1/forecast"
+  forecast_url: "https://api.open-meteo.com/v1/dwd-icon?models=icon_d2"
   archive_url: "https://archive-api.open-meteo.com/v1/archive"
   timeout_seconds: 60
   retry_sleep_seconds: 0.5
 
 # Forecast parameters
+# Use EITHER forecast_days OR forecast_hours (not both).
+#   forecast_days: calendar-day based (best match: 7)
+#   forecast_hours: rolling window from now (icon_d2: 48)
 forecast:
-  days: 7
-  past_days: 5
+  # forecast_days: 7
+  forecast_hours: 48
+  # past_days: 5
+  past_hours: 120
 
 # Historical backfill defaults
 historical:
   start_date: "2024-12-01"
   chunk_months: 3
 
-# Variables to fetch
+# Variables to fetch (identical for forecast and historical)
 variables:
-  forecast:
-    - direct_radiation
-    - diffuse_radiation
-    - direct_normal_irradiance
+  hourly:
     - shortwave_radiation
     - cloud_cover
-    - cloud_cover_low
-    - cloud_cover_mid
-    - cloud_cover_high
     - temperature_2m
-    - apparent_temperature
     - precipitation
-    - rain
-    - snowfall
-    - relative_humidity_2m
-  historical_extra:
-    - global_tilted_irradiance
-    - snow_depth
 
 # Raw storage
 raw:
   table: om_weather
   schema: raw
+
+# dbt layer outputs
+staging:
+  table: stg_om_weather
+  schema: ds_dev_staging
+
+silver:
+  table: om_weather_hourly
+  schema: ds_dev_silver
+
+# Gold (Python-computed features written here, then dbt reads it)
+gold_raw:
+  table: om_weather_features
+  schema: raw
+
+gold:
+  table: om_weather_features
+  schema: ds_dev_gold
 
 # Schedule
 schedule:

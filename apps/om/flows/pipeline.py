@@ -71,39 +71,62 @@ def _load_to_postgres(
     table_name: str,
     schema: str,
 ) -> int:
-    """Upsert weather DataFrame into Postgres raw schema."""
+    """Append weather DataFrame into Postgres. Pure insert, no cleanup logic."""
     df = df.copy()
     df["_sdc_extracted_at"] = pd.Timestamp.now()
 
     engine = _get_pg_engine(cfg)
 
     with engine.begin() as conn:
-        # Ensure table exists
-        df.head(0).to_sql(
-            table_name, conn, schema=schema, if_exists="append", index=False
+        conn.execute(sa.text(f"CREATE SCHEMA IF NOT EXISTS {schema}"))
+        df.to_sql(
+            table_name, conn, schema=schema, if_exists="append", index=False,
         )
 
-        # Upsert via temp table
-        temp_table = f"_tmp_{table_name}"
-        df.to_sql(temp_table, conn, schema=schema, if_exists="replace", index=False)
-
-        conn.execute(sa.text(f"""
-            INSERT INTO {schema}.{table_name}
-            SELECT t.*
-            FROM {schema}.{temp_table} t
-            LEFT JOIN {schema}.{table_name} w
-                ON t.datetime = w.datetime
-            WHERE w.datetime IS NULL
-        """))
-
-        conn.execute(sa.text(f"DROP TABLE IF EXISTS {schema}.{temp_table}"))
-
     return len(df)
+
+
+def _drop_om_table(
+    cfg: PipelineConfig,
+    table_name: str,
+    schema: str,
+) -> None:
+    """Drop a specific OM table. Safe no-op if the table does not exist."""
+    engine = _get_pg_engine(cfg)
+    with engine.begin() as conn:
+        conn.execute(sa.text(
+            f"DROP TABLE IF EXISTS {schema}.{table_name} CASCADE"
+        ))
 
 
 # ---------------------------------------------------------------------------
 # Prefect tasks
 # ---------------------------------------------------------------------------
+
+@task(name="Clean up OM tables")
+def cleanup_om_tables(cfg: PipelineConfig) -> PipelineTaskResult:
+    """Drop all OM tables before a fresh load.
+
+    Only touches OM-owned tables. Other schemas and tables are never affected.
+    Tables are recreated by subsequent fetch / dbt steps.
+    """
+    run_logger = get_run_logger()
+    om_cfg = _load_config()
+
+    tables = [
+        (om_cfg["raw"]["schema"], om_cfg["raw"]["table"]),
+        (om_cfg["staging"]["schema"], om_cfg["staging"]["table"]),
+        (om_cfg["silver"]["schema"], om_cfg["silver"]["table"]),
+        (om_cfg["gold_raw"]["schema"], om_cfg["gold_raw"]["table"]),
+        (om_cfg["gold"]["schema"], om_cfg["gold"]["table"]),
+    ]
+
+    for schema, table in tables:
+        run_logger.info("Dropping %s.%s", schema, table)
+        _drop_om_table(cfg, table, schema)
+
+    return PipelineTaskResult(status="success", command="cleanup_om_tables")
+
 
 @task(name="Fetch Forecast Weather", retries=3, retry_delay_seconds=60)
 def fetch_forecast_task(cfg: PipelineConfig) -> PipelineTaskResult:
@@ -114,19 +137,27 @@ def fetch_forecast_task(cfg: PipelineConfig) -> PipelineTaskResult:
     location = om_cfg["location"]
     api = om_cfg["api"]
     forecast_cfg = om_cfg["forecast"]
-    variables = om_cfg["variables"]["forecast"]
+    variables = om_cfg["variables"]["hourly"]
     raw = om_cfg["raw"]
+
+    params: dict = {
+        "latitude": location["latitude"],
+        "longitude": location["longitude"],
+        "hourly": variables,
+        "timezone": location["timezone"],
+    }
+    if "forecast_hours" in forecast_cfg:
+        params["forecast_hours"] = forecast_cfg["forecast_hours"]
+    else:
+        params["forecast_days"] = forecast_cfg["forecast_days"]
+    if "past_hours" in forecast_cfg:
+        params["past_hours"] = forecast_cfg["past_hours"]
+    else:
+        params["past_days"] = forecast_cfg["past_days"]
 
     response = requests.get(
         api["forecast_url"],
-        params={
-            "latitude": location["latitude"],
-            "longitude": location["longitude"],
-            "hourly": variables,
-            "forecast_days": forecast_cfg["days"],
-            "past_days": forecast_cfg["past_days"],
-            "timezone": location["timezone"],
-        },
+        params=params,
         timeout=api["timeout_seconds"],
     )
     response.raise_for_status()
@@ -156,9 +187,7 @@ def fetch_historical_task(
     location = om_cfg["location"]
     api = om_cfg["api"]
     historical_cfg = om_cfg["historical"]
-    forecast_vars = om_cfg["variables"]["forecast"]
-    extra_vars = om_cfg["variables"]["historical_extra"]
-    variables = forecast_vars + extra_vars
+    variables = om_cfg["variables"]["hourly"]
     raw = om_cfg["raw"]
 
     start_date = start_date or historical_cfg["start_date"]
@@ -212,6 +241,41 @@ def fetch_historical_task(
     return PipelineTaskResult(status="success", command="fetch_historical")
 
 
+@task(name="Compute Gold Features")
+def compute_gold_features_task(cfg: PipelineConfig) -> PipelineTaskResult:
+    """Read silver weather data, compute 29 ML features, write to gold table."""
+    from .features import build_gold_features
+
+    run_logger = get_run_logger()
+    om_cfg = _load_config()
+
+    silver = om_cfg["silver"]
+    gold_raw = om_cfg["gold_raw"]
+    engine = _get_pg_engine(cfg)
+
+    run_logger.info(
+        "Reading silver data from %s.%s", silver["schema"], silver["table"],
+    )
+    silver_df = pd.read_sql_table(
+        silver["table"], engine, schema=silver["schema"],
+    )
+
+    if silver_df.empty:
+        run_logger.warning("Silver table is empty, skipping gold features")
+        return PipelineTaskResult(status="skipped", command="compute_gold_features")
+
+    run_logger.info("Computing gold features for %d rows", len(silver_df))
+    gold_df = build_gold_features(silver_df, impute_missing=True)
+
+    rows = _load_to_postgres(gold_df, cfg, gold_raw["table"], gold_raw["schema"])
+    run_logger.info(
+        "Loaded %d gold feature rows into %s.%s",
+        rows, gold_raw["schema"], gold_raw["table"],
+    )
+
+    return PipelineTaskResult(status="success", command="compute_gold_features")
+
+
 @task(name="Transform Staging Layer")
 def transform_staging_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Run dbt staging for weather models."""
@@ -222,6 +286,12 @@ def transform_staging_task(cfg: PipelineConfig) -> PipelineTaskResult:
 def transform_silver_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Run dbt silver for weather models."""
     return dbt_run("silver", cfg)
+
+
+@task(name="Transform Gold Layer")
+def transform_gold_task(cfg: PipelineConfig) -> PipelineTaskResult:
+    """Run dbt gold for weather feature models."""
+    return dbt_run("gold", cfg)
 
 
 @task(name="Run dbt Tests")
@@ -249,23 +319,31 @@ def om_flow(config: Dict[str, Any] | None = None) -> dict:
 
     result: dict = {"status": "success"}
 
+    # --- Clean up old OM data ---
+    result["cleanup"] = cleanup_om_tables(cfg)
+
     # --- Extract + Load ---
     if mode in ("historical", "both"):
         start_date = (config or {}).get("start_date")
         end_date = (config or {}).get("end_date")
         run_logger.info("Ingesting historical weather from %s", start_date)
         result["historical"] = fetch_historical_task(
-            cfg, start_date=start_date, end_date=end_date
+            cfg, start_date=start_date, end_date=end_date,
         )
 
     if mode in ("forecast", "both"):
         run_logger.info("Ingesting forecast weather")
         result["forecast"] = fetch_forecast_task(cfg)
 
-    # --- Transform ---
-    run_logger.info("Running dbt transforms")
+    # --- Transform (staging + silver) ---
     result["staging"] = transform_staging_task(cfg)
     result["silver"] = transform_silver_task(cfg)
+
+    # --- Gold features (Python compute + dbt model) ---
+    result["gold_compute"] = compute_gold_features_task(cfg)
+    result["gold_transform"] = transform_gold_task(cfg)
+
+    # --- Tests (covers all layers) ---
     result["tests"] = run_dbt_tests_task(cfg)
 
     return result
