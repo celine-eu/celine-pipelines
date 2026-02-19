@@ -1,10 +1,11 @@
 from prefect import task, flow
 from typing import Dict, Any
 import os
-import traceback
 from celine.utils.pipelines.pipeline import (
     PipelineConfig,
-    PipelineRunner,
+    PipelineStatus,
+    PipelineTaskResult,
+    pipeline_context,
     dbt_run,
     meltano_run,
     DEV_MODE,
@@ -17,17 +18,13 @@ script_dir = os.path.dirname(__file__)
 # Prefect tasks wrapping functional helpers
 @task(name="Download data", retries=3, retry_delay_seconds=60)
 def download_data(cfg: PipelineConfig):
-    pt = PipelineRunner(cfg)
 
-    status = True
-    details = None
-    try:
-        osm_download(f"{script_dir}/osm_config.yaml")
-    except Exception as e:
-        status = False
-        details = f"osm_download error: {e} {traceback.format_exc()}"
+    osm_download(f"{script_dir}/osm_config.yaml")
 
-    return pt._task_result(status=status, command="osm_download", details=details)
+    return PipelineTaskResult(
+        status=PipelineStatus.COMPLETED,
+        command="osm_download",
+    )
 
 
 # Prefect tasks wrapping functional helpers
@@ -57,25 +54,18 @@ def run_dbt_tests_task(cfg: PipelineConfig):
 
 
 @flow(name="osm-flow")
-def osm_flow(config: Dict[str, Any] | None = None):
+async def osm_flow(config: Dict[str, Any] | None = None):
     cfg = PipelineConfig.model_validate(config or {})
 
-    downloader = download_data(cfg)
-    importer = import_raw_data(cfg)
-    staging = transform_staging_layer_task(cfg)
-    silver = transform_silver_layer_task(cfg)
-    gold = transform_gold_layer_task(cfg)
-    tests = run_dbt_tests_task(cfg)
+    async with pipeline_context(cfg) as results:
+        results["downloader"] = download_data(cfg)
+        results["importer"] = import_raw_data(cfg)
+        results["staging"] = transform_staging_layer_task(cfg)
+        results["silver"] = transform_silver_layer_task(cfg)
+        results["gold"] = transform_gold_layer_task(cfg)
+        results["tests"] = run_dbt_tests_task(cfg)
 
-    return {
-        "status": "success",
-        "downloader": downloader,
-        "importer": importer,
-        "staging": staging,
-        "silver": silver,
-        "gold": gold,
-        "tests": tests,
-    }
+    return results
 
 
 if __name__ == "__main__":
