@@ -1,0 +1,56 @@
+version: 2
+
+models:
+  - name: om_weather_features_meters
+    description: >
+      Gold-layer features for PV/solar metering and production forecasting.
+      15 features computed from 7 natural weather variables plus datetime.
+      Includes physics-derived solar features (clearsky_index,
+      effective_solar_pv, theoretical_prod). Identical output for
+      historical and forecast data, ensuring train/test consistency.
+    columns:
+      - name: datetime
+        description: "Hourly timestamp (Europe/Rome timezone)"
+        tests:
+          - not_null
+          - unique
+
+      # --- Temporal (5 features) ---
+      - name: hour_sin
+        description: "sin(2*pi*hour/24) — cyclical hour encoding"
+      - name: hour_cos
+        description: "cos(2*pi*hour/24) — cyclical hour encoding"
+      - name: day_of_week
+        description: "Day of week (0=Monday, 6=Sunday)"
+      - name: month
+        description: "Month of year (1-12)"
+      - name: is_weekend
+        description: "1 if Saturday or Sunday, 0 otherwise"
+
+      # --- Weather pass-through (4 features) ---
+      - name: global_tilted_irradiance
+        description: "Global tilted irradiance for PV panels (W/m2)"
+      - name: shortwave_radiation
+        description: "Total solar radiation GHI (W/m2)"
+      - name: cloud_cover
+        description: "Total cloud cover (%)"
+      - name: temperature_2m
+        description: "Air temperature at 2m (C)"
+
+      # --- Solar-derived (3 features) ---
+      - name: clearsky_index
+        description: "Ratio of actual GHI to theoretical clear-sky GHI, clipped [0, 1.5]"
+      - name: effective_solar_pv
+        description: "direct_radiation + 0.9 * diffuse_radiation — effective PV input (W/m2)"
+      - name: theoretical_prod
+        description: "global_tilted_irradiance * effective_solar_pv — theoretical PV production proxy"
+
+      # --- Temperature-derived (2 features) ---
+      - name: heating_degree
+        description: "max(0, 18 - temperature_2m) — heating demand indicator"
+      - name: cooling_degree
+        description: "max(0, temperature_2m - 24) — cooling demand indicator"
+
+      # --- Daylight (1 feature) ---
+      - name: is_daylight
+        description: "1 if hour between 6 and 20 (Italian time), 0 otherwise"

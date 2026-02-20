@@ -26,6 +26,9 @@ with base as (
 select
     datetime,
     shortwave_radiation,
+    direct_radiation,
+    diffuse_radiation,
+    global_tilted_irradiance,
     cloud_cover,
     temperature_2m,
     precipitation

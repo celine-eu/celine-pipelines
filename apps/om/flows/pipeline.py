@@ -119,6 +119,8 @@ def cleanup_om_tables(cfg: PipelineConfig) -> PipelineTaskResult:
         (om_cfg["silver"]["schema"], om_cfg["silver"]["table"]),
         (om_cfg["gold_raw"]["schema"], om_cfg["gold_raw"]["table"]),
         (om_cfg["gold"]["schema"], om_cfg["gold"]["table"]),
+        (om_cfg["gold_raw_meters"]["schema"], om_cfg["gold_raw_meters"]["table"]),
+        (om_cfg["gold_meters"]["schema"], om_cfg["gold_meters"]["table"]),
     ]
 
     for schema, table in tables:
@@ -276,6 +278,44 @@ def compute_gold_features_task(cfg: PipelineConfig) -> PipelineTaskResult:
     return PipelineTaskResult(status="success", command="compute_gold_features")
 
 
+@task(name="Compute Gold Features Meters")
+def compute_gold_features_meters_task(cfg: PipelineConfig) -> PipelineTaskResult:
+    """Read silver weather data, compute 15 meters/PV features, write to gold table."""
+    from .features import build_gold_features_meters
+
+    run_logger = get_run_logger()
+    om_cfg = _load_config()
+
+    silver = om_cfg["silver"]
+    gold_raw_meters = om_cfg["gold_raw_meters"]
+    engine = _get_pg_engine(cfg)
+
+    run_logger.info(
+        "Reading silver data from %s.%s for meters features",
+        silver["schema"], silver["table"],
+    )
+    silver_df = pd.read_sql_table(
+        silver["table"], engine, schema=silver["schema"],
+    )
+
+    if silver_df.empty:
+        run_logger.warning("Silver table is empty, skipping meters gold features")
+        return PipelineTaskResult(status="skipped", command="compute_gold_features_meters")
+
+    run_logger.info("Computing meters gold features for %d rows", len(silver_df))
+    gold_df = build_gold_features_meters(silver_df, impute_missing=True)
+
+    rows = _load_to_postgres(
+        gold_df, cfg, gold_raw_meters["table"], gold_raw_meters["schema"],
+    )
+    run_logger.info(
+        "Loaded %d meters gold feature rows into %s.%s",
+        rows, gold_raw_meters["schema"], gold_raw_meters["table"],
+    )
+
+    return PipelineTaskResult(status="success", command="compute_gold_features_meters")
+
+
 @task(name="Transform Staging Layer")
 def transform_staging_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Run dbt staging for weather models."""
@@ -341,6 +381,7 @@ def om_flow(config: Dict[str, Any] | None = None) -> dict:
 
     # --- Gold features (Python compute + dbt model) ---
     result["gold_compute"] = compute_gold_features_task(cfg)
+    result["gold_meters_compute"] = compute_gold_features_meters_task(cfg)
     result["gold_transform"] = transform_gold_task(cfg)
 
     # --- Tests (covers all layers) ---

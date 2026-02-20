@@ -35,6 +35,37 @@ REQUIRED_WEATHER_COLS: list[str] = [
     "precipitation",
 ]
 
+# Additional columns required for the meters feature set
+METERS_WEATHER_COLS: list[str] = [
+    "temperature_2m",
+    "shortwave_radiation",
+    "direct_radiation",
+    "diffuse_radiation",
+    "global_tilted_irradiance",
+    "cloud_cover",
+]
+
+# Folgaria coordinates for solar position calculations
+FOLGARIA_LAT: float = 45.9167
+
+SELECTED_METERS_FEATURES: list[str] = [
+    "hour_sin",
+    "hour_cos",
+    "day_of_week",
+    "month",
+    "is_weekend",
+    "global_tilted_irradiance",
+    "shortwave_radiation",
+    "cloud_cover",
+    "temperature_2m",
+    "clearsky_index",
+    "effective_solar_pv",
+    "heating_degree",
+    "cooling_degree",
+    "is_daylight",
+    "theoretical_prod",
+]
+
 SELECTED_FEATURES: list[str] = [
     # Temporal / Fourier (11)
     "hour_sin",
@@ -589,4 +620,134 @@ def build_gold_features(
     result = df[output_cols]
 
     logger.info("Built %d gold features (%d rows)", len(available), len(result))
+    return result
+
+
+# =============================================================================
+# Meters feature builder (solar / PV focused)
+# =============================================================================
+
+def _compute_clearsky_index(df: pd.DataFrame) -> pd.Series:
+    """Compute clear-sky index from shortwave radiation and solar position.
+
+    Uses simplified Ineichen-Perez clear-sky GHI model based on
+    solar declination, hour angle, and Folgaria latitude.
+
+    Args:
+        df: DataFrame with datetime and shortwave_radiation columns.
+
+    Returns:
+        Series with clearsky_index values clipped to [0, 1.5].
+    """
+    dt_series = pd.to_datetime(df[DATETIME_COL])
+    hour = dt_series.dt.hour
+    day_of_year = dt_series.dt.dayofyear
+
+    # Solar declination (simplified)
+    declination = 23.45 * np.sin(np.radians(360 / 365 * (day_of_year - 81)))
+
+    # Hour angle
+    hour_angle = 15 * (hour - 12)
+
+    # Solar elevation
+    lat_rad = np.radians(FOLGARIA_LAT)
+    decl_rad = np.radians(declination)
+    hour_rad = np.radians(hour_angle)
+
+    sin_elevation = (
+        np.sin(lat_rad) * np.sin(decl_rad)
+        + np.cos(lat_rad) * np.cos(decl_rad) * np.cos(hour_rad)
+    )
+
+    # Clear-sky GHI approximation
+    clearsky_ghi = np.maximum(0, 1000 * np.clip(sin_elevation, 0, None))
+
+    clearsky_index = np.where(
+        clearsky_ghi > 50,
+        df["shortwave_radiation"] / clearsky_ghi,
+        0,
+    )
+    return pd.Series(np.clip(clearsky_index, 0, 1.5), index=df.index)
+
+
+def build_gold_features_meters(
+    df: pd.DataFrame,
+    impute_missing: bool = True,
+) -> pd.DataFrame:
+    """Build gold features for the meters/PV feature set.
+
+    Produces 15 features focused on solar production and energy metering:
+    temporal encodings, raw weather pass-throughs, and physics-derived
+    solar features (clearsky_index, effective_solar_pv, theoretical_prod).
+
+    Args:
+        df: DataFrame from silver layer with columns: datetime,
+            shortwave_radiation, direct_radiation, diffuse_radiation,
+            global_tilted_irradiance, cloud_cover, temperature_2m.
+        impute_missing: Whether to impute missing weather values first.
+
+    Returns:
+        DataFrame with datetime + 15 feature columns.
+
+    Raises:
+        ValueError: If required columns are missing.
+    """
+    logger.info("Building meters gold features (%d input rows)...", len(df))
+
+    required_cols = [DATETIME_COL] + METERS_WEATHER_COLS
+    missing = [col for col in required_cols if col not in df.columns]
+    if missing:
+        raise ValueError(f"Missing required columns for meters features: {missing}")
+
+    df = df.copy()
+    df = df.sort_values(DATETIME_COL).reset_index(drop=True)
+
+    if impute_missing:
+        for col in METERS_WEATHER_COLS:
+            if col in df.columns and df[col].isna().any():
+                df = impute_weather_column(df, col)
+
+    # --- Temporal features ---
+    dt_series = pd.to_datetime(df[DATETIME_COL])
+    df["hour"] = dt_series.dt.hour
+    df["day_of_week"] = dt_series.dt.dayofweek
+    df["month"] = dt_series.dt.month
+    df["is_weekend"] = df["day_of_week"].isin([5, 6]).astype(int)
+    df["is_daylight"] = df["hour"].between(6, 20).astype(int)
+
+    # Fourier hour encoding
+    df["hour_sin"] = np.sin(2 * np.pi * df["hour"] / 24)
+    df["hour_cos"] = np.cos(2 * np.pi * df["hour"] / 24)
+
+    # --- Temperature-derived ---
+    df["heating_degree"] = np.maximum(0, 18 - df["temperature_2m"])
+    df["cooling_degree"] = np.maximum(0, df["temperature_2m"] - 24)
+
+    # --- Solar-derived ---
+    df["clearsky_index"] = _compute_clearsky_index(df)
+
+    df["effective_solar_pv"] = (
+        df["direct_radiation"].fillna(0)
+        + 0.9 * df["diffuse_radiation"].fillna(0)
+    )
+
+    df["theoretical_prod"] = (
+        df["global_tilted_irradiance"].fillna(0)
+        * df["effective_solar_pv"].fillna(0)
+    )
+
+    # --- Select output columns ---
+    available = [col for col in SELECTED_METERS_FEATURES if col in df.columns]
+    missing_features = set(SELECTED_METERS_FEATURES) - set(available)
+    if missing_features:
+        logger.warning(
+            "Missing features from SELECTED_METERS_FEATURES: %s", missing_features,
+        )
+
+    df = _fill_edge_nans(df, available)
+
+    output_cols = [DATETIME_COL] + available
+    result = df[output_cols]
+
+    logger.info("Built %d meters gold features (%d rows)", len(available), len(result))
     return result

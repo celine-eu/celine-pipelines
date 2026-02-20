@@ -17,6 +17,12 @@ sources:
               - unique
           - name: shortwave_radiation
             description: "Total solar radiation - GHI (W/m2)"
+          - name: direct_radiation
+            description: "Direct beam solar radiation on horizontal surface (W/m2)"
+          - name: diffuse_radiation
+            description: "Scattered solar radiation (W/m2)"
+          - name: global_tilted_irradiance
+            description: "Global tilted irradiance for PV panels (W/m2)"
           - name: cloud_cover
             description: "Total cloud cover (%)"
           - name: temperature_2m
@@ -29,6 +35,18 @@ sources:
           Gold-layer ML features computed by the Python feature pipeline
           from silver weather data. Contains 29 features for energy
           consumption forecasting, identical for historical and forecast data.
+        columns:
+          - name: datetime
+            description: "Hourly timestamp (Europe/Rome timezone)"
+            tests:
+              - not_null
+              - unique
+
+      - name: om_weather_features_meters
+        description: >
+          Gold-layer features for PV/solar metering. Contains 15 features
+          focused on solar production forecasting, including clearsky_index,
+          effective_solar_pv, and theoretical_prod.
         columns:
           - name: datetime
             description: "Hourly timestamp (Europe/Rome timezone)"

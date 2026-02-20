@@ -7,6 +7,14 @@ location:
   latitude: 45.9167
   longitude: 11.1667
   timezone: "Europe/Rome"
+  # Bounding box for spatial averaging.
+  # Uncomment and adapt when multi-point averaging is needed.
+  # bbox:
+  #   lat_min: 45.89
+  #   lat_max: 45.94
+  #   lon_min: 11.13
+  #   lon_max: 11.20
+  #   grid_step: 0.05  # ~5km resolution
 
 # Open-Meteo API
 # To switch provider, change forecast_url and forecast settings:
@@ -38,6 +46,9 @@ historical:
 variables:
   hourly:
     - shortwave_radiation
+    - direct_radiation
+    - diffuse_radiation
+    - global_tilted_irradiance
     - cloud_cover
     - temperature_2m
     - precipitation
@@ -63,6 +74,15 @@ gold_raw:
 
 gold:
   table: om_weather_features
+  schema: ds_dev_gold
+
+# Gold meters (Python-computed PV/solar features, then dbt reads it)
+gold_raw_meters:
+  table: om_weather_features_meters
+  schema: raw
+
+gold_meters:
+  table: om_weather_features_meters
   schema: ds_dev_gold
 
 # Schedule
