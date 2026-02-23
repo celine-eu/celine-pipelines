@@ -5,16 +5,18 @@ sources:
     schema: raw
     tables:
       - name: om_weather
+        identifier: weather_hourly
         description: >
           Hourly weather data from the Open-Meteo API.
           Includes historical archive and forecast data.
           Both sources provide the same 4 natural weather variables.
         columns:
-          - name: datetime
-            description: "Hourly timestamp (Europe/Rome timezone)"
+          - name: time
+            description: "Hourly timestamp from tap-openmeteo (Europe/Rome timezone)"
             tests:
               - not_null
-              - unique
+          - name: location_name
+            description: "Location identifier from tap-openmeteo"
           - name: shortwave_radiation
             description: "Total solar radiation - GHI (W/m2)"
           - name: direct_radiation

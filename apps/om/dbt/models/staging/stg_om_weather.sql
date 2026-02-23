@@ -7,7 +7,8 @@
 with source as (
 
     select
-        cast(datetime as timestamp)                    as datetime,
+        cast(time as timestamp)                        as datetime,
+        location_name,
         cast(shortwave_radiation as float)             as shortwave_radiation,
         cast(direct_radiation as float)                as direct_radiation,
         cast(diffuse_radiation as float)               as diffuse_radiation,

@@ -2,16 +2,16 @@
 
 ## Overview
 
-The **Open-Meteo pipeline** ingests hourly weather forecast and historical archive data from the **Open-Meteo API** for energy community forecasting use cases.
+The **Open-Meteo pipeline** ingests hourly weather forecast data from the **Open-Meteo API** via **Meltano** (`tap-openmeteo`) for energy community forecasting use cases.
 
 No API key is required -- Open-Meteo provides free access under CC-BY 4.0.
-To change from Best match model, modify the configuration on config.yaml
+To change the weather model, modify the configuration in `meltano/meltano.yml`.
+
 ---
 
 ## Data sources
 
-- Open-Meteo Forecast API (hourly weather variables)
-- Open-Meteo Archive API (historical backfill)
+- Open-Meteo Forecast API (hourly weather variables, DWD ICON-D2 model)
 
 Data is fetched from:
 https://open-meteo.com/
@@ -24,26 +24,23 @@ https://open-meteo.com/
 Open-Meteo API
      |
      v
-[Fetch] ── forecast or historical ── Python (Prefect tasks)
+[Meltano] ── tap-openmeteo -> target-postgres
      |
      v
 [RAW] ── raw.om_weather ── verbatim API data
      |
      v
-[STAGING] ── dbt ── type casting, deduplication
+[STAGING] ── dbt ── type casting (time -> datetime), deduplication
      |
      v
-[SILVER] ── dbt ── 4 natural weather variables
+[SILVER] ── dbt ── 7 weather variables (hourly)
      |
      v
-[GOLD COMPUTE] ── Python ── 29 ML features (raw.om_weather_features)
+[GOLD COMPUTE] ── Python ── 29 ML features + 15 PV features
      |
      v
 [GOLD] ── dbt ── type casting, tests (ds_dev_gold.om_weather_features)
 ```
-
-Both forecast and historical paths produce **identical columns** at every layer,
-ensuring train/test consistency for ML models.
 
 ---
 
@@ -51,12 +48,15 @@ ensuring train/test consistency for ML models.
 
 ### Silver layer (`ds_dev_silver.om_weather_hourly`)
 
-The 4 natural weather variables, identical for forecast and historical:
+7 weather variables:
 
 | Column | Unit | Description |
 |--------|------|-------------|
 | `datetime` | timestamp | Hourly, Europe/Rome timezone |
 | `shortwave_radiation` | W/m2 | Total solar radiation (GHI) |
+| `direct_radiation` | W/m2 | Direct beam solar radiation |
+| `diffuse_radiation` | W/m2 | Scattered solar radiation |
+| `global_tilted_irradiance` | W/m2 | Global tilted irradiance for PV |
 | `cloud_cover` | % | Total cloud cover |
 | `temperature_2m` | C | Air temperature at 2m |
 | `precipitation` | mm | Total precipitation |
@@ -120,6 +120,24 @@ The 4 natural weather variables, identical for forecast and historical:
 |---------|-------------|
 | `weekend_x_hour_cos` | is_weekend * hour_cos |
 
+### Gold meters layer (`ds_dev_gold.om_weather_features_meters`)
+
+15 PV/solar features for energy metering:
+
+| Feature | Description |
+|---------|-------------|
+| `hour_sin`, `hour_cos` | Cyclical hour encoding |
+| `day_of_week`, `month` | Calendar features |
+| `is_weekend`, `is_daylight` | Binary flags |
+| `global_tilted_irradiance` | PV panel irradiance (W/m2) |
+| `shortwave_radiation` | GHI (W/m2) |
+| `cloud_cover` | Cloud cover (%) |
+| `temperature_2m` | Temperature (C) |
+| `clearsky_index` | Ratio of actual to theoretical clear-sky GHI |
+| `effective_solar_pv` | direct_radiation + 0.9 * diffuse_radiation |
+| `heating_degree`, `cooling_degree` | Thermal comfort indices |
+| `theoretical_prod` | GTI * effective_solar_pv |
+
 Licensing follows `CC-BY-4.0`.
 
 ---
@@ -128,7 +146,7 @@ Licensing follows `CC-BY-4.0`.
 
 All datetime operations use Italian local time (`Europe/Rome`):
 
-- The Open-Meteo API is called with `"timezone": "Europe/Rome"`
+- The tap-openmeteo config sets `timezone: "Europe/Rome"`
 - Feature computation works directly on the local-time datetime column
 - No UTC conversion happens at any stage
 - DST transitions (2 hours/year) are not explicitly handled -- the model was trained with the same convention
@@ -145,39 +163,12 @@ docker compose up datasets-db -d
 docker compose build pipeline-om
 ```
 
-**Forecast mode** (daily use -- fetches 7-day forecast + 5 past days):
+**Daily mode** (fetches 48h forecast + 120h past):
 
 ```bash
 docker compose run --rm pipeline-om python3 -c "
 from flows.pipeline import om_flow
-om_flow(config={'mode': 'forecast'})
-"
-```
-
-**Historical backfill** (fetches archive data in 3-month chunks):
-
-```bash
-docker compose run --rm pipeline-om python3 -c "
-from flows.pipeline import om_flow
-om_flow(config={'mode': 'historical', 'start_date': '2024-12-01'})
-"
-```
-
-**Both** (historical backfill + current forecast in one run):
-
-```bash
-docker compose run --rm pipeline-om python3 -c "
-from flows.pipeline import om_flow
-om_flow(config={'mode': 'both', 'start_date': '2024-12-01'})
-"
-```
-
-**With custom end date**:
-
-```bash
-docker compose run --rm pipeline-om python3 -c "
-from flows.pipeline import om_flow
-om_flow(config={'mode': 'historical', 'start_date': '2024-12-01', 'end_date': '2025-06-01'})
+om_flow()
 "
 ```
 
@@ -193,17 +184,26 @@ This registers the Prefect flow with cron schedule `0 6 * * *`.
 
 ## Configuration
 
-All pipeline parameters are in `flows/config.yaml`:
+Pipeline configuration is split between two files:
+
+### `meltano/meltano.yml` -- Extraction config
 
 | Section | Key parameters |
 |---------|---------------|
-| `location` | latitude, longitude, timezone |
-| `api` | forecast/archive URLs, timeout |
-| `forecast` | forecast_days, past_days |
-| `historical` | start_date, chunk_months |
-| `variables` | hourly variable list (4 variables) |
+| `locations` | name, latitude, longitude, timezone |
+| `forecast_hours` / `past_hours` | Time window (48h forecast, 120h past) |
+| `models` | Weather model selection (icon_d2) |
+| `hourly_variables` | 7 weather variables |
+| `streams_to_sync` | weather_hourly |
+| `stream_maps` | weather_hourly -> om_weather (table alias) |
+
+### `flows/config.yaml` -- Table mappings and schedule
+
+| Section | Key parameters |
+|---------|---------------|
 | `silver` | silver table/schema (dbt output) |
-| `gold` | gold table/schema (feature output) |
+| `gold_raw` / `gold_raw_meters` | raw gold tables (Python feature output) |
+| `gold` / `gold_meters` | gold table/schema (dbt output) |
 | `schedule` | cron expression, flow name |
 
 ---
@@ -213,14 +213,19 @@ All pipeline parameters are in `flows/config.yaml`:
 ```text
 apps/om/
 ├── flows/
-│   ├── config.yaml       # Pipeline configuration
-│   ├── features.py       # Gold-layer feature engineering (29 ML features)
+│   ├── config.yaml       # Table mappings and schedule
+│   ├── features.py       # Gold-layer feature engineering (29 + 15 features)
 │   └── pipeline.py       # Prefect tasks and flow definition
+├── meltano/
+│   ├── meltano.yml       # Meltano extractor/loader config (tap-openmeteo)
+│   └── .gitignore        # Ignores .meltano/ runtime
 ├── dbt/
 │   ├── models/
-│   │   ├── staging/      # stg_om_weather (type cast + dedup)
-│   │   ├── silver/       # om_weather_hourly (4 weather variables)
-│   │   └── gold/         # om_weather_features (29 ML features, type cast + tests)
+│   │   ├── staging/      # stg_om_weather (time->datetime, type cast, dedup)
+│   │   ├── silver/       # om_weather_hourly (7 weather variables)
+│   │   └── gold/         # om_weather_features (type cast + tests)
+│   ├── macros/
+│   │   └── cleanup_om_weather.sql  # Retention-based raw data cleanup
 │   ├── dbt_project.yml
 │   └── profiles.yml
 ├── governance.yaml       # Dataset governance metadata
@@ -233,7 +238,7 @@ apps/om/
 
 Contributions may include:
 - additional ML features (update `features.py` and `SELECTED_FEATURES`)
-- new locations (update `config.yaml`)
+- new locations (add to `meltano/meltano.yml` `locations` array)
 - improved imputation strategies
 - additional dbt tests
 

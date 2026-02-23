@@ -1,68 +1,9 @@
 # Open-Meteo weather pipeline configuration
-# All previously hardcoded constants extracted here.
-
-# Location
-location:
-  name: folgaria
-  latitude: 45.9167
-  longitude: 11.1667
-  timezone: "Europe/Rome"
-  # Bounding box for spatial averaging.
-  # Uncomment and adapt when multi-point averaging is needed.
-  # bbox:
-  #   lat_min: 45.89
-  #   lat_max: 45.94
-  #   lon_min: 11.13
-  #   lon_max: 11.20
-  #   grid_step: 0.05  # ~5km resolution
-
-# Open-Meteo API
-# To switch provider, change forecast_url and forecast settings:
-#   Best Match (default):  /v1/forecast                  → use forecast_days: 7
-#   DWD ICON-D2 (2 km):   /v1/dwd-icon?models=icon_d2   → use forecast_hours: 48
-api:
-  # forecast_url: "https://api.open-meteo.com/v1/forecast"
-  forecast_url: "https://api.open-meteo.com/v1/dwd-icon?models=icon_d2"
-  archive_url: "https://archive-api.open-meteo.com/v1/archive"
-  timeout_seconds: 60
-  retry_sleep_seconds: 0.5
-
-# Forecast parameters
-# Use EITHER forecast_days OR forecast_hours (not both).
-#   forecast_days: calendar-day based (best match: 7)
-#   forecast_hours: rolling window from now (icon_d2: 48)
-forecast:
-  # forecast_days: 7
-  forecast_hours: 48
-  # past_days: 5
-  past_hours: 120
-
-# Historical backfill defaults
-historical:
-  start_date: "2024-12-01"
-  chunk_months: 3
-
-# Variables to fetch (identical for forecast and historical)
-variables:
-  hourly:
-    - shortwave_radiation
-    - direct_radiation
-    - diffuse_radiation
-    - global_tilted_irradiance
-    - cloud_cover
-    - temperature_2m
-    - precipitation
-
-# Raw storage
-raw:
-  table: om_weather
-  schema: raw
+# Extraction config has moved to meltano/meltano.yml (tap-openmeteo).
+# This file retains only the layer/table mappings used by Python tasks
+# and the schedule used by __main__.
 
 # dbt layer outputs
-staging:
-  table: stg_om_weather
-  schema: ds_dev_staging
-
 silver:
   table: om_weather_hourly
   schema: ds_dev_silver

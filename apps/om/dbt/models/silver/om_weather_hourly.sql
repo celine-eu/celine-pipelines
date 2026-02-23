@@ -15,8 +15,8 @@ with base as (
     select *
     from {{ ref('stg_om_weather') }}
     {% if is_incremental() %}
-    where _sdc_extracted_at > (
-        select coalesce(max(_sdc_extracted_at), '1900-01-01'::timestamp)
+    where datetime > (
+        select coalesce(max(datetime), '1900-01-01'::timestamp)
         from {{ this }}
     )
     {% endif %}

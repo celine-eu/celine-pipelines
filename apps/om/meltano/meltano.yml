@@ -1,0 +1,56 @@
+version: 1
+default_environment: prod
+project_id: energy_community_platform
+
+environments:
+  - name: prod
+
+plugins:
+  extractors:
+    - name: tap-openmeteo
+      namespace: tap_openmeteo
+      variant: celine-eu
+      pip_url: git+https://github.com/celine-eu/tap-openmeteo.git@main
+      capabilities:
+        - discover
+        - catalog
+        - state
+      config:
+        api_url: "https://api.open-meteo.com"
+        locations:
+          - name: "Folgaria"
+            latitude: 45.9167
+            longitude: 11.1667
+            timezone: "Europe/Rome"
+        timezone: "Europe/Rome"
+        forecast_hours: 48
+        past_hours: 120
+        models:
+          - icon_d2
+        hourly_variables:
+          - shortwave_radiation
+          - direct_radiation
+          - diffuse_radiation
+          - global_tilted_irradiance
+          - cloud_cover
+          - temperature_2m
+          - precipitation
+        streams_to_sync:
+          - weather_hourly
+
+  loaders:
+    - name: target-postgres
+      variant: meltanolabs
+      pip_url: meltanolabs-target-postgres
+      config:
+        host: ${POSTGRES_HOST}
+        port: ${POSTGRES_PORT}
+        user: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        database: ${POSTGRES_DB}
+        default_target_schema: raw
+
+jobs:
+  - name: import
+    tasks:
+      - tap-openmeteo target-postgres
