@@ -7,12 +7,13 @@ from copernicus_downloader import download_datasets
 from celine.utils.pipelines.pipeline import (
     PipelineConfig,
     PipelineTaskResult,
+    PipelineStatus,
     meltano_run_import,
     dbt_run,
     dbt_run_operation,
     DEV_MODE,
+    pipeline_context,
 )
-
 
 script_dir = os.path.dirname(__file__)
 
@@ -20,10 +21,9 @@ script_dir = os.path.dirname(__file__)
 # Prefect tasks wrapping functional helpers
 @task(name="Download data", retries=3, retry_delay_seconds=60)
 def download_data(cfg: PipelineConfig):
-    # TODO add openlinege here
     download_datasets(f"{script_dir}/cds_config.yaml")
     return PipelineTaskResult(
-        status="success",
+        status=PipelineStatus.COMPLETED,
         command="download_datasets",
     )
 
@@ -66,27 +66,20 @@ def run_dbt_tests_task(cfg: PipelineConfig):
 
 
 @flow(name="copernicus-flow")
-def copernicus_flow(config: Dict[str, Any] | None = None):
+async def copernicus_flow(config: Dict[str, Any] | None = None):
     cfg = PipelineConfig.model_validate(config or {})
 
-    downloader = download_data(cfg)
-    importer = import_raw_data(cfg)
-    _cleanup_old_forecast = cleanup_old_forecast(cfg)
-    staging = transform_staging_layer_task(cfg)
-    silver = transform_silver_layer_task(cfg)
-    gold = transform_gold_layer_task(cfg)
-    tests = run_dbt_tests_task(cfg)
+    async with pipeline_context(cfg) as results:
 
-    return {
-        "status": "success",
-        "downloader": downloader,
-        "importer": importer,
-        "cleanup_old_forecast": _cleanup_old_forecast,
-        "staging": staging,
-        "silver": silver,
-        "gold": gold,
-        "tests": tests,
-    }
+        results["downloader"] = download_data(cfg)
+        results["importer"] = import_raw_data(cfg)
+        results["_cleanup_old_forecast"] = cleanup_old_forecast(cfg)
+        results["staging"] = transform_staging_layer_task(cfg)
+        results["silver"] = transform_silver_layer_task(cfg)
+        results["gold"] = transform_gold_layer_task(cfg)
+        results["tests"] = run_dbt_tests_task(cfg)
+
+    return results
 
 
 if __name__ == "__main__":

@@ -9,22 +9,22 @@ x-pipeline-service: &pipeline-service
     - path: .env
       required: true
   environment:
-    POSTGRES_HOST: ${POSTGRES_HOST:-datasets-db}
-    POSTGRES_PORT: ${POSTGRES_PORT:-5432}
+    POSTGRES_HOST: ${POSTGRES_HOST:-172.17.0.1}
+    POSTGRES_PORT: ${POSTGRES_PORT:-15432}
     POSTGRES_USER: ${POSTGRES_USER:-postgres}
-    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-securepassword123}
     POSTGRES_DB: ${POSTGRES_DB:-datasets}
 
     PREFECT_MODE: dev
     PREFECT_API_URL: "http://prefect.celine.localhost:4200/api"
 
     # https://docs.meltano.com/guide/production
-    MELTANO_DATABASE_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@datasets-db:${POSTGRES_PORT:-5432}/meltano
+    MELTANO_DATABASE_URI: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-securepassword123}@172.17.0.1:${POSTGRES_PORT:-15432}/meltano
 
     # https://docs.meltano.com/concepts/state_backends/
     # MELTANO_STATE_BACKEND_URI: s3://your_bucket/meltano/state
 
-    OPENLINEAGE_URL: http://marquez-api:5000
+    OPENLINEAGE_URL: http://marquez.celine.localhost:5000
 
   volumes:
     - ./apps:/pipelines/apps
@@ -40,6 +40,7 @@ x-pipeline-service: &pipeline-service
       condition: service_completed_successfully
   extra_hosts:
     - "prefect.celine.localhost:172.17.0.1"
+    - "marquez.celine.localhost:172.17.0.1"
 
 volumes:
   postgres_data:

@@ -1,10 +1,13 @@
 from prefect import task, flow
+from prefect.logging import get_run_logger
+
 from typing import Dict, Any
 import os
-import datetime
 from celine.utils.pipelines.pipeline import (
     PipelineConfig,
     PipelineTaskResult,
+    PipelineStatus,
+    pipeline_context,
     dbt_run,
     dbt_run_operation,
     meltano_run,
@@ -18,20 +21,11 @@ script_dir = os.path.dirname(__file__)
 # Prefect tasks wrapping functional helpers
 @task(name="Download data", retries=3, retry_delay_seconds=60)
 def download_data(cfg: PipelineConfig):
-    # pt = PipelineRunner(cfg)
-
-    # status = True
-    # details = None
-    # try:
-    #     dwd_downloader(f"{script_dir}/config.yaml")
-    # except Exception as e:
-    #     status = False
-    #     details = f"dwd_downloader error: {e} {traceback.format_exc()}"
 
     dwd_downloader(f"{script_dir}/config.yaml")
 
     return PipelineTaskResult(
-        status="success",
+        status=PipelineStatus.COMPLETED,
         command="dwd_downloader",
     )
 
@@ -68,30 +62,20 @@ def run_dbt_tests_task(cfg: PipelineConfig):
 
 
 @flow(name="dwd-flow")
-def dwd_flow(config: Dict[str, Any] | None = None):
+async def dwd_flow(config: Dict[str, Any] | None = None):
     cfg = PipelineConfig.model_validate(config or {})
 
-    downloader = download_data(cfg)
+    async with pipeline_context(cfg) as results:
 
-    #  cleanup old forecasts
-    cleanup_tables_data = cleanup_tables(cfg)
+        results["downloader"] = download_data(cfg)
+        results["cleanup_tables_data"] = cleanup_tables(cfg)
+        results["importer"] = import_raw_data(cfg)
+        results["staging"] = transform_staging_layer_task(cfg)
+        results["silver"] = transform_silver_layer_task(cfg)
+        results["gold"] = transform_gold_layer_task(cfg)
+        results["tests"] = run_dbt_tests_task(cfg)
 
-    importer = import_raw_data(cfg)
-    staging = transform_staging_layer_task(cfg)
-    silver = transform_silver_layer_task(cfg)
-    gold = transform_gold_layer_task(cfg)
-    tests = run_dbt_tests_task(cfg)
-
-    return {
-        "status": "success",
-        "downloader": downloader,
-        "cleanup_tables_data": cleanup_tables_data,
-        "importer": importer,
-        "staging": staging,
-        "silver": silver,
-        "gold": gold,
-        "tests": tests,
-    }
+    return results
 
 
 if __name__ == "__main__":
