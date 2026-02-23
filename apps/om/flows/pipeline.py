@@ -9,6 +9,7 @@ Schedule: daily at 06:00 (new forecast available ~05:00 UTC).
 
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Any, Dict
 
@@ -26,6 +27,14 @@ from celine.utils.pipelines.pipeline import (
     dbt_run_operation,
     meltano_run_import,
 )
+
+# Add flows directory to sys.path so imports work when the module is loaded
+# outside a package context (e.g. via celine-utils `exec_module`).
+_flows_dir = str(Path(__file__).parent)
+if _flows_dir not in sys.path:
+    sys.path.insert(0, _flows_dir)
+
+from features import build_gold_features
 
 logger = logging.getLogger(__name__)
 
@@ -115,7 +124,6 @@ def cleanup_old_data(cfg: PipelineConfig) -> PipelineTaskResult:
 @task(name="Compute Gold Features")
 def compute_gold_features_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Read silver weather data, compute 29 ML features, write to gold table."""
-    from .features import build_gold_features
 
     run_logger = get_run_logger()
     om_cfg = _load_config()
@@ -152,7 +160,7 @@ def compute_gold_features_task(cfg: PipelineConfig) -> PipelineTaskResult:
 @task(name="Compute Gold Features Meters")
 def compute_gold_features_meters_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Read silver weather data, compute 15 meters/PV features, write to gold table."""
-    from .features import build_gold_features_meters
+    from features import build_gold_features_meters
 
     run_logger = get_run_logger()
     om_cfg = _load_config()
