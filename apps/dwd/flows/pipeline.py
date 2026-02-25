@@ -7,7 +7,6 @@ from celine.utils.pipelines.pipeline import (
     PipelineConfig,
     PipelineTaskResult,
     PipelineStatus,
-    pipeline_context,
     dbt_run,
     dbt_run_operation,
     meltano_run,
@@ -65,15 +64,15 @@ def run_dbt_tests_task(cfg: PipelineConfig):
 async def dwd_flow(config: Dict[str, Any] | None = None):
     cfg = PipelineConfig.model_validate(config or {})
 
-    async with pipeline_context(cfg) as results:
+    results = {}
 
-        results["downloader"] = download_data(cfg)
-        results["cleanup_tables_data"] = cleanup_tables(cfg)
-        results["importer"] = import_raw_data(cfg)
-        results["staging"] = transform_staging_layer_task(cfg)
-        results["silver"] = transform_silver_layer_task(cfg)
-        results["gold"] = transform_gold_layer_task(cfg)
-        results["tests"] = run_dbt_tests_task(cfg)
+    results["downloader"] = download_data(cfg)
+    results["cleanup_tables_data"] = cleanup_tables(cfg)
+    results["importer"] = import_raw_data(cfg)
+    results["staging"] = transform_staging_layer_task(cfg)
+    results["silver"] = transform_silver_layer_task(cfg)
+    results["gold"] = transform_gold_layer_task(cfg)
+    results["tests"] = run_dbt_tests_task(cfg)
 
     return results
 

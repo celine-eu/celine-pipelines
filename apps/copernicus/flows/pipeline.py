@@ -12,7 +12,6 @@ from celine.utils.pipelines.pipeline import (
     dbt_run,
     dbt_run_operation,
     DEV_MODE,
-    pipeline_context,
 )
 
 script_dir = os.path.dirname(__file__)
@@ -69,15 +68,14 @@ def run_dbt_tests_task(cfg: PipelineConfig):
 async def copernicus_flow(config: Dict[str, Any] | None = None):
     cfg = PipelineConfig.model_validate(config or {})
 
-    async with pipeline_context(cfg) as results:
-
-        results["downloader"] = download_data(cfg)
-        results["importer"] = import_raw_data(cfg)
-        results["_cleanup_old_forecast"] = cleanup_old_forecast(cfg)
-        results["staging"] = transform_staging_layer_task(cfg)
-        results["silver"] = transform_silver_layer_task(cfg)
-        results["gold"] = transform_gold_layer_task(cfg)
-        results["tests"] = run_dbt_tests_task(cfg)
+    results = {}
+    results["downloader"] = download_data(cfg)
+    results["importer"] = import_raw_data(cfg)
+    results["_cleanup_old_forecast"] = cleanup_old_forecast(cfg)
+    results["staging"] = transform_staging_layer_task(cfg)
+    results["silver"] = transform_silver_layer_task(cfg)
+    results["gold"] = transform_gold_layer_task(cfg)
+    results["tests"] = run_dbt_tests_task(cfg)
 
     return results
 
