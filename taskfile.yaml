@@ -35,34 +35,41 @@ tasks:
         fi
         uv pip install -e $CELINE_UTILS_PATH
 
-  pipeline:owm:release:
+  pipeline:release:app:
     cmds:
-      - .venv/bin/python scripts/bump_version.py owm minor --commit
+      - .venv/bin/python scripts/bump_version.py minor {{.CLI_ARGS}}
 
-  pipeline:copernicus:release:
+  pipeline:release:owm:
     cmds:
-      - .venv/bin/python scripts/bump_version.py copernicus minor --commit
+      - task pipeline:release:app -- owm --commit
 
-  pipeline:osm:release:
+  pipeline:release:copernicus:
     cmds:
-      - .venv/bin/python scripts/bump_version.py osm minor --commit
+      - task pipeline:release:app -- copernicus --commit
 
-  pipeline:dwd:release:
+  pipeline:release:osm:
     cmds:
-      - .venv/bin/python scripts/bump_version.py dwd minor --commit
+      - task pipeline:release:app -- osm --commit
 
-  pipeline:om:release:
+  pipeline:release:dwd:
     cmds:
-      - .venv/bin/python scripts/bump_version.py om minor --commit
+      - task pipeline:release:app -- dwd --commit
+
+  pipeline:release:om:
+    cmds:
+      - task pipeline:release:app -- om --commit
 
   pipeline:release:all:
     cmds:
-      - task: pipeline:copernicus:release
-      - task: pipeline:dwd:release
-      - task: pipeline:osm:release
-      - task: pipeline:owm:release
-      - task: pipeline:om:release
+      - task pipeline:release:app -- copernicus
+      - task pipeline:release:app -- dwd
+      - task pipeline:release:app -- om
+      - task pipeline:release:app -- osm
+      - task pipeline:release:app -- owm
+      - |
+        git add apps/*/version.txt
+        git commit -m "chore: bump apps version.txt"
 
   pipeline:release:base:
     cmds:
-      - .venv/bin/python scripts/bump_version.py base minor --commit
+      - .venv/bin/python scripts/bump_version.py minor base --commit

@@ -55,12 +55,12 @@ def commit_version(app: str, version: str):
 
 def main():
     parser = argparse.ArgumentParser(description="Manage per-app semantic versions.")
-    parser.add_argument("app", help="App name (e.g., owm, copernicus, osm)")
     parser.add_argument(
         "bump",
         choices=["major", "minor", "patch", "show"],
         help="Bump type or 'show' to print current version",
     )
+    parser.add_argument("app", help="App name (e.g., owm, copernicus, osm)")
     parser.add_argument("--commit", action="store_true", help="Commit the version bump")
     args = parser.parse_args()
 

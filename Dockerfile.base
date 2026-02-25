@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # install uv
 COPY --from=ghcr.io/astral-sh/uv:0.9.3 /uv /uvx /bin/
 ENV PATH="/root/.local/bin:$PATH"
+ENV UV_PYTHON_PREFERENCE=only-system
 
 # Install global requirements (shared across apps)
 WORKDIR /pipelines
