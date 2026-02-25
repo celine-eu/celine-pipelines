@@ -3,14 +3,13 @@ name = "celine-pipelines"
 version = "0.1.0"
 description = "CELINE pipelines toolkit"
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
-    "celine-utils>=1.5.0",
+    "celine-utils>=1.8.1",
 ]
 
 [dependency-groups]
 dev = [
-    "dumpster-cli>=1.4.0",
     "semver>=3.0.4",
 ]
 
