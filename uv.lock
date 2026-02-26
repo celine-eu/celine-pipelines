@@ -301,7 +301,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "celine-utils", specifier = ">=1.8.2" }]
+requires-dist = [{ name = "celine-utils", specifier = ">=1.8.4" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "semver", specifier = ">=3.0.4" }]
@@ -338,7 +338,7 @@ wheels = [
 
 [[package]]
 name = "celine-utils"
-version = "1.8.2"
+version = "1.8.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bcrypt" },
@@ -360,9 +360,9 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fe/e7/9610e6b646e3f99ffc5c078f4c6475f49619ae9baa1b547cc66b91abbee3/celine_utils-1.8.2.tar.gz", hash = "sha256:9bee7e998b6cde70a6cb8af3664ff4bca11573e457166149d6d191cbd61611a4", size = 45384, upload-time = "2026-02-25T13:28:32.236Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/25/56eb91aa880a6fa4438a54720382b69949c31cee888eef574682251a4628/celine_utils-1.8.4.tar.gz", hash = "sha256:c3f77d97176dbd2a55ff479e70beb5f9efa08a8385790e4f3e81f5d8a913d614", size = 46748, upload-time = "2026-02-26T13:35:43.741Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/da/fa/b57eb40f66fbb1de045ebed70dc1d8d107cddd2f14269b30be803cc249a3/celine_utils-1.8.2-py3-none-any.whl", hash = "sha256:e8a47510e7a89413a326c6964d44b57386c13f706b43d2365e0cc9d35b7fd5ab", size = 59202, upload-time = "2026-02-25T13:28:31.061Z" },
+    { url = "https://files.pythonhosted.org/packages/68/eb/d554cfdfb3d26d3f4d737532225c9fe1501fa4c5fdca2c6c2ac0e12e699b/celine_utils-1.8.4-py3-none-any.whl", hash = "sha256:99c44a5bac39c95c9cd8576c4ead5e6256264f636ae95008d62da9e878344e24", size = 60493, upload-time = "2026-02-26T13:35:42.168Z" },
 ]
 
 [[package]]
