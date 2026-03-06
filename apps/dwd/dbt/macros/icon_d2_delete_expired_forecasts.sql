@@ -21,8 +21,20 @@
   ) }}
 
   {% set delete_sql %}
-    DELETE FROM {{ relation }}
-    WHERE {{ interval_end_column }} < {{ cutoff_expr }};
+    DO $$
+    DECLARE deleted int;
+    BEGIN
+      LOOP
+        DELETE FROM {{ relation }}
+        WHERE ctid IN (
+          SELECT ctid FROM {{ relation }}
+          WHERE {{ interval_end_column }} < {{ cutoff_expr }}
+          LIMIT 10000
+        );
+        GET DIAGNOSTICS deleted = ROW_COUNT;
+        EXIT WHEN deleted = 0;
+      END LOOP;
+    END $$;
   {% endset %}
 
   {% do run_query(delete_sql) %}
