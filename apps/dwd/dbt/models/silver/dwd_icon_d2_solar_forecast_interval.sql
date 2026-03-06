@@ -28,6 +28,7 @@ with base as (
         _sdc_last_modified
     from {{ source('raw', 'dwd_icon_d2') }}
     where name = 'avg_snswrf'
+      and interval_end_datetime >= current_date
 
     {% if is_incremental() %}
       and run_datetime >= (

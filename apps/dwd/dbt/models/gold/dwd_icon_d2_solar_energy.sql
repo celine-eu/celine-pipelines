@@ -22,3 +22,10 @@ select
         as solar_energy_kwh_per_m2
 
 from {{ ref('dwd_icon_d2_solar_forecast_interval') }}
+
+{% if is_incremental() %}
+where run_time_utc >= (
+    select coalesce(max(run_time_utc), '1970-01-01'::timestamptz)
+    from {{ this }}
+)
+{% endif %}
