@@ -49,6 +49,50 @@ filtered as (
         dt_lat_lon
     from source
     where lower(location_id) like '%folgaria%'
+),
+
+dedup as (
+    select
+        *,
+        row_number() over (
+            partition by synced_at, dt_lat_lon
+            order by ts desc
+        ) as rn
+    from filtered
 )
 
-select * from filtered
+select
+    synced_at,
+    lat,
+    lon,
+    location_id,
+    ts,
+    pop,
+    uvi,
+    rain,
+    clouds,
+    sunrise,
+    sunset,
+    humidity,
+    pressure,
+    wind_deg,
+    dew_point,
+    wind_gust,
+    temp_day,
+    temp_min,
+    temp_max,
+    temp_night,
+    temp_eve,
+    temp_morn,
+    feels_like_day,
+    feels_like_night,
+    feels_like_eve,
+    feels_like_morn,
+    weather_main,
+    weather_description,
+    summary,
+    moonrise,
+    moonset,
+    dt_lat_lon
+from dedup
+where rn = 1

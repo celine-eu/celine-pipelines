@@ -27,6 +27,28 @@ filtered as (
         dt_lat_lon
     from source
     where lower(location_id) like '%folgaria%'
+),
+
+dedup as (
+    select
+        *,
+        row_number() over (
+            partition by synced_at, event, start_ts
+            order by start_ts desc
+        ) as rn
+    from filtered
 )
 
-select * from filtered
+select
+    synced_at,
+    lat,
+    lon,
+    location_id,
+    sender_name,
+    event,
+    start_ts,
+    end_ts,
+    description,
+    dt_lat_lon
+from dedup
+where rn = 1
