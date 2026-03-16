@@ -11,8 +11,16 @@ Each pipeline is a **self-contained, reproducible application** that ingests, tr
 
 This repository is part of the **CELINE EU project**.
 
-🌍 Project website: https://celineproject.eu  
-🛠 Open-source tools & docs: https://celine-eu.github.io/
+Project website: https://celineproject.eu
+Open-source tools & docs: https://celine-eu.github.io/
+
+## Documentation
+
+| Document | Description |
+|---|---|
+| [Pipeline Overview](https://celine-eu.github.io/projects/celine-pipelines/docs/pipeline-overview.md) | Standard pipeline anatomy, data layers, governance.yaml |
+| [Pipelines Reference](https://celine-eu.github.io/projects/celine-pipelines/docs/pipelines-reference.md) | Per-pipeline reference: om, dwd, owm, copernicus, osm |
+| [Development](https://celine-eu.github.io/projects/celine-pipelines/docs/development.md) | Prerequisites, task setup, running pipelines, releasing |
 
 ---
 
@@ -82,8 +90,8 @@ Governance rules (license, access level, attribution, retention) are declared **
 
 To create and integrate a new pipeline, follow the official tutorial:
 
-👉 **Pipeline integration tutorial**  
-https://celine-eu.github.io/projects/celine-utils/docs/pipeline-tutorial/
+Pipeline integration tutorial:
+https://celine-eu.github.io/projects/celine-utils/docs/pipeline-tutorial.md
 
 The tutorial covers:
 - creating a new pipeline skeleton
