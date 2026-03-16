@@ -76,7 +76,7 @@ This bumps the version, tags the Git commit, and triggers the CI build for the D
 
 Follow the official pipeline integration tutorial:
 
-https://celine-eu.github.io/projects/celine-utils/docs/pipeline-tutorial.md
+https://celine-eu.github.io/projects/celine-utils/docs/pipeline-tutorial
 
 The tutorial covers:
 - Creating a pipeline skeleton with `celine-utils pipeline init`
