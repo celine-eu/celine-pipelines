@@ -1,0 +1,45 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: om_weather_wind
+        description: >
+          Raw wind data from Open-Meteo API for the Trentino region.
+          4.4 km grid (~819 points), ICON-D2 model (2.2 km native),
+          48h forecast horizon. Updated 6x/day (every 4 hours).
+        columns:
+          - name: datetime
+            description: "Hourly forecast timestamp (Europe/Rome timezone)"
+          - name: lat
+            description: "Grid point latitude (WGS84)"
+          - name: lon
+            description: "Grid point longitude (WGS84)"
+          - name: wind_speed_10m
+            description: "Wind speed at 10m height (m/s)"
+          - name: wind_gusts_10m
+            description: "Max wind gust in preceding hour at 10m (m/s)"
+          - name: wind_direction_10m
+            description: "Wind direction at 10m (degrees from north)"
+    config:
+      tags: ["wind"]
+
+models:
+  - name: stg_om_wind
+    description: >
+      Staging view: type-casts raw wind columns and renames to
+      standard names with explicit units (wind_speed_ms, wind_gusts_ms,
+      wind_direction_deg).
+    config:
+      tags: ["wind"]
+    columns:
+      - name: datetime
+        tests:
+          - not_null
+      - name: lat
+        tests:
+          - not_null
+      - name: lon
+        tests:
+          - not_null

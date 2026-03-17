@@ -1,0 +1,47 @@
+version: 2
+
+models:
+  - name: om_wind_gusts
+    description: >
+      Gold layer: daily wind gust alerts per grid point.
+      Aggregates hourly wind to daily max/avg, computes gust excess
+      (max_gust - max_sustained_wind), and classifies into tiers
+      (NORMAL / WARNING / ALERT). Includes PostGIS geography point.
+    config:
+      tags: ["wind"]
+    columns:
+      - name: date
+        description: "Calendar date"
+        tests:
+          - not_null
+      - name: lat
+        description: "Grid point latitude"
+        tests:
+          - not_null
+      - name: lon
+        description: "Grid point longitude"
+        tests:
+          - not_null
+      - name: geoposition
+        description: "PostGIS geography point (SRID 4326)"
+      - name: wind_speed_max
+        description: "Daily maximum sustained wind speed (m/s)"
+      - name: wind_gusts_max
+        description: "Daily maximum wind gust (m/s)"
+      - name: wind_speed_avg
+        description: "Daily average sustained wind speed (m/s)"
+      - name: wind_gusts_avg
+        description: "Daily average wind gust (m/s)"
+      - name: gust_excess
+        description: "wind_gusts_max - wind_speed_max (m/s)"
+      - name: gust_excess_tier
+        description: "NORMAL (<7.62), WARNING (>=7.62), ALERT (>=12.46)"
+        tests:
+          - accepted_values:
+              values: ['NORMAL', 'WARNING', 'ALERT']
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - date
+            - lat
+            - lon

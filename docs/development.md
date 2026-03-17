@@ -29,7 +29,10 @@ task pipeline:om:run
 # Open-Meteo (historical backfill)
 task pipeline:om:run -- mode=historical start_date=2024-12-01
 
-# DWD
+# Open-Meteo Wind (Trentino grid — same om image, separate flow)
+docker compose run --rm pipeline-om python3 ./flows/pipeline_wind.py
+
+# DWD (PAUSED — replaced by om-wind)
 task pipeline:dwd:run
 
 # OpenWeatherMap
@@ -59,6 +62,12 @@ om_flow(config={'mode': 'forecast'})
 
 # Run as scheduled service (daily)
 docker compose up pipeline-om -d
+
+# Run the wind flow (uses same pipeline-om image)
+docker compose run --rm pipeline-om python3 -c "
+from flows.pipeline_wind import om_wind_flow
+om_wind_flow()
+"
 ```
 
 ## Releasing a Pipeline

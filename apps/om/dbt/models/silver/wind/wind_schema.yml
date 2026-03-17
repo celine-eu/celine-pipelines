@@ -1,0 +1,34 @@
+version: 2
+
+models:
+  - name: om_wind_hourly
+    description: >
+      Silver layer: hourly wind data per grid point. Deduplicated by
+      (datetime, lat, lon), keeping the most recent extraction.
+    config:
+      tags: ["wind"]
+    columns:
+      - name: datetime
+        description: "Hourly timestamp (Europe/Rome timezone)"
+        tests:
+          - not_null
+      - name: lat
+        description: "Grid point latitude"
+        tests:
+          - not_null
+      - name: lon
+        description: "Grid point longitude"
+        tests:
+          - not_null
+      - name: wind_speed_ms
+        description: "Wind speed at 10m (m/s)"
+      - name: wind_gusts_ms
+        description: "Max wind gust in preceding hour (m/s)"
+      - name: wind_direction_deg
+        description: "Wind direction (degrees from north)"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - datetime
+            - lat
+            - lon

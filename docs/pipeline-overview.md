@@ -63,3 +63,60 @@ apps/<name>/
 ```
 
 The container entrypoint runs the Prefect flow. Pipelines can also run as scheduled Prefect deployments.
+
+## Multi-Flow Pipelines
+
+A single app can host multiple Prefect flows that share the same Docker image
+but run on independent schedules. Each flow gets its own `pipeline_<name>.py`
+and `config_<name>.yaml`. dbt models are organized in **subdirectories** within
+the standard layer folders and selected using **dbt tags** (comma = intersection):
+
+```
+apps/om/
+  flows/
+    pipeline.py           # om-flow (weather)
+    pipeline_wind.py      # om-wind-flow (wind grid)
+    config.yaml
+    config_wind.yaml
+  dbt/models/
+    staging/
+      stg_om_weather.sql            # weather (no tag)
+      wind/
+        stg_om_wind.sql             # wind (tag: wind)
+    silver/
+      om_weather_hourly.sql
+      wind/
+        om_wind_hourly.sql
+    gold/
+      om_weather_features.sql
+      wind/
+        om_wind_gusts.sql
+```
+
+Each flow selects only its own models via dbt tags:
+
+```python
+# wind pipeline uses intersection: layer AND tag
+dbt_run("-s staging,tag:wind", cfg)   # only wind staging
+dbt_run("-s silver,tag:wind", cfg)    # only wind silver
+dbt_run("-s gold,tag:wind", cfg)      # only wind gold
+dbt_run("test -s tag:wind", cfg)      # only wind tests
+```
+
+Tags are defined in per-directory schema YAML files:
+
+```yaml
+# dbt/models/silver/wind/wind_schema.yml
+models:
+  - name: om_wind_hourly
+    config:
+      tags: ["wind"]
+```
+
+This pattern avoids cross-flow interference: the weather flow's `dbt_run("staging", cfg)`
+runs all staging models (including wind), but wind models are harmless when run by the
+weather flow (views are cheap, incremental tables skip when no new data).
+
+**Note on dbt selectors:** In dbt, comma within `--select` is **intersection** (AND),
+while space-separated or multiple `-s` flags is **union** (OR). This is the opposite
+of what most people expect. Verified in dbt-core source (`dbt/graph/cli.py`).

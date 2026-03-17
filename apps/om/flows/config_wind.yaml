@@ -1,0 +1,45 @@
+# Wind pipeline configuration for Trentino region
+# Fetches wind speed, gusts, and direction from Open-Meteo API
+# Separate from the main OM weather pipeline (config.yaml)
+
+# Trentino grid: 4.4 km resolution (0.04 deg spacing)
+# Bounding box covers the entire Autonomous Province of Trento
+grid:
+  lat_min: 45.44
+  lat_max: 46.52
+  lon_min: 10.40
+  lon_max: 11.90
+  spacing_deg: 0.04  # ~4.4 km (double ICON-D2 native 2.2 km)
+
+# Open-Meteo API configuration
+api:
+  base_url: "https://api.open-meteo.com/v1/forecast"
+  model: "icon_d2"
+  variables:
+    - wind_speed_10m
+    - wind_gusts_10m
+    - wind_direction_10m
+  wind_speed_unit: "ms"
+  forecast_hours: 48
+  timezone: "Europe/Rome"
+  # Open-Meteo POST payload limit is ~1000 locations.
+  # Above that: 413 Payload Too Large.
+  # With 1064 grid points, this gives 2 batches (600 + 464).
+  max_points_per_call: 600
+
+# Database targets
+raw:
+  table: om_weather_wind
+  schema: raw
+
+# Gust alert thresholds (m/s)
+# Applied to gust_excess = daily_max_gust - daily_max_wind_speed
+# Inherited from DWD pipeline calibration
+gust_thresholds:
+  warning: 7.62
+  alert: 12.46
+
+# Schedule: every 4 hours (6x/day)
+schedule:
+  cron: "0 0,4,8,12,16,20 * * *"
+  name: "om-wind-trentino"

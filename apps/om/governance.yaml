@@ -56,6 +56,58 @@ sources:
   # STAGING - technical preparation layer
   # ---------------------------------------------------------------------------
 
+  datasets.ds_dev_silver.om_wind_hourly:
+    title: "Open-Meteo Hourly Wind — Trentino Grid (Silver)"
+    description: >
+      Hourly wind data for the Trentino region at 4.4 km resolution (~798
+      grid points). Contains wind_speed_ms, wind_gusts_ms, wind_direction_deg
+      from the ICON-D2 model via Open-Meteo API. Deduplicated by
+      (datetime, lat, lon).
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, wind, trentino, silver]
+
+  datasets.ds_dev_gold.om_wind_gusts:
+    title: "Open-Meteo Daily Wind Gust Alerts — Trentino Grid (Gold)"
+    description: >
+      Daily wind gust risk indicators for the Trentino region. Aggregates
+      hourly wind data to daily max/avg per grid point, computes gust excess
+      (max_gust - max_sustained_wind), and classifies into NORMAL / WARNING
+      / ALERT tiers. Includes PostGIS geography point for spatial queries.
+      Replaces dwd_icon_d2_gusts.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, wind, gusts, trentino, gold]
+
+  # ---------------------------------------------------------------------------
+  # STAGING - technical preparation layer
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_staging.stg_om_wind:
+    title: "Staging - Open-Meteo Wind Data"
+    description: >
+      Technical staging view over raw Open-Meteo wind data. Casts column
+      types and renames to standard units (wind_speed_ms, wind_gusts_ms,
+      wind_direction_deg).
+    license: CC-BY-4.0
+    access_level: internal
+    source_system: Open-Meteo
+    tags: [open-meteo, wind, staging]
+
   datasets.ds_dev_raw.stg_om_weather:
     title: "Staging - Open-Meteo Hourly Weather"
     description: >
@@ -85,3 +137,19 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, weather, raw]
+
+  datasets.raw.om_weather_wind:
+    title: "Open-Meteo Wind Data — Trentino Grid (Raw)"
+    description: >
+      Raw hourly wind data fetched from Open-Meteo API via POST for the
+      Trentino region (4.4 km grid, ~798 points, ICON-D2 model). Contains
+      wind_speed_10m, wind_gusts_10m, wind_direction_10m in m/s. Updated
+      6x/day (every 4 hours), 48h forecast horizon per run.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: Open-Meteo
+        type: open_source
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, wind, trentino, raw]
