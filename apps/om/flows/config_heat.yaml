@@ -1,0 +1,58 @@
+# Heat pipeline configuration for Trentino region
+# Fetches daily max temperature from Open-Meteo API
+# Separate from the main OM weather pipeline (config.yaml) and wind pipeline
+
+# Trentino grid: 4.4 km resolution (0.04 deg spacing)
+# Same bounding box as wind pipeline
+grid:
+  lat_min: 45.44
+  lat_max: 46.52
+  lon_min: 10.40
+  lon_max: 11.90
+  spacing_deg: 0.04  # ~4.4 km (double ICON-D2 native 2.2 km)
+
+# Open-Meteo API configuration
+api:
+  base_url: "https://api.open-meteo.com/v1/forecast"
+  model: "icon_d2"
+  variables:
+    - temperature_2m_max
+  forecast_days: 4
+  past_days: 3       # lookback for consecutive-day logic
+  timezone: "Europe/Rome"
+  # Open-Meteo POST payload limit is ~1000 locations.
+  # Above that: 413 Payload Too Large.
+  # With 1064 grid points, this gives 2 batches (600 + 464).
+  max_points_per_call: 600
+
+# Database targets
+raw:
+  table: om_weather_heat
+  schema: raw
+
+# P90 thresholds (deg C) -- daily Tmax, from Crespi 1981-2010 climatology
+# Only applied May-Sep; outside warm season -> always GREEN
+p90_thresholds:
+  low:    # <500m elevation
+    5: 22    # May
+    6: 26    # Jun
+    7: 27    # Jul
+    8: 27    # Aug
+    9: 23    # Sep
+  mid:    # 500-1000m
+    5: 18
+    6: 22
+    7: 23
+    8: 23
+    9: 19
+  high:   # >1000m
+    5: 14
+    6: 18
+    7: 19
+    8: 19
+    9: 15
+
+# Schedule: 2x/day
+schedule:
+  cron: "0 6,18 * * *"
+  name: "om-heat-trentino"

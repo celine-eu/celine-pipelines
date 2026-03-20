@@ -1,0 +1,42 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: om_weather_heat
+        description: >
+          Raw daily max temperature from Open-Meteo API for the Trentino region.
+          4.4 km grid (~1064 points), ICON-D2 model (2.2 km native),
+          4-day forecast + 3-day lookback. Updated 2x/day (06:00, 18:00).
+        columns:
+          - name: date
+            description: "Calendar date"
+          - name: lat
+            description: "Grid point latitude (WGS84)"
+          - name: lon
+            description: "Grid point longitude (WGS84)"
+          - name: temperature_2m_max
+            description: "Daily maximum temperature at 2m (Celsius)"
+          - name: elevation
+            description: "Grid point elevation from 90m DEM (meters)"
+    config:
+      tags: ["heat"]
+
+models:
+  - name: stg_om_heat
+    description: >
+      Staging view: type-casts raw heat columns. Renames
+      temperature_2m_max to temp_max_c, elevation to elevation_m.
+    config:
+      tags: ["heat"]
+    columns:
+      - name: date
+        tests:
+          - not_null
+      - name: lat
+        tests:
+          - not_null
+      - name: lon
+        tests:
+          - not_null

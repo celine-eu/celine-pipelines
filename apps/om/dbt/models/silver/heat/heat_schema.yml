@@ -1,0 +1,38 @@
+version: 2
+
+models:
+  - name: om_heat_daily
+    description: >
+      Silver layer: daily max temperature per grid point. Deduplicated by
+      (date, lat, lon), keeping the most recent extraction. Includes
+      altitude_band classification (low/mid/high) from API elevation.
+    config:
+      tags: ["heat"]
+    columns:
+      - name: date
+        description: "Calendar date"
+        tests:
+          - not_null
+      - name: lat
+        description: "Grid point latitude"
+        tests:
+          - not_null
+      - name: lon
+        description: "Grid point longitude"
+        tests:
+          - not_null
+      - name: temp_max_c
+        description: "Daily maximum temperature at 2m (Celsius)"
+      - name: elevation_m
+        description: "Grid point elevation (meters above sea level)"
+      - name: altitude_band
+        description: "Altitude classification: low (<500m), mid (500-1000m), high (>1000m)"
+        tests:
+          - accepted_values:
+              values: ['low', 'mid', 'high']
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - date
+            - lat
+            - lon

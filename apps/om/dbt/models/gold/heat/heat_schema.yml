@@ -1,0 +1,50 @@
+version: 2
+
+models:
+  - name: om_heat_risk
+    description: >
+      Gold layer: daily heat risk per grid point. Uses altitude-band P90
+      thresholds (Crespi 1981-2010 climatology) to classify heat stress.
+      Consecutive-day logic: GREEN (no stress), ORANGE (1-2 days),
+      RED (>=3 days heatwave). Outside May-Sep always GREEN.
+      Includes PostGIS geography point for spatial queries.
+    config:
+      tags: ["heat"]
+    columns:
+      - name: date
+        description: "Calendar date"
+        tests:
+          - not_null
+      - name: lat
+        description: "Grid point latitude"
+        tests:
+          - not_null
+      - name: lon
+        description: "Grid point longitude"
+        tests:
+          - not_null
+      - name: geoposition
+        description: "PostGIS geography point (SRID 4326)"
+      - name: elevation_m
+        description: "Grid point elevation (meters)"
+      - name: altitude_band
+        description: "low (<500m), mid (500-1000m), high (>1000m)"
+      - name: temp_max_c
+        description: "Daily maximum temperature at 2m (Celsius)"
+      - name: p90_threshold
+        description: "P90 threshold for this altitude band and month (null outside May-Sep)"
+      - name: is_heat_stress
+        description: "True if temp_max_c > P90 threshold during May-Sep"
+      - name: consecutive_heat_days
+        description: "Day number within current heat stress streak (0 if no stress)"
+      - name: heat_risk_tier
+        description: "GREEN (normal), ORANGE (1-2 days), RED (>=3 days heatwave)"
+        tests:
+          - accepted_values:
+              values: ['GREEN', 'ORANGE', 'RED']
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - date
+            - lat
+            - lon
