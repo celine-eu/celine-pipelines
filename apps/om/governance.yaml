@@ -153,3 +153,68 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, wind, trentino, raw]
+
+  # ---------------------------------------------------------------------------
+  # HEAT — temperature-based heat risk pipeline
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.om_weather_heat:
+    title: "Open-Meteo Heat Data — Trentino Grid (Raw)"
+    description: >
+      Raw daily max temperature fetched from Open-Meteo API via POST for the
+      Trentino region (4.4 km grid, ~1064 points, ICON-D2 model). Contains
+      temperature_2m_max and elevation. Updated 2x/day, 4-day forecast +
+      3-day lookback per run.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: Open-Meteo
+        type: open_source
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, heat, temperature, trentino, raw]
+
+  datasets.ds_dev_staging.stg_om_heat:
+    title: "Staging - Open-Meteo Heat Data"
+    description: >
+      Technical staging view over raw Open-Meteo heat data. Casts column
+      types and renames to standard units (temp_max_c, elevation_m).
+    license: CC-BY-4.0
+    access_level: internal
+    source_system: Open-Meteo
+    tags: [open-meteo, heat, staging]
+
+  datasets.ds_dev_silver.om_heat_daily:
+    title: "Open-Meteo Daily Temperature — Trentino Grid (Silver)"
+    description: >
+      Daily max temperature for the Trentino region at 4.4 km resolution
+      (~1064 grid points). Deduplicated by (date, lat, lon). Includes
+      elevation_m and altitude_band classification (low/mid/high).
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, heat, temperature, trentino, silver]
+
+  datasets.ds_dev_gold.om_heat_risk:
+    title: "Open-Meteo Daily Heat Risk — Trentino Grid (Gold)"
+    description: >
+      Daily heat risk indicators for the Trentino region. Classifies heat
+      stress using altitude-band P90 thresholds (Crespi 1981-2010) during
+      May-Sep. Consecutive-day logic: GREEN (normal), ORANGE (1-2 days),
+      RED (>=3 days heatwave). Includes PostGIS geography point.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, heat, risk, trentino, gold]
