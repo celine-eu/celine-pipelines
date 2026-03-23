@@ -168,6 +168,7 @@ final as (
             else 'ORANGE'
         end as heat_risk_tier,
 
+        forecast_model,
         _sdc_extracted_at
     from streaks
 

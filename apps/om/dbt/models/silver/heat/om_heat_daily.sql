@@ -37,7 +37,7 @@ deduped as (
             when elevation_m < 1000 then 'mid'
             else 'high'
         end as altitude_band,
-        model,
+        forecast_model,
         _sdc_extracted_at
     from base
     order by date, lat, lon, _sdc_extracted_at desc

@@ -16,7 +16,7 @@ with source as (
         cast(lon as double precision)         as lon,
         cast(temperature_2m_max as float)     as temp_max_c,
         cast(elevation as float)              as elevation_m,
-        model,
+        model as forecast_model,
         _sdc_extracted_at
     from {{ source('raw', 'om_weather_heat') }}
 

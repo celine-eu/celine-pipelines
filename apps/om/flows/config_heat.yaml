@@ -14,7 +14,8 @@ grid:
 # Open-Meteo API configuration
 api:
   base_url: "https://api.open-meteo.com/v1/forecast"
-  model: "icon_d2"
+  # No model specified = best_match (uses ICON-D2 for days 0-1, longer-range for days 2+)
+  # model: "icon_d2"  # disabled: only provides ~48h, not enough for 2 full calendar days ahead
   variables:
     - temperature_2m_max
   forecast_days: 4

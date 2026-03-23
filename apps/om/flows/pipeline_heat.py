@@ -187,17 +187,21 @@ def _fetch_heat_data(
         lats = ",".join(str(point[0]) for point in batch)
         lons = ",".join(str(point[1]) for point in batch)
 
-        response = requests.post(
-            api_cfg["base_url"],
-            data={
+        post_data = {
                 "latitude": lats,
                 "longitude": lons,
                 "daily": ",".join(api_cfg["variables"]),
-                "models": api_cfg["model"],
                 "forecast_days": str(api_cfg["forecast_days"]),
                 "past_days": str(api_cfg["past_days"]),
                 "timezone": api_cfg["timezone"],
-            },
+            }
+        model_name = api_cfg.get("model")
+        if model_name:
+            post_data["models"] = model_name
+
+        response = requests.post(
+            api_cfg["base_url"],
+            data=post_data,
             timeout=120,
         )
         response.raise_for_status()
@@ -208,6 +212,11 @@ def _fetch_heat_data(
         if isinstance(data, dict):
             data = [data]
 
+        # Tag rows with forecast model based on proximity to extraction time.
+        # ICON-D2 covers ~48h, so dates within 2 days of today use high-res data,
+        # dates beyond that use longer-range models (GFS/ECMWF) via best_match.
+        today = pd.Timestamp.now(tz="Europe/Rome").normalize().date()
+
         for location_data in data:
             location_lat = location_data["latitude"]
             location_lon = location_data["longitude"]
@@ -215,13 +224,17 @@ def _fetch_heat_data(
             daily = location_data["daily"]
 
             dates = [pd.Timestamp(ts).date() for ts in daily["time"]]
+            forecast_models = [
+                "icon_d2" if (d - today).days <= 1 else "best_match_extended"
+                for d in dates
+            ]
             location_df = pd.DataFrame({
                 "date": dates,
                 "lat": location_lat,
                 "lon": location_lon,
                 "temperature_2m_max": daily["temperature_2m_max"],
                 "elevation": location_elevation,
-                "model": api_cfg["model"],
+                "model": forecast_models,
             })
             all_frames.append(location_df)
 
