@@ -1,0 +1,28 @@
+version: 2
+
+models:
+  - name: om_weather_hourly_view
+    description: >
+      Gold-layer view of hourly weather data from Open-Meteo.
+      Pass-through from silver om_weather_hourly for downstream
+      consumers (e.g. Superset dashboards).
+    columns:
+      - name: datetime
+        description: "Hourly timestamp (Europe/Rome timezone)"
+        tests:
+          - not_null
+          - unique
+      - name: shortwave_radiation
+        description: "Total solar radiation GHI (W/m2)"
+      - name: direct_radiation
+        description: "Direct beam solar radiation on horizontal surface (W/m2)"
+      - name: diffuse_radiation
+        description: "Scattered solar radiation (W/m2)"
+      - name: global_tilted_irradiance
+        description: "Global tilted irradiance for PV panels (W/m2)"
+      - name: cloud_cover
+        description: "Total cloud cover (%)"
+      - name: temperature_2m
+        description: "Air temperature at 2m (C)"
+      - name: precipitation
+        description: "Total precipitation (mm)"

@@ -17,6 +17,7 @@ with base as (
     {% if is_incremental() %}
     where datetime > (
         select coalesce(max(datetime), '1900-01-01'::timestamp)
+               - interval '7 days'
         from {{ this }}
     )
     {% endif %}
