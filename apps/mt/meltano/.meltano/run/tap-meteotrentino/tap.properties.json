@@ -1,0 +1,1706 @@
+{
+  "streams": [
+    {
+      "tap_stream_id": "meteotrentino_alerts",
+      "replication_method": "FULL_TABLE",
+      "key_properties": [
+        "identifier"
+      ],
+      "schema": {
+        "properties": {
+          "identifier": {
+            "type": [
+              "string"
+            ]
+          },
+          "sender": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sent": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "msg_type": {
+            "items": {
+              "type": [
+                "string"
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "scope": {
+            "items": {
+              "type": [
+                "string"
+              ]
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "status": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "language": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "headline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "event": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "urgency": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "severity": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "certainty": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "expires": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "description": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "web": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "contact": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "area_desc": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "area_polygon": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resource_uri": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "identifier"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "stream": "meteotrentino_alerts",
+      "metadata": [
+        {
+          "breadcrumb": [
+            "properties",
+            "identifier"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "sender"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "sent"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "msg_type"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "scope"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "source"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "status"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "language"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "headline"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "category"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "event"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "urgency"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "severity"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "certainty"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "expires"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "description"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "web"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "contact"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "area_desc"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "area_polygon"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "resource_uri"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true,
+            "selected-by-default": true,
+            "table-key-properties": [
+              "identifier"
+            ]
+          }
+        }
+      ],
+      "selected": true
+    },
+    {
+      "tap_stream_id": "meteotrentino_forecast_locations",
+      "replication_method": "FULL_TABLE",
+      "key_properties": [
+        "id"
+      ],
+      "schema": {
+        "properties": {
+          "id": {
+            "type": [
+              "string"
+            ]
+          },
+          "name_it": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name_de": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name_en": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name_lld": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "elevation": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "latitude": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "longitude": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "venue_type": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "forecast_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "stream": "meteotrentino_forecast_locations",
+      "metadata": [
+        {
+          "breadcrumb": [
+            "properties",
+            "id"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "name_it"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "name_de"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "name_en"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "name_lld"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "elevation"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "latitude"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "longitude"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "venue_type"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "forecast_url"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true,
+            "selected-by-default": true,
+            "table-key-properties": [
+              "id"
+            ]
+          }
+        }
+      ],
+      "selected": true
+    },
+    {
+      "tap_stream_id": "meteotrentino_forecasts_daily",
+      "replication_method": "FULL_TABLE",
+      "key_properties": [
+        "location_id",
+        "forecast_timestamp"
+      ],
+      "schema": {
+        "properties": {
+          "location_id": {
+            "type": [
+              "string"
+            ]
+          },
+          "forecast_timestamp": {
+            "type": [
+              "string"
+            ]
+          },
+          "forecast_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "interval_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "temperature": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "temperature_maximum": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "temperature_minimum": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "rain_fall": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "fresh_snow": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "snow_level": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "wind_speed": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "wind_gust": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "wind_direction": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "sky_condition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "freezing_level": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "rain_probability": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "sunshine_duration": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "location_id",
+          "forecast_timestamp"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "stream": "meteotrentino_forecasts_daily",
+      "metadata": [
+        {
+          "breadcrumb": [
+            "properties",
+            "location_id"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "forecast_timestamp"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "forecast_url"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "interval_minutes"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "temperature"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "temperature_maximum"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "temperature_minimum"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "rain_fall"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "fresh_snow"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "snow_level"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "wind_speed"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "wind_gust"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "wind_direction"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "sky_condition"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "freezing_level"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "rain_probability"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "sunshine_duration"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true,
+            "selected-by-default": true,
+            "table-key-properties": [
+              "location_id",
+              "forecast_timestamp"
+            ]
+          }
+        }
+      ],
+      "selected": true
+    },
+    {
+      "tap_stream_id": "meteotrentino_forecasts_hourly",
+      "replication_method": "FULL_TABLE",
+      "key_properties": [
+        "location_id",
+        "forecast_timestamp"
+      ],
+      "schema": {
+        "properties": {
+          "location_id": {
+            "type": [
+              "string"
+            ]
+          },
+          "forecast_timestamp": {
+            "type": [
+              "string"
+            ]
+          },
+          "forecast_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "interval_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "temperature": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "temperature_maximum": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "temperature_minimum": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "rain_fall": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "fresh_snow": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "snow_level": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "wind_speed": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "wind_gust": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "wind_direction": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "sky_condition": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "freezing_level": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "rain_probability": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "sunshine_duration": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "location_id",
+          "forecast_timestamp"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "stream": "meteotrentino_forecasts_hourly",
+      "metadata": [
+        {
+          "breadcrumb": [
+            "properties",
+            "location_id"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "forecast_timestamp"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "forecast_url"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "interval_minutes"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "temperature"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "temperature_maximum"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "temperature_minimum"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "rain_fall"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "fresh_snow"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "snow_level"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "wind_speed"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "wind_gust"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "wind_direction"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "sky_condition"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "freezing_level"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "rain_probability"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "sunshine_duration"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true,
+            "selected-by-default": true,
+            "table-key-properties": [
+              "location_id",
+              "forecast_timestamp"
+            ]
+          }
+        }
+      ],
+      "selected": true
+    },
+    {
+      "tap_stream_id": "meteotrentino_meteo_stations",
+      "replication_method": "FULL_TABLE",
+      "key_properties": [
+        "code"
+      ],
+      "schema": {
+        "properties": {
+          "code": {
+            "type": [
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "shortname": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "elevation": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "latitude": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "longitude": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "east": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "north": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "startdate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "enddate": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "code"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "stream": "meteotrentino_meteo_stations",
+      "metadata": [
+        {
+          "breadcrumb": [
+            "properties",
+            "code"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "name"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "shortname"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "elevation"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "latitude"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "longitude"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "east"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "north"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "startdate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "enddate"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true,
+            "selected-by-default": true,
+            "table-key-properties": [
+              "code"
+            ]
+          }
+        }
+      ],
+      "selected": true
+    },
+    {
+      "tap_stream_id": "meteotrentino_sky_conditions",
+      "replication_method": "FULL_TABLE",
+      "key_properties": [
+        "id"
+      ],
+      "schema": {
+        "properties": {
+          "id": {
+            "type": [
+              "string"
+            ]
+          },
+          "icon_day": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "icon_night": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name_deu": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name_eng": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name_ita": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name_lld": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "stream": "meteotrentino_sky_conditions",
+      "metadata": [
+        {
+          "breadcrumb": [
+            "properties",
+            "id"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "icon_day"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "icon_night"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "name_deu"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "name_eng"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "name_ita"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "name_lld"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true,
+            "selected-by-default": true,
+            "table-key-properties": [
+              "id"
+            ]
+          }
+        }
+      ],
+      "selected": true
+    },
+    {
+      "tap_stream_id": "meteotrentino_station_observations",
+      "replication_key": "timestamp",
+      "replication_method": "INCREMENTAL",
+      "key_properties": [
+        "station_code",
+        "timestamp"
+      ],
+      "schema": {
+        "properties": {
+          "station_code": {
+            "type": [
+              "string"
+            ]
+          },
+          "timestamp": {
+            "type": [
+              "string"
+            ]
+          },
+          "air_temperature_c": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "precipitation_mm": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "wind_speed_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "wind_direction_deg": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "wind_gust_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "global_radiation_wm2": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "relative_humidity_pct": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "snow_depth_cm": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "station_code",
+          "timestamp"
+        ],
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
+      },
+      "stream": "meteotrentino_station_observations",
+      "metadata": [
+        {
+          "breadcrumb": [
+            "properties",
+            "station_code"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "timestamp"
+          ],
+          "metadata": {
+            "inclusion": "automatic",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "air_temperature_c"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "precipitation_mm"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "wind_speed_ms"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "wind_direction_deg"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "wind_gust_ms"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "global_radiation_wm2"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "relative_humidity_pct"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [
+            "properties",
+            "snow_depth_cm"
+          ],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true
+          }
+        },
+        {
+          "breadcrumb": [],
+          "metadata": {
+            "inclusion": "available",
+            "selected": true,
+            "selected-by-default": true,
+            "table-key-properties": [
+              "station_code",
+              "timestamp"
+            ],
+            "valid-replication-keys": [
+              "timestamp"
+            ]
+          }
+        }
+      ],
+      "selected": true
+    }
+  ]
+}

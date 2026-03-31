@@ -1,0 +1,36 @@
+default_environment: prod
+project_id: energy_community_platform
+
+environments:
+  - name: prod
+
+plugins:
+  extractors:
+    - name: tap-meteotrentino
+      namespace: tap_meteotrentino
+      variant: celine-eu
+      pip_url: tap-meteotrentino
+      capabilities:
+        - discover
+        - catalog
+        - state
+      config:
+        # No station_codes / location_ids filter — sync all Trentino
+        start_date: "2 days ago"
+
+  loaders:
+    - name: target-postgres
+      variant: meltanolabs
+      pip_url: meltanolabs-target-postgres
+      config:
+        host: ${POSTGRES_HOST}
+        port: ${POSTGRES_PORT}
+        user: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        database: ${POSTGRES_DB}
+        default_target_schema: raw
+
+jobs:
+  - name: import
+    tasks:
+      - tap-meteotrentino target-postgres

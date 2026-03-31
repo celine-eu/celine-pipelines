@@ -1,0 +1,14 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    database: datasets
+    tables:
+      - name: meteotrentino_sky_conditions
+      - name: meteotrentino_alerts
+      - name: meteotrentino_meteo_stations
+      - name: meteotrentino_station_observations
+      - name: meteotrentino_forecast_locations
+      - name: meteotrentino_forecasts_hourly
+      - name: meteotrentino_forecasts_daily

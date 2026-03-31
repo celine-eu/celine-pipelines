@@ -1,0 +1,526 @@
+defaults:
+  license: CC-BY-4.0
+  ownership: []
+  access_level: internal
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: https://www.meteotrentino.it
+  source_system: MeteoTrentino
+  attribution: >
+    Data from MeteoTrentino (https://www.meteotrentino.it).
+    © Servizio Meteorologico della Provincia Autonoma di Trento.
+    Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+  access_requirements: null
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: false
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
+
+sources:
+  # ---------------------------------------------------------------------------
+  # RAW - verbatim ingested data
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.mt_sky_conditions:
+    title: "MeteoTrentino Sky Condition Codes (Raw)"
+    description: >
+      Raw sky condition reference table ingested from the MeteoTrentino manager API.
+      Contains sky condition identifiers and multilingual names (IT, DE, EN, LLD).
+      Stored verbatim as immutable source; SVG icon content is stripped by the tap.
+    access_level: internal
+    ownership:
+      - name: meteotrentino
+        type: public_authority
+    tags: [meteotrentino, reference, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  datasets.raw.mt_alerts:
+    title: "MeteoTrentino Weather Alerts (Raw)"
+    description: >
+      Raw weather alert records ingested from the MeteoTrentino public alert
+      endpoint. Full-refresh on every run. Contains active CAP-compatible alert
+      payloads including event, severity, urgency, area, and description.
+    access_level: internal
+    ownership:
+      - name: meteotrentino
+        type: public_authority
+    tags: [meteotrentino, alerts, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  datasets.raw.mt_meteo_stations:
+    title: "MeteoTrentino Station Registry (Raw)"
+    description: >
+      Raw registry of all MeteoTrentino measurement stations ingested from the
+      ASMX XML service. Contains station code, name, elevation, coordinates,
+      and active date range.
+    access_level: internal
+    ownership:
+      - name: meteotrentino
+        type: public_authority
+    tags: [meteotrentino, stations, reference, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  datasets.raw.mt_station_observations:
+    title: "MeteoTrentino Station Observations (Raw)"
+    description: >
+      Raw 15-minute meteorological observations per station ingested
+      incrementally from the MeteoTrentino ASMX XML service. Contains air
+      temperature, precipitation, wind speed/direction/gust, global radiation,
+      relative humidity, and snow depth per station and timestamp.
+    access_level: internal
+    ownership:
+      - name: meteotrentino
+        type: public_authority
+    tags: [meteotrentino, observations, raw]
+    retention_days: 30
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  datasets.raw.mt_forecast_locations:
+    title: "MeteoTrentino Forecast Locations (Raw)"
+    description: >
+      Raw registry of forecast locations across Trentino ingested from the
+      meteo.report open data endpoint. Contains location identifiers,
+      multilingual names, elevation, coordinates, and venue type.
+    access_level: internal
+    ownership:
+      - name: meteotrentino
+        type: public_authority
+    tags: [meteotrentino, forecast, locations, reference, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  datasets.raw.mt_forecasts_hourly:
+    title: "MeteoTrentino Sub-Daily Forecasts (Raw)"
+    description: >
+      Raw sub-daily (typically 3-hour interval) weather forecasts per location
+      ingested from the meteo.report forecast JSON service. Full-refresh per
+      location on every run. Contains temperature, precipitation, wind, snow,
+      sky condition, and freezing level per forecast timestamp.
+    access_level: internal
+    ownership:
+      - name: meteotrentino
+        type: public_authority
+    tags: [meteotrentino, forecast, hourly, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  datasets.raw.mt_forecasts_daily:
+    title: "MeteoTrentino Daily Forecasts (Raw)"
+    description: >
+      Raw daily forecast summaries per location ingested from the meteo.report
+      forecast JSON service. Full-refresh per location on every run. Contains
+      daily temperature range, precipitation, wind, snow, and sky condition.
+    access_level: internal
+    ownership:
+      - name: meteotrentino
+        type: public_authority
+    tags: [meteotrentino, forecast, daily, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  # ---------------------------------------------------------------------------
+  # STAGING - technical transformation layer
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_staging.stg_sky_conditions:
+    title: "Staging - MeteoTrentino Sky Conditions"
+    description: >
+      Technical staging view over raw sky condition codes. Selects and exposes
+      the identifier and multilingual name fields prior to silver curation.
+    access_level: internal
+    tags: [meteotrentino, reference, staging]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_staging.stg_alerts:
+    title: "Staging - MeteoTrentino Weather Alerts"
+    description: >
+      Technical staging view over raw alert records. Casts sent/expires fields
+      to timestamp and exposes all alert metadata for silver-layer curation.
+    access_level: internal
+    tags: [meteotrentino, alerts, staging]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_staging.stg_meteo_stations:
+    title: "Staging - MeteoTrentino Station Registry"
+    description: >
+      Technical staging view over raw station records. Casts numeric fields,
+      normalizes date types, and renames columns for silver-layer consistency.
+    access_level: internal
+    tags: [meteotrentino, stations, staging]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_staging.stg_station_observations:
+    title: "Staging - MeteoTrentino Station Observations"
+    description: >
+      Technical incremental staging view over raw station observations. Casts
+      timestamp to timestamptz and all measurements to float, deduplicates by
+      (station_code, timestamp), and prepares data for silver enrichment.
+    access_level: internal
+    tags: [meteotrentino, observations, staging]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_staging.stg_forecast_locations:
+    title: "Staging - MeteoTrentino Forecast Locations"
+    description: >
+      Technical staging view over raw forecast location records. Casts numeric
+      fields, renames id to location_id, and normalizes coordinate types.
+    access_level: internal
+    tags: [meteotrentino, forecast, locations, staging]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_staging.stg_forecasts_hourly:
+    title: "Staging - MeteoTrentino Sub-Daily Forecasts"
+    description: >
+      Technical incremental staging view over raw sub-daily forecast records.
+      Casts forecast_timestamp to timestamptz, normalizes measurement units
+      (wind_speed → wind_speed_ms, rain_fall → rain_fall_mm, etc.).
+    access_level: internal
+    tags: [meteotrentino, forecast, hourly, staging]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_staging.stg_forecasts_daily:
+    title: "Staging - MeteoTrentino Daily Forecasts"
+    description: >
+      Technical incremental staging view over raw daily forecast records.
+      Casts and normalizes fields including temperature_max_c/temperature_min_c
+      for the daily temperature range.
+    access_level: internal
+    tags: [meteotrentino, forecast, daily, staging]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  # ---------------------------------------------------------------------------
+  # SILVER - curated internal datasets
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_silver.mt_sky_conditions:
+    title: "MeteoTrentino Sky Condition Codes (Silver)"
+    description: >
+      Curated sky condition reference table providing stable identifiers and
+      multilingual names (IT, DE, EN, LLD) for use across forecast datasets.
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [meteotrentino, reference, silver]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_silver.mt_alerts:
+    title: "MeteoTrentino Weather Alerts (Silver)"
+    description: >
+      Curated weather alert records for Trentino. Full-refresh per ingestion
+      cycle, reflecting the current set of active and recent CAP alerts.
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [meteotrentino, alerts, silver]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_silver.mt_meteo_stations:
+    title: "MeteoTrentino Station Registry (Silver)"
+    description: >
+      Curated registry of MeteoTrentino measurement stations with normalized
+      field types and consistent column naming. Reference table used to enrich
+      gold-layer observation datasets with station metadata.
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [meteotrentino, stations, reference, silver]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_silver.mt_station_observations:
+    title: "MeteoTrentino Station Observations (Silver)"
+    description: >
+      Curated 15-minute meteorological observations for all Trentino stations.
+      Deduplicated by (station_code, observed_at) with a 7-day lookback on
+      incremental runs. Contains air temperature, precipitation, wind, radiation,
+      humidity, and snow depth.
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [meteotrentino, observations, silver]
+    retention_days: 365
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_silver.mt_forecast_locations:
+    title: "MeteoTrentino Forecast Locations (Silver)"
+    description: >
+      Curated registry of Trentino forecast locations with normalized field
+      types and standardised column names. Reference table used to enrich
+      gold-layer forecast datasets with location metadata.
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [meteotrentino, forecast, locations, reference, silver]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_silver.mt_forecasts_hourly:
+    title: "MeteoTrentino Sub-Daily Forecasts (Silver)"
+    description: >
+      Curated sub-daily weather forecasts for all Trentino locations.
+      Deduplicated by (location_id, forecast_at) with a 3-day lookback.
+      Contains temperature, precipitation, wind, snow, and sky condition
+      per 3-hour forecast interval.
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [meteotrentino, forecast, hourly, silver]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_silver.mt_forecasts_daily:
+    title: "MeteoTrentino Daily Forecasts (Silver)"
+    description: >
+      Curated daily weather forecast summaries for all Trentino locations.
+      Deduplicated by (location_id, forecast_at) with a 7-day lookback.
+      Includes full temperature range (max/min) alongside precipitation,
+      wind, snow, and sky condition.
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [meteotrentino, forecast, daily, silver]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  # ---------------------------------------------------------------------------
+  # GOLD - exposed derived datasets
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.mt_observations_current:
+    title: "MeteoTrentino Current Observations — All Trentino Stations (Gold)"
+    description: >
+      Latest meteorological observation (within the past hour) per active
+      MeteoTrentino station, enriched with station metadata (name, elevation,
+      coordinates). One row per station using ROW_NUMBER, filtered to
+      observed_at >= now() - 1h and active stations only. Suitable for
+      real-time maps, dashboards, and dataspace consumption.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    documentation_url: https://dati.meteotrentino.it
+    tags: [meteotrentino, observations, current, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: https://datasets.dev.spindoxlabs.it
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
+
+  datasets.ds_dev_gold.mt_stations:
+    title: "MeteoTrentino Active Stations — Trentino Network (Gold)"
+    description: >
+      Active station registry for the MeteoTrentino observational network.
+      Filters out decommissioned stations (active_until in the past) and
+      exposes code, name, shortname, elevation, and coordinates for spatial
+      lookups and map rendering.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    documentation_url: https://dati.meteotrentino.it
+    tags: [meteotrentino, stations, network, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: https://datasets.dev.spindoxlabs.it
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
+
+  datasets.ds_dev_gold.mt_alerts_active:
+    title: "MeteoTrentino Active Weather Alerts — Trentino (Gold)"
+    description: >
+      Deduplicated active weather alerts for the Trentino region. One row per
+      alert identifier, keeping the most recently sent version. Filters to
+      alerts that have not yet expired (expires > now() or no expiry set).
+      Derived from MeteoTrentino CAP-compatible alert payloads.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    documentation_url: https://www.meteotrentino.it
+    tags: [meteotrentino, alerts, active, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: https://datasets.dev.spindoxlabs.it
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
+
+  datasets.ds_dev_gold.mt_forecast_hourly:
+    title: "MeteoTrentino Sub-Daily Forecasts — Trentino Grid (Gold)"
+    description: >
+      Current and future sub-daily (3-hour interval) weather forecasts for all
+      Trentino locations, enriched with location metadata (name in IT/EN,
+      elevation, coordinates). Filtered to forecast_at >= now() - 1h to exclude
+      stale past intervals. Covers temperature, precipitation, wind, snow level,
+      sky condition, freezing level, and sunshine duration.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    documentation_url: https://meteo.report
+    tags: [meteotrentino, forecast, hourly, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: https://datasets.dev.spindoxlabs.it
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
+
+  datasets.ds_dev_gold.mt_forecast_daily:
+    title: "MeteoTrentino Daily Forecasts — Trentino Grid (Gold)"
+    description: >
+      Current and future daily weather forecast summaries for all Trentino
+      locations, enriched with location metadata. Filtered to forecast_at >=
+      now() - 1h to retain today's summary while excluding yesterday's.
+      Includes full temperature range (max/min), precipitation, wind, snow
+      level, sky condition, freezing level, and sunshine duration per day.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    documentation_url: https://meteo.report
+    tags: [meteotrentino, forecast, daily, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: https://datasets.dev.spindoxlabs.it
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
+      conforms_to: null
+      temporal: null

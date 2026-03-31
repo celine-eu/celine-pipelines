@@ -1,0 +1,6 @@
+# MeteoTrentino pipeline configuration.
+# Layer/table mappings and schedule used by the Prefect flow.
+
+schedule:
+  cron: "5 * * * *"
+  name: "mt-hourly"
