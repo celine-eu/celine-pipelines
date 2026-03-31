@@ -12,6 +12,15 @@ defaults:
     © OpenWeather Ltd.
     Data is provided under the OpenWeatherMap terms of service and is redistributed in a derived, aggregated form.
     Source: https://openweathermap.org/api/one-call-3
+  access_requirements: null
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: false
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
 
 sources:
   # ---------------------------------------------------------------------------
@@ -34,6 +43,24 @@ sources:
     source_system: openweathermap-onecall-3.0
     documentation_url: https://openweathermap.org/api/one-call-3
     tags: [weather, alerts, gold, folgaria]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.folgaria_weather_current:
     title: "Current Weather Conditions - Folgaria (Gold)"
@@ -50,6 +77,24 @@ sources:
         type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, current, gold, folgaria]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.folgaria_weather_daily:
     title: "Daily Weather Forecast - Folgaria (Gold)"
@@ -66,6 +111,24 @@ sources:
         type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, daily, forecast, gold, folgaria]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.folgaria_weather_hourly:
     title: "Hourly Weather Forecast - Folgaria (Gold)"
@@ -82,6 +145,24 @@ sources:
         type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, hourly, forecast, gold, folgaria]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.folgaria_weather_minutely:
     title: "Minutely Precipitation Forecast - Folgaria (Gold)"
@@ -98,6 +179,24 @@ sources:
         type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, minutely, forecast, gold, folgaria]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.weather_alerts:
     title: "Weather Alerts (Gold)"
@@ -113,6 +212,24 @@ sources:
         type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, alerts, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.weather_feature_of_interest:
     title: "Weather Feature of Interest (Gold)"
@@ -128,6 +245,24 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, foi, gold, derived]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.weather_observations_current:
     title: "Weather Observations - Current (Gold)"
@@ -143,6 +278,24 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, observations, current, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.weather_observations_daily:
     title: "Weather Observations - Daily (Gold)"
@@ -157,6 +310,24 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, observations, daily, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.weather_observations_hourly:
     title: "Weather Observations - Hourly (Gold)"
@@ -171,6 +342,24 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, observations, hourly, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.weather_observations_minutely:
     title: "Weather Observations - Minutely (Gold)"
@@ -185,6 +374,24 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, observations, minutely, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.weather_observations_unpivoted:
     title: "Weather Observations - Unpivoted (Gold)"
@@ -199,6 +406,24 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, observations, gold, wide]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.weather_observed_properties:
     title: "Weather Observed Properties (Gold)"
@@ -213,6 +438,24 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, metadata, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
 
   # ---------------------------------------------------------------------------
   # SILVER - internal only (not shareable)
@@ -231,6 +474,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, alerts, silver]
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_silver.weather_current:
     title: "Current Weather Conditions (Silver)"
@@ -245,6 +491,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, current, silver]
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_silver.weather_daily:
     title: "Daily Weather Forecast (Silver)"
@@ -259,6 +508,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, daily, silver]
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_silver.weather_hourly:
     title: "Hourly Weather Forecast (Silver)"
@@ -273,6 +525,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, hourly, silver]
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_silver.weather_minutely:
     title: "Minutely Precipitation Forecast (Silver)"
@@ -287,6 +542,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, minutely, silver]
+    dataspace:
+      expose: false
+      medallion: silver
 
   # ---------------------------------------------------------------------------
   # STAGING - internal technical layer
@@ -300,6 +558,9 @@ sources:
     license: proprietary
     access_level: internal
     tags: [weather, staging]
+    dataspace:
+      expose: false
+      medallion: silver
 
   # ---------------------------------------------------------------------------
   # RAW - verbatim ingested data (restricted)
@@ -317,6 +578,9 @@ sources:
         type: company
     source_system: openweathermap-onecall-3.0
     tags: [weather, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   datasets.raw.forecast_stream:
     title: "OpenWeatherMap Forecast Stream (Raw)"
@@ -330,6 +594,9 @@ sources:
         type: company
     source_system: openweathermap-onecall-3.0
     tags: [weather, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   # ---------------------------------------------------------------------------
   # SINGER / TAP - ingestion artifacts (never exposed)
@@ -342,6 +609,9 @@ sources:
       Folgaria location.
     access_level: internal
     tags: [singer, tap, weather]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   singer.tap-openweathermap-folgaria.forecast_stream:
     title: "Tap Config - OpenWeatherMap Folgaria Forecast Stream"
@@ -351,6 +621,9 @@ sources:
     license: proprietary
     access_level: internal
     tags: [singer, tap, weather]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   singer.tap-openweathermap-lappeenranta.current_weather_stream:
     title: "Tap Config - OpenWeatherMap Lappeenranta Current Stream"
@@ -360,6 +633,9 @@ sources:
     license: proprietary
     access_level: internal
     tags: [singer, tap, weather]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   singer.tap-openweathermap-lappeenranta.forecast_stream:
     title: "Tap Config - OpenWeatherMap Lappeenranta Forecast Stream"
@@ -369,6 +645,9 @@ sources:
     license: proprietary
     access_level: internal
     tags: [singer, tap, weather]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   singer.tap-openweathermap-valencia.current_weather_stream:
     title: "Tap Config - OpenWeatherMap Valencia Current Stream"
@@ -378,6 +657,9 @@ sources:
     license: proprietary
     access_level: internal
     tags: [singer, tap, weather]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   singer.tap-openweathermap-valencia.forecast_stream:
     title: "Tap Config - OpenWeatherMap Valencia Forecast Stream"
@@ -387,3 +669,6 @@ sources:
     license: proprietary
     access_level: internal
     tags: [singer, tap, weather]
+    dataspace:
+      expose: false
+      medallion: bronze

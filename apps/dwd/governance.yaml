@@ -7,6 +7,16 @@ defaults:
   retention_days: 365
   documentation_url: null
   source_system: null
+  attribution: Contains data from Deutscher Wetterdienst (DWD) Open Data. License dl-de/by-2-0.
+  access_requirements: null
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: false
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
 
 sources:
   # ---------------------------------------------------------------------------
@@ -30,6 +40,24 @@ sources:
     source_system: Deutscher Wetterdienst (DWD)
     documentation_url: https://www.dwd.de/EN/ourservices/opendata/opendata.html
     tags: [dwd, icon-d2, wind, gusts, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/country/DEU
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
+      conforms_to: null
+      temporal: null
 
   # ---------------------------------------------------------------------------
   # SILVER - enriched internal datasets
@@ -51,6 +79,9 @@ sources:
         type: consortium
     source_system: Deutscher Wetterdienst (DWD)
     tags: [dwd, icon-d2, wind, silver]
+    dataspace:
+      expose: false
+      medallion: silver
 
   # ---------------------------------------------------------------------------
   # STAGING - technical preparation layer
@@ -67,6 +98,9 @@ sources:
     access_level: internal
     source_system: Deutscher Wetterdienst (DWD)
     tags: [dwd, icon-d2, staging]
+    dataspace:
+      expose: false
+      medallion: silver
 
   # ---------------------------------------------------------------------------
   # RAW - verbatim ICON-D2 model output
@@ -87,6 +121,9 @@ sources:
     source_system: Deutscher Wetterdienst (DWD)
     documentation_url: https://www.dwd.de/EN/ourservices/opendata/opendata.html
     tags: [dwd, icon-d2, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   datasets.ds_dev_gold.dwd_icon_d2_solar_energy:
     title: "ICON-D2 Solar Energy Indicators"
@@ -101,6 +138,9 @@ sources:
         type: organization
       - name: celine
         type: consortium
+    dataspace:
+      expose: false
+      medallion: gold
 
   datasets.ds_dev_gold.pv_potential_forecast_daily:
     title: "Photovoltaic Potential Forecast – Daily"
@@ -115,6 +155,9 @@ sources:
         type: organization
       - name: celine
         type: consortium
+    dataspace:
+      expose: false
+      medallion: gold
 
   datasets.ds_dev_gold.pv_potential_forecast_hourly:
     title: "Photovoltaic Potential Forecast – Hourly"
@@ -129,6 +172,9 @@ sources:
         type: organization
       - name: celine
         type: consortium
+    dataspace:
+      expose: false
+      medallion: gold
 
   datasets.ds_dev_silver.dwd_icon_d2_solar_forecast_hourly:
     title: "ICON-D2 Solar Forecast – Hourly"
@@ -143,6 +189,9 @@ sources:
         type: organization
       - name: celine
         type: consortium
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_silver.dwd_icon_d2_solar_forecast_interval:
     title: "ICON-D2 Solar Forecast – Interval"
@@ -157,6 +206,9 @@ sources:
         type: organization
       - name: celine
         type: consortium
+    dataspace:
+      expose: false
+      medallion: silver
 
   singer.tap-dwd.dwd_icon_d2:
     title: "ICON-D2 Model Output (Singer Extract)"
@@ -169,3 +221,6 @@ sources:
     ownership:
       - name: dwd
         type: public_authority
+    dataspace:
+      expose: false
+      medallion: bronze

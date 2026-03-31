@@ -8,6 +8,15 @@ defaults:
   documentation_url: null
   source_system: null
   attribution: Contains Copernicus Climate Change Service information (2025)
+  access_requirements: null
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: false
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
 
 sources:
   # ---------------------------------------------------------------------------
@@ -32,6 +41,21 @@ sources:
     source_system: CAMS / ECMWF
     documentation_url: https://ads.atmosphere.copernicus.eu/
     tags: [copernicus, cams, reanalysis, silver]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+        - http://publications.europa.eu/resource/authority/data-theme/TECH
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/MONTHLY
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_silver.copernicus_era5_single_levels:
     title: "ERA5 Reanalysis - Single Levels (Curated)"
@@ -50,6 +74,21 @@ sources:
     source_system: ECMWF
     documentation_url: https://cds.climate.copernicus.eu/
     tags: [copernicus, era5, reanalysis, silver]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+        - http://publications.europa.eu/resource/authority/data-theme/TECH
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/MONTHLY
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_silver.copernicus_solar_radiation:
     title: "Copernicus Solar Radiation - Curated Time Series"
@@ -68,6 +107,21 @@ sources:
     source_system: CAMS
     documentation_url: https://ads.atmosphere.copernicus.eu/
     tags: [copernicus, solar, radiation, silver]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+        - http://publications.europa.eu/resource/authority/data-theme/TECH
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
+      conforms_to: null
+      temporal: null
 
   # ---------------------------------------------------------------------------
   # STAGING - technical transformation layer
@@ -83,6 +137,9 @@ sources:
     access_level: internal
     source_system: CAMS / ECMWF
     tags: [copernicus, cams, staging]
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_staging.stg_era5_single_levels:
     title: "Staging - ERA5 Single Levels"
@@ -94,6 +151,9 @@ sources:
     access_level: internal
     source_system: ECMWF
     tags: [copernicus, era5, staging]
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_staging.stg_radiation_raw:
     title: "Staging - CAMS Solar Radiation"
@@ -105,6 +165,9 @@ sources:
     access_level: internal
     source_system: CAMS
     tags: [copernicus, solar, staging]
+    dataspace:
+      expose: false
+      medallion: silver
 
   # ---------------------------------------------------------------------------
   # RAW - verbatim ingested datasets
@@ -124,6 +187,9 @@ sources:
     source_system: CAMS / ECMWF
     documentation_url: https://ads.atmosphere.copernicus.eu/
     tags: [copernicus, cams, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   datasets.raw.cams_solar_radiation_timeseries:
     title: "CAMS Solar Radiation Time Series - Raw Data"
@@ -139,6 +205,9 @@ sources:
     source_system: CAMS
     documentation_url: https://ads.atmosphere.copernicus.eu/
     tags: [copernicus, solar, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   datasets.raw.reanalysis_era5_single_levels:
     title: "ERA5 Reanalysis - Single Levels (Raw)"
@@ -154,6 +223,9 @@ sources:
     source_system: ECMWF
     documentation_url: https://cds.climate.copernicus.eu/
     tags: [copernicus, era5, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   datasets.ds_dev_gold.copernicus_era5_analysis:
     title: "ERA5 Analysis Indicators"
@@ -164,6 +236,21 @@ sources:
     source_system: ECMWF
     documentation_url: https://cds.climate.copernicus.eu/
     tags: [copernicus, era5, analysis, gold]
+    dataspace:
+      expose: false
+      medallion: gold
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+        - http://publications.europa.eu/resource/authority/data-theme/TECH
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/MONTHLY
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_gold.copernicus_era5_forecast:
     title: "ERA5 Forecast Indicators"
@@ -174,6 +261,21 @@ sources:
     source_system: ECMWF
     documentation_url: https://cds.climate.copernicus.eu/
     tags: [copernicus, era5, forecast, gold]
+    dataspace:
+      expose: false
+      medallion: gold
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+        - http://publications.europa.eu/resource/authority/data-theme/TECH
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://publications.europa.eu/resource/authority/continent/EUROPE
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
+      conforms_to: null
+      temporal: null
 
   singer.tap-era5.reanalysis_era5_single_levels:
     title: "ERA5 Reanalysis – Single Levels (Singer Extract)"
@@ -183,6 +285,9 @@ sources:
     license: Copernicus-Open-Access
     source_system: ECMWF
     tags: [copernicus, era5, singer, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   singer.tap-solar.cams_solar_radiation_timeseries:
     title: "CAMS Solar Radiation Time Series (Singer Extract)"
@@ -192,3 +297,6 @@ sources:
     license: Copernicus-Open-Access
     source_system: CAMS
     tags: [copernicus, solar, singer, raw]
+    dataspace:
+      expose: false
+      medallion: bronze

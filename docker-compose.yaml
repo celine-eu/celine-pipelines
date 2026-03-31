@@ -249,3 +249,14 @@ services:
     env_file:
       - path: ./apps/om/.env
         required: false
+
+  pipeline-mt:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-mt
+    build:
+      context: .
+      args:
+        APP_NAME: mt
+    env_file:
+      - path: ./apps/mt/.env
+        required: false

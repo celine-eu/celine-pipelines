@@ -7,6 +7,16 @@ defaults:
   retention_days: 365
   documentation_url: null
   source_system: null
+  attribution: Contains data from Open-Meteo (https://open-meteo.com). License CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/).
+  access_requirements: null
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: false
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
 
 sources:
   # ---------------------------------------------------------------------------
@@ -29,6 +39,9 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, weather, forecast, silver]
+    dataspace:
+      expose: false
+      medallion: silver
 
   # ---------------------------------------------------------------------------
   # GOLD - ML feature layer
@@ -51,6 +64,9 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, weather, features, gold]
+    dataspace:
+      expose: false
+      medallion: gold
 
   # ---------------------------------------------------------------------------
   # STAGING - technical preparation layer
@@ -73,6 +89,9 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, wind, trentino, silver]
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_gold.om_wind_gusts:
     title: "Open-Meteo Daily Wind Gust Alerts — Trentino Grid (Gold)"
@@ -92,6 +111,9 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, wind, gusts, trentino, gold]
+    dataspace:
+      expose: false
+      medallion: gold
 
   # ---------------------------------------------------------------------------
   # STAGING - technical preparation layer
@@ -107,6 +129,9 @@ sources:
     access_level: internal
     source_system: Open-Meteo
     tags: [open-meteo, wind, staging]
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_raw.stg_om_weather:
     title: "Staging - Open-Meteo Hourly Weather"
@@ -118,6 +143,9 @@ sources:
     access_level: internal
     source_system: Open-Meteo
     tags: [open-meteo, weather, staging]
+    dataspace:
+      expose: false
+      medallion: silver
 
   # ---------------------------------------------------------------------------
   # RAW - verbatim API data
@@ -137,6 +165,9 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, weather, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   datasets.raw.om_weather_wind:
     title: "Open-Meteo Wind Data — Trentino Grid (Raw)"
@@ -153,6 +184,9 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, wind, trentino, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   # ---------------------------------------------------------------------------
   # HEAT — temperature-based heat risk pipeline
@@ -173,6 +207,9 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, heat, temperature, trentino, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   datasets.ds_dev_staging.stg_om_heat:
     title: "Staging - Open-Meteo Heat Data"
@@ -183,6 +220,9 @@ sources:
     access_level: internal
     source_system: Open-Meteo
     tags: [open-meteo, heat, staging]
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_silver.om_heat_daily:
     title: "Open-Meteo Daily Temperature — Trentino Grid (Silver)"
@@ -200,6 +240,9 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, heat, temperature, trentino, silver]
+    dataspace:
+      expose: false
+      medallion: silver
 
   datasets.ds_dev_gold.om_heat_risk:
     title: "Open-Meteo Daily Heat Risk — Trentino Grid (Gold)"
@@ -218,3 +261,6 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, heat, risk, trentino, gold]
+    dataspace:
+      expose: false
+      medallion: gold

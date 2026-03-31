@@ -8,6 +8,15 @@ defaults:
   documentation_url: null
   source_system: null
   attribution: © OpenStreetMap contributors. Data available under the Open Database License (ODbL). https://www.openstreetmap.org/copyright
+  access_requirements: null
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: false
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
 
 sources:
   # ---------------------------------------------------------------------------
@@ -29,6 +38,9 @@ sources:
     source_system: OpenStreetMap
     documentation_url: https://www.openstreetmap.org/copyright
     tags: [osm, raw, finland]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   datasets.ds_dev_raw.openstreetmap_it_alpecimbra:
     title: "OpenStreetMap Extract - Alpe Cimbra (Raw, Dev)"
@@ -44,6 +56,9 @@ sources:
     source_system: OpenStreetMap
     documentation_url: https://www.openstreetmap.org/copyright
     tags: [osm, raw, italy]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   datasets.raw.openstreetmap_fi_lappeenranta:
     title: "OpenStreetMap Extract - Lappeenranta (Raw)"
@@ -59,6 +74,9 @@ sources:
     source_system: OpenStreetMap
     documentation_url: https://www.openstreetmap.org/copyright
     tags: [osm, raw, finland]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   datasets.raw.openstreetmap_it_alpecimbra:
     title: "OpenStreetMap Extract - Alpe Cimbra (Raw)"
@@ -74,6 +92,9 @@ sources:
     source_system: OpenStreetMap
     documentation_url: https://www.openstreetmap.org/copyright
     tags: [osm, raw, italy]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   # ---------------------------------------------------------------------------
   # SILVER - curated thematic datasets (shareable under ODbL)
@@ -92,6 +113,20 @@ sources:
         type: community
     source_system: OpenStreetMap
     tags: [osm, silver, finland, base]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/FI1C3
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_silver.openstreetmap_fi_lappeenranta_social_buildings:
     title: "OSM Social Facilities - Lappeenranta (Silver)"
@@ -106,6 +141,20 @@ sources:
         type: community
     source_system: OpenStreetMap
     tags: [osm, silver, finland, social]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/FI1C3
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_base:
     title: "OSM Base Layer - Alpe Cimbra (Silver)"
@@ -120,6 +169,20 @@ sources:
         type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, base]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_amusement:
     title: "OSM Amusement & Parks - Alpe Cimbra (Silver)"
@@ -133,6 +196,20 @@ sources:
         type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, amusement]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_ev_charging:
     title: "OSM EV Charging Stations - Alpe Cimbra (Silver)"
@@ -146,6 +223,20 @@ sources:
         type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, ev, charging]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_hospitality:
     title: "OSM Hospitality - Alpe Cimbra (Silver)"
@@ -160,6 +251,20 @@ sources:
         type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, hospitality]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_parking:
     title: "OSM Parking - Alpe Cimbra (Silver)"
@@ -173,6 +278,20 @@ sources:
         type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, parking]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_piste_and_lifts:
     title: "OSM Ski Pistes & Lifts - Alpe Cimbra (Silver)"
@@ -186,6 +305,20 @@ sources:
         type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, ski]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
 
   datasets.ds_dev_silver.openstreetmap_it_alpecimbra_tourism_culture:
     title: "OSM Tourism & Culture - Alpe Cimbra (Silver)"
@@ -200,6 +333,20 @@ sources:
         type: community
     source_system: OpenStreetMap
     tags: [osm, silver, italy, tourism, culture]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
 
   # ---------------------------------------------------------------------------
   # SINGER / TAP - ingestion artifacts (never exposed)
@@ -214,6 +361,9 @@ sources:
     license: proprietary
     access_level: internal
     tags: [osm, singer, tap]
+    dataspace:
+      expose: false
+      medallion: bronze
 
   singer.tap-osm-lap.openstreetmap_fi_lappeenranta:
     title: "Tap Config - OSM Lappeenranta Extract"
@@ -224,3 +374,6 @@ sources:
     license: proprietary
     access_level: internal
     tags: [osm, singer, tap]
+    dataspace:
+      expose: false
+      medallion: bronze

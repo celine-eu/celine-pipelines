@@ -372,7 +372,7 @@ sources:
       odrl_action: use
       purpose: [research, analytics]
     dcat:
-      publisher_uri: https://datasets.dev.spindoxlabs.it
+      publisher_uri: null
       themes:
         - http://publications.europa.eu/resource/authority/data-theme/ENVI
       language_uris:
@@ -407,7 +407,7 @@ sources:
       odrl_action: use
       purpose: [research, analytics]
     dcat:
-      publisher_uri: https://datasets.dev.spindoxlabs.it
+      publisher_uri: null
       themes:
         - http://publications.europa.eu/resource/authority/data-theme/ENVI
       language_uris:
@@ -442,7 +442,7 @@ sources:
       odrl_action: use
       purpose: [research, analytics]
     dcat:
-      publisher_uri: https://datasets.dev.spindoxlabs.it
+      publisher_uri: null
       themes:
         - http://publications.europa.eu/resource/authority/data-theme/ENVI
       language_uris:
@@ -478,7 +478,7 @@ sources:
       odrl_action: use
       purpose: [research, analytics]
     dcat:
-      publisher_uri: https://datasets.dev.spindoxlabs.it
+      publisher_uri: null
       themes:
         - http://publications.europa.eu/resource/authority/data-theme/ENVI
       language_uris:
@@ -514,7 +514,7 @@ sources:
       odrl_action: use
       purpose: [research, analytics]
     dcat:
-      publisher_uri: https://datasets.dev.spindoxlabs.it
+      publisher_uri: null
       themes:
         - http://publications.europa.eu/resource/authority/data-theme/ENVI
       language_uris:
