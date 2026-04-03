@@ -67,10 +67,10 @@ tasks:
     cmds:
       - task pipeline:release:app -- copernicus
       - task pipeline:release:app -- dwd
+      - task pipeline:release:app -- mt
       - task pipeline:release:app -- om
       - task pipeline:release:app -- osm
       - task pipeline:release:app -- owm
-      - task pipeline:release:app -- mt
       - |
         git add apps/*/version.txt
         git commit -m "chore: bump apps version.txt"
