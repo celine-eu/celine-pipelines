@@ -53,7 +53,7 @@ p90_thresholds:
     8: 19
     9: 15
 
-# Schedule: 2x/day
+# Schedule: 2x/day (offset 15 min from om-flow to avoid API contention)
 schedule:
-  cron: "0 6,18 * * *"
+  cron: "30 6,18 * * *"
   name: "om-heat-trentino"
