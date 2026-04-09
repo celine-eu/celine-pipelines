@@ -29,6 +29,8 @@ from celine.utils.pipelines.pipeline import (
     dbt_run_operation,
 )
 
+from api_retry import post_with_retry
+
 logger = logging.getLogger(__name__)
 
 # Ensure APP_NAME and dbt paths are set
@@ -185,13 +187,13 @@ def _fetch_wind_data(
 
     for batch_idx, batch_start in enumerate(range(0, len(grid), max_per_call)):
         if batch_idx > 0:
-            time.sleep(61)  # Open-Meteo counts locations per minute; wait for reset
+            time.sleep(70)  # Open-Meteo per-minute limit; 70 s gives margin
 
         batch = grid[batch_start:batch_start + max_per_call]
         lats = ",".join(str(point[0]) for point in batch)
         lons = ",".join(str(point[1]) for point in batch)
 
-        response = requests.post(
+        response = post_with_retry(
             api_cfg["base_url"],
             data={
                 "latitude": lats,
@@ -204,7 +206,6 @@ def _fetch_wind_data(
             },
             timeout=120,
         )
-        response.raise_for_status()
 
         data = response.json()
 

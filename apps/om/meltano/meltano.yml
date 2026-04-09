@@ -16,6 +16,7 @@ plugins:
         - state
       config:
         api_url: "https://api.open-meteo.com"
+        request_timeout: 120
         locations:
           - name: "Folgaria"
             latitude: 45.9167
