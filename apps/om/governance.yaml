@@ -262,5 +262,5 @@ sources:
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, heat, risk, trentino, gold]
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
