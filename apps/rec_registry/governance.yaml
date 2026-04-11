@@ -1,0 +1,50 @@
+defaults:
+  license: proprietary
+  ownership:
+    - name: spxl
+      type: organization
+    - name: celine
+      type: consortium
+  access_level: internal
+  classification: yellow
+  tags: []
+  retention_days: null
+  documentation_url: null
+  source_system: celine-rec-registry
+  attribution: null
+  access_requirements: >
+    Access requires membership in a CELINE Renewable Energy Community.
+    Data is derived from the CELINE REC Registry and is subject to
+    platform access controls.
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: true
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
+
+sources:
+  # ---------------------------------------------------------------------------
+  # RAW - verbatim mirror of the REC Registry API
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.rec_registry_mirror:
+    title: "REC Registry Member Mirror (Raw)"
+    description: >
+      Full-replace mirror of all active community members registered in the
+      CELINE REC Registry API. Refreshed every 5 minutes via a Prefect pipeline.
+      One row per member (user_id), carrying the community ID, grid area,
+      topology node references, delivery point IDs, and meter sensor IDs.
+      Intended as a stable raw source for dbt pipelines computing virtual
+      self-consumption, billing, and community analytics.
+    access_level: internal
+    classification: yellow
+    tags: [rec-registry, members, raw, mirror]
+    retention_days: null
+    dataspace:
+      expose: false
+      medallion: bronze
+      contract_required: true
+      consent_required: false

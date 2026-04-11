@@ -1,0 +1,5 @@
+# REC Registry mirror pipeline configuration.
+
+schedule:
+  cron: "*/5 * * * *"
+  name: "rec-registry-mirror"
