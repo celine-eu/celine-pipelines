@@ -18,3 +18,4 @@ __pycache__
 .dumpster
 temp*
 .claude
+.meltano

@@ -160,7 +160,7 @@ sources:
     license: CC-BY-4.0
     access_level: internal
     ownership:
-      - name: Open-Meteo
+      - name: open-meteo
         type: open_source
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
@@ -179,7 +179,7 @@ sources:
     license: CC-BY-4.0
     access_level: internal
     ownership:
-      - name: Open-Meteo
+      - name: open-meteo
         type: open_source
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
@@ -202,7 +202,7 @@ sources:
     license: CC-BY-4.0
     access_level: internal
     ownership:
-      - name: Open-Meteo
+      - name: open-meteo
         type: open_source
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs

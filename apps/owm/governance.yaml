@@ -574,7 +574,7 @@ sources:
     license: proprietary
     access_level: internal
     ownership:
-      - name: OpenWeather Ltd.
+      - name: openweathermap
         type: company
     source_system: openweathermap-onecall-3.0
     tags: [weather, raw]
@@ -590,7 +590,7 @@ sources:
     license: proprietary
     access_level: internal
     ownership:
-      - name: OpenWeather Ltd.
+      - name: openweathermap
         type: company
     source_system: openweathermap-onecall-3.0
     tags: [weather, raw]
