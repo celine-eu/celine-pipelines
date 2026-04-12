@@ -1,0 +1,51 @@
+defaults:
+  license: proprietary
+  ownership:
+    - name: spxl
+      type: organization
+    - name: celine
+      type: consortium
+  access_level: internal
+  classification: yellow
+  tags: []
+  retention_days: 90
+  documentation_url: null
+  source_system: celine-flexibility-api
+  attribution: null
+  access_requirements: >
+    Access requires membership in a CELINE Renewable Energy Community.
+    Data is derived from the CELINE Flexibility API and is subject to
+    platform access controls.
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: true
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
+
+sources:
+  # ---------------------------------------------------------------------------
+  # RAW - 90-day sliding window mirror of flexibility_commitments
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.flexibility_commitments_mirror:
+    title: "Flexibility Commitments Mirror (Raw)"
+    description: >
+      90-day sliding window mirror of all flexibility commitments from the
+      CELINE Flexibility API, including accepted, settled, rejected, and
+      cancelled statuses. Refreshed every 15 minutes via a Prefect pipeline.
+      One row per commitment (id PK). Upserted on each run so that status
+      transitions (committed → settled) are reflected without data loss.
+      Intended as a raw source for dbt pipelines computing settlement analytics,
+      gamification, and acceptance rate metrics.
+    access_level: internal
+    classification: yellow
+    tags: [flexibility, commitments, raw, mirror]
+    retention_days: 90
+    dataspace:
+      expose: false
+      medallion: bronze
+      contract_required: true
+      consent_required: false

@@ -1,0 +1,5 @@
+# Flexibility commitments mirror pipeline configuration.
+
+schedule:
+  cron: "*/15 * * * *"
+  name: "rec-flexibility-commitments-mirror"

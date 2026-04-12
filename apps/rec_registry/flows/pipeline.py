@@ -6,8 +6,9 @@ flattens member/sensor data, and writes it into raw.rec_registry_mirror —
 a full-replace table (TRUNCATE + INSERT in one transaction) that dbt pipelines
 can use as a stable source of truth for community membership and asset metadata.
 
-One row per member (user_id PK).  sensor_ids, delivery_point_ids, and
-topology_ids are stored as Postgres text[] arrays.
+One row per active member (user_id PK).  sensor_ids, delivery_point_ids, and
+topology_ids are stored as Postgres text[] arrays.  Members with status other
+than 'active' are excluded.
 
 Schedule: every 5 minutes.
 """
@@ -42,13 +43,16 @@ _DDL = """
 CREATE SCHEMA IF NOT EXISTS raw;
 
 CREATE TABLE IF NOT EXISTS raw.rec_registry_mirror (
-    user_id             text        PRIMARY KEY,
+    user_id             text        NOT NULL,
     rec_id              text        NOT NULL,
     area                text,
+    role                text,
+    member_type         text,
     topology_ids        text[]      NOT NULL DEFAULT '{}',
     delivery_point_ids  text[]      NOT NULL DEFAULT '{}',
     sensor_ids          text[]      NOT NULL DEFAULT '{}',
-    last_updated        timestamptz NOT NULL DEFAULT now()
+    last_updated        timestamptz NOT NULL DEFAULT now(),
+    PRIMARY KEY (user_id, rec_id)
 );
 
 CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_rec_id
@@ -56,6 +60,9 @@ CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_rec_id
 
 CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_area
     ON raw.rec_registry_mirror (area);
+
+CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_role
+    ON raw.rec_registry_mirror (role);
 
 CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_sensor_ids
     ON raw.rec_registry_mirror USING gin (sensor_ids);
@@ -87,6 +94,11 @@ def _registry_url() -> str:
 async def _fetch_yaml(cfg: PipelineConfig) -> str:
     """Obtain a token via OIDC client credentials and export all RECs as YAML."""
     oidc = cfg.sdk.oidc
+    if not oidc.client_id or not oidc.client_secret:
+        raise ValueError(
+            "OIDC client_id and client_secret are required "
+            "(set CELINE_OIDC_CLIENT_ID / CELINE_OIDC_CLIENT_SECRET)"
+        )
     provider = OidcClientCredentialsProvider(
         base_url=oidc.base_url,
         client_id=oidc.client_id,
@@ -111,10 +123,13 @@ def _parse_bundles(yaml_text: str) -> list[dict[str, Any]]:
 
 def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Flatten community bundles into one row per member.
+    Flatten community bundles into one row per active member.
+
+    Members whose status is not 'active' are skipped.
 
     Columns produced:
-      user_id, rec_id, area, topology_ids, delivery_point_ids, sensor_ids
+      user_id, rec_id, area, role, member_type,
+      topology_ids, delivery_point_ids, sensor_ids
     """
     rows: list[dict[str, Any]] = []
 
@@ -128,10 +143,19 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
         areas: dict[str, Any] = community.get("areas", {})
         members: dict[str, Any] = bundle.get("members", {})
 
-        for _member_key, member in members.items():
+        for member_key, member in members.items():
+            status = member.get("status")
+            if status != "active":
+                logger.debug(
+                    "Skipping member %s in %s (status=%s)", member_key, rec_id, status
+                )
+                continue
+
             user_id = member.get("user_id")
             if not user_id:
-                logger.warning("Member in %s has no user_id — skipping", rec_id)
+                logger.warning(
+                    "Member %s in %s has no user_id — skipping", member_key, rec_id
+                )
                 continue
 
             area_key: str | None = member.get("area")
@@ -152,6 +176,8 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "user_id": user_id,
                     "rec_id": rec_id,
                     "area": area_key,
+                    "role": member.get("role"),
+                    "member_type": member.get("type"),
                     "topology_ids": topology_ids,
                     "delivery_point_ids": delivery_point_ids,
                     "sensor_ids": sensor_ids,
@@ -179,27 +205,22 @@ def ensure_table(cfg: PipelineConfig) -> PipelineTaskResult:
 
 
 @task(name="Fetch REC registry", retries=3, retry_delay_seconds=60)
-def fetch_registry(
-    cfg: PipelineConfig,
-) -> tuple[list[dict[str, Any]], PipelineTaskResult]:
+def fetch_registry(cfg: PipelineConfig) -> list[dict[str, Any]]:
     """
     Export all REC bundles from the registry API and flatten to row dicts.
 
+    Only active members are included.
     Uses OIDC client credentials from PipelineConfig.sdk.oidc.
     """
     yaml_text = asyncio.run(_fetch_yaml(cfg))
     bundles = _parse_bundles(yaml_text)
     rows = _flatten_to_rows(bundles)
     logger.info(
-        "Fetched %d bundle(s), %d member rows from REC Registry",
+        "Fetched %d bundle(s), %d active member rows from REC Registry",
         len(bundles),
         len(rows),
     )
-    return rows, PipelineTaskResult(
-        command="fetch_registry",
-        status=PipelineStatus.COMPLETED,
-        details=f"Processed {len(rows)}",
-    )
+    return rows
 
 
 @task(name="Mirror to raw table", retries=2, retry_delay_seconds=30)
@@ -221,6 +242,8 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
             r["user_id"],
             r["rec_id"],
             r["area"],
+            r["role"],
+            r["member_type"],
             r["topology_ids"],
             r["delivery_point_ids"],
             r["sensor_ids"],
@@ -235,11 +258,12 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
                 cur,
                 """
                 INSERT INTO raw.rec_registry_mirror
-                    (user_id, rec_id, area, topology_ids, delivery_point_ids, sensor_ids, last_updated)
+                    (user_id, rec_id, area, role, member_type,
+                     topology_ids, delivery_point_ids, sensor_ids, last_updated)
                 VALUES %s
                 """,
                 tuples,
-                template="(%s, %s, %s, %s, %s, %s, now())",
+                template="(%s, %s, %s, %s, %s, %s, %s, %s, now())",
                 page_size=500,
             )
         conn.commit()
@@ -262,15 +286,14 @@ def rec_registry_flow(config: dict[str, Any] | None = None) -> dict:
     """
     Full REC Registry mirror pipeline:
       1. Ensure raw table + indexes exist
-      2. Fetch all RECs from the registry API
+      2. Fetch all active REC members from the registry API
       3. Truncate + re-insert into raw.rec_registry_mirror
     """
     cfg = PipelineConfig.model_validate(config or {})
 
     result: dict = {"status": "success"}
     result["ensure_table"] = ensure_table(cfg)
-    rows, fetch_registry_result = fetch_registry(cfg)
-    result["fetch_registry"] = fetch_registry_result
+    rows = fetch_registry(cfg)
     result["mirror"] = mirror_to_db(rows, cfg)
 
     return result
