@@ -29,10 +29,6 @@ tasks:
         done
       - |
         CELINE_UTILS_PATH=../celine-utils
-        if [ ! -d CELINE_UTILS_PATH ]; then
-          echo "Clone celine-eu/celine-utils in $CELINE_UTILS_PATH"
-          exit 0
-        fi
         uv pip install -e $CELINE_UTILS_PATH
 
   pipeline:release:app:
@@ -63,6 +59,14 @@ tasks:
     cmds:
       - task pipeline:release:app -- mt --commit
 
+  pipeline:release:rec_flexibility_commitments:
+    cmds:
+      - task pipeline:release:app -- rec_flexibility_commitments --commit
+
+  pipeline:release:rec_registry:
+    cmds:
+      - task pipeline:release:app -- rec_registry --commit
+
   pipeline:release:all:
     cmds:
       - task pipeline:release:app -- copernicus
@@ -71,6 +75,8 @@ tasks:
       - task pipeline:release:app -- om
       - task pipeline:release:app -- osm
       - task pipeline:release:app -- owm
+      - task pipeline:release:app -- rec_flexibility_commitments
+      - task pipeline:release:app -- rec_registry
       - |
         git add apps/*/version.txt
         git commit -m "chore: bump apps version.txt"
