@@ -75,6 +75,16 @@ def _get_pg_engine(cfg: PipelineConfig) -> sa.Engine:
     )
 
 
+# Hours to re-compute on every incremental run.
+# Open-Meteo serves forecast values for future hours; once those hours become
+# past they are replaced by ERA5 actuals. Re-processing the last 2 days ensures
+# gold features always reflect the most accurate silver values.
+_RECOMPUTE_WINDOW_HOURS: int = 48
+# Extra lookback added on top of the recompute window so that rolling-window
+# features (max window = 24 h) are computed with sufficient history.
+_ROLLING_BUFFER_HOURS: int = 24
+
+
 def _load_to_postgres(
     df: pd.DataFrame,
     cfg: PipelineConfig,
@@ -105,6 +115,43 @@ def _load_to_postgres(
     return len(df)
 
 
+def _upsert_gold_rows(
+    df: pd.DataFrame,
+    engine: sa.Engine,
+    schema: str,
+    table: str,
+    recompute_from: pd.Timestamp,
+    recompute_to: pd.Timestamp,
+) -> int:
+    """Delete stale gold rows in the recompute window, then re-insert fresh ones.
+
+    Args:
+        df: Recomputed gold rows for [recompute_from, recompute_to].
+        engine: SQLAlchemy engine.
+        schema: Target schema.
+        table: Target table name.
+        recompute_from: Start of the recompute window (inclusive).
+        recompute_to: End of the recompute window (inclusive, = old max_processed).
+
+    Returns:
+        Number of rows inserted.
+    """
+    df = df.copy()
+    df["_sdc_extracted_at"] = pd.Timestamp.now()
+
+    with engine.begin() as conn:
+        conn.execute(
+            sa.text(
+                f"DELETE FROM {schema}.{table}"
+                f" WHERE datetime >= :start AND datetime <= :end"
+            ),
+            {"start": recompute_from, "end": recompute_to},
+        )
+        df.to_sql(table, conn, schema=schema, if_exists="append", index=False)
+
+    return len(df)
+
+
 # ---------------------------------------------------------------------------
 # Prefect tasks
 # ---------------------------------------------------------------------------
@@ -121,10 +168,32 @@ def cleanup_old_data(cfg: PipelineConfig) -> PipelineTaskResult:
     return dbt_run_operation("cleanup_om_weather", {}, cfg)
 
 
+def _get_max_processed_datetime(
+    engine: sa.Engine,
+    schema: str,
+    table: str,
+) -> "pd.Timestamp | None":
+    """Return the max datetime already in the raw gold staging table, or None."""
+    try:
+        result = pd.read_sql(
+            f"SELECT MAX(datetime) AS max_dt FROM {schema}.{table}",
+            engine,
+        )
+        val = result["max_dt"].iloc[0]
+        return val if val is not pd.NaT and val is not None else None
+    except Exception:
+        return None
+
+
 @task(name="Compute Gold Features")
 def compute_gold_features_task(cfg: PipelineConfig) -> PipelineTaskResult:
-    """Read silver weather data, compute 29 ML features, write to gold table."""
+    """Read new silver weather rows, compute 29 ML features, upsert to raw gold table.
 
+    On every incremental run the last _RECOMPUTE_WINDOW_HOURS (48 h) of gold rows
+    are deleted and recomputed from the latest silver values, so that hours that were
+    initially stored as Open-Meteo forecast data are updated once ERA5 actuals arrive.
+    Rows beyond max_processed are appended as new.
+    """
     run_logger = get_run_logger()
     om_cfg = _load_config()
 
@@ -132,34 +201,96 @@ def compute_gold_features_task(cfg: PipelineConfig) -> PipelineTaskResult:
     gold_raw = om_cfg["gold_raw"]
     engine = _get_pg_engine(cfg)
 
-    run_logger.info(
-        "Reading silver data from %s.%s", silver["schema"], silver["table"],
+    max_processed = _get_max_processed_datetime(
+        engine, gold_raw["schema"], gold_raw["table"]
     )
-    silver_df = pd.read_sql_table(
-        silver["table"], engine, schema=silver["schema"],
-    )
+
+    if max_processed is None:
+        run_logger.info(
+            "First run — reading all silver data from %s.%s",
+            silver["schema"], silver["table"],
+        )
+        silver_df = pd.read_sql_table(silver["table"], engine, schema=silver["schema"])
+    else:
+        # Lookback = recompute window + rolling-window buffer
+        cutoff = max_processed - pd.Timedelta(
+            hours=_RECOMPUTE_WINDOW_HOURS + _ROLLING_BUFFER_HOURS
+        )
+        run_logger.info(
+            "Incremental run — reading silver from %s "
+            "(max_processed=%s, recompute_window=%dh)",
+            cutoff, max_processed, _RECOMPUTE_WINDOW_HOURS,
+        )
+        silver_df = pd.read_sql(
+            f"SELECT * FROM {silver['schema']}.{silver['table']} "
+            f"WHERE datetime >= %(cutoff)s",
+            engine,
+            params={"cutoff": cutoff},
+        )
 
     if silver_df.empty:
         run_logger.warning("Silver table is empty, skipping gold features")
         return PipelineTaskResult(status="skipped", command="compute_gold_features")
 
-    run_logger.info("Computing gold features for %d rows", len(silver_df))
+    run_logger.info("Computing gold features for %d silver rows", len(silver_df))
     gold_df = build_gold_features(silver_df, impute_missing=True)
 
-    rows = _load_to_postgres(
-        gold_df, cfg, gold_raw["table"], gold_raw["schema"], if_exists="replace",
-    )
-    run_logger.info(
-        "Loaded %d gold feature rows into %s.%s",
-        rows, gold_raw["schema"], gold_raw["table"],
-    )
+    if max_processed is None:
+        rows = _load_to_postgres(
+            gold_df, cfg, gold_raw["table"], gold_raw["schema"], if_exists="append",
+        )
+        run_logger.info(
+            "Appended %d gold feature rows into %s.%s (first run)",
+            rows, gold_raw["schema"], gold_raw["table"],
+        )
+    else:
+        recompute_from = max_processed - pd.Timedelta(hours=_RECOMPUTE_WINDOW_HOURS)
+
+        # Rows in the recompute window: delete stale values, re-insert with fresh silver
+        recompute_df = gold_df[
+            (gold_df["datetime"] >= recompute_from)
+            & (gold_df["datetime"] <= max_processed)
+        ]
+        # Rows beyond max_processed: plain append
+        new_df = gold_df[gold_df["datetime"] > max_processed]
+
+        updated = 0
+        if not recompute_df.empty:
+            updated = _upsert_gold_rows(
+                recompute_df, engine,
+                gold_raw["schema"], gold_raw["table"],
+                recompute_from, max_processed,
+            )
+            run_logger.info(
+                "Re-inserted %d gold rows for recompute window [%s, %s]",
+                updated, recompute_from, max_processed,
+            )
+
+        appended = 0
+        if not new_df.empty:
+            appended = _load_to_postgres(
+                new_df, cfg, gold_raw["table"], gold_raw["schema"], if_exists="append",
+            )
+            run_logger.info(
+                "Appended %d new gold feature rows into %s.%s",
+                appended, gold_raw["schema"], gold_raw["table"],
+            )
+
+        if updated == 0 and appended == 0:
+            run_logger.info("No rows to update or append — gold features are up to date")
+            return PipelineTaskResult(status="skipped", command="compute_gold_features")
 
     return PipelineTaskResult(status="success", command="compute_gold_features")
 
 
 @task(name="Compute Gold Features Meters")
 def compute_gold_features_meters_task(cfg: PipelineConfig) -> PipelineTaskResult:
-    """Read silver weather data, compute 15 meters/PV features, write to gold table."""
+    """Read new silver weather rows, compute 15 meters/PV features, upsert to raw gold table.
+
+    Same recompute-window strategy as compute_gold_features_task: the last
+    _RECOMPUTE_WINDOW_HOURS (48 h) of rows are deleted and re-inserted from the
+    latest silver so that forecast values are replaced by ERA5 actuals over time.
+    """
     from features import build_gold_features_meters
 
     run_logger = get_run_logger()
@@ -169,29 +300,87 @@ def compute_gold_features_meters_task(cfg: PipelineConfig) -> PipelineTaskResult
     gold_raw_meters = om_cfg["gold_raw_meters"]
     engine = _get_pg_engine(cfg)
 
-    run_logger.info(
-        "Reading silver data from %s.%s for meters features",
-        silver["schema"], silver["table"],
+    max_processed = _get_max_processed_datetime(
+        engine, gold_raw_meters["schema"], gold_raw_meters["table"]
     )
-    silver_df = pd.read_sql_table(
-        silver["table"], engine, schema=silver["schema"],
-    )
+
+    if max_processed is None:
+        run_logger.info(
+            "First run — reading all silver data from %s.%s",
+            silver["schema"], silver["table"],
+        )
+        silver_df = pd.read_sql_table(silver["table"], engine, schema=silver["schema"])
+    else:
+        cutoff = max_processed - pd.Timedelta(
+            hours=_RECOMPUTE_WINDOW_HOURS + _ROLLING_BUFFER_HOURS
+        )
+        run_logger.info(
+            "Incremental run — reading silver from %s "
+            "(max_processed=%s, recompute_window=%dh)",
+            cutoff, max_processed, _RECOMPUTE_WINDOW_HOURS,
+        )
+        silver_df = pd.read_sql(
+            f"SELECT * FROM {silver['schema']}.{silver['table']} "
+            f"WHERE datetime >= %(cutoff)s",
+            engine,
+            params={"cutoff": cutoff},
+        )
 
     if silver_df.empty:
         run_logger.warning("Silver table is empty, skipping meters gold features")
         return PipelineTaskResult(status="skipped", command="compute_gold_features_meters")
 
-    run_logger.info("Computing meters gold features for %d rows", len(silver_df))
+    run_logger.info("Computing meters gold features for %d silver rows", len(silver_df))
     gold_df = build_gold_features_meters(silver_df, impute_missing=True)
 
-    rows = _load_to_postgres(
-        gold_df, cfg, gold_raw_meters["table"], gold_raw_meters["schema"],
-        if_exists="replace",
-    )
-    run_logger.info(
-        "Loaded %d meters gold feature rows into %s.%s",
-        rows, gold_raw_meters["schema"], gold_raw_meters["table"],
-    )
+    if max_processed is None:
+        rows = _load_to_postgres(
+            gold_df, cfg, gold_raw_meters["table"], gold_raw_meters["schema"],
+            if_exists="append",
+        )
+        run_logger.info(
+            "Appended %d meters gold feature rows into %s.%s (first run)",
+            rows, gold_raw_meters["schema"], gold_raw_meters["table"],
+        )
+    else:
+        recompute_from = max_processed - pd.Timedelta(hours=_RECOMPUTE_WINDOW_HOURS)
+
+        recompute_df = gold_df[
+            (gold_df["datetime"] >= recompute_from)
+            & (gold_df["datetime"] <= max_processed)
+        ]
+        new_df = gold_df[gold_df["datetime"] > max_processed]
+
+        updated = 0
+        if not recompute_df.empty:
+            updated = _upsert_gold_rows(
+                recompute_df, engine,
+                gold_raw_meters["schema"], gold_raw_meters["table"],
+                recompute_from, max_processed,
+            )
+            run_logger.info(
+                "Re-inserted %d meters gold rows for recompute window [%s, %s]",
+                updated, recompute_from, max_processed,
+            )
+
+        appended = 0
+        if not new_df.empty:
+            appended = _load_to_postgres(
+                new_df, cfg, gold_raw_meters["table"], gold_raw_meters["schema"],
+                if_exists="append",
+            )
+            run_logger.info(
+                "Appended %d new meters gold feature rows into %s.%s",
+                appended, gold_raw_meters["schema"], gold_raw_meters["table"],
+            )
+
+        if updated == 0 and appended == 0:
+            run_logger.info(
+                "No rows to update or append — meters gold features are up to date"
+            )
+            return PipelineTaskResult(
+                status="skipped", command="compute_gold_features_meters"
+            )
 
     return PipelineTaskResult(status="success", command="compute_gold_features_meters")
 
