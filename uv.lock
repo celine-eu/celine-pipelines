@@ -301,7 +301,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "celine-utils", specifier = ">=1.14.3" }]
+requires-dist = [{ name = "celine-utils", specifier = ">=1.15.0" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "semver", specifier = ">=3.0.4" }]
@@ -318,7 +318,7 @@ wheels = [
 
 [[package]]
 name = "celine-sdk"
-version = "1.8.0"
+version = "1.10.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiomqtt" },
@@ -333,14 +333,14 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/38/be/ed6899da4e21837196df968ed29898dca72fbcd7e76b1703d12bb8649bb3/celine_sdk-1.8.0.tar.gz", hash = "sha256:83ce38c947454890cb5633b6a0342c683949bd71686f51467326a6032438b22e", size = 178327, upload-time = "2026-04-12T09:37:16.52Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a0/b3/198cf985ead93cbd998c5866047cb68260ca5afe5d368b28debf19fb7b35/celine_sdk-1.10.0.tar.gz", hash = "sha256:a14476e8889e0378b9707fdb4d40f10debc41be6c91a2ddd84373b2e69fc5c89", size = 178472, upload-time = "2026-04-16T12:01:47.049Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8c/36/08f8af7861dbd8bfd9e6960d0e46592ba74685e1050fc43de3c7174d12c6/celine_sdk-1.8.0-py3-none-any.whl", hash = "sha256:a96e0e1118bc809f39377487825696ac6cff5107f448b684ddb87ab14a679bb4", size = 483585, upload-time = "2026-04-12T09:37:14.868Z" },
+    { url = "https://files.pythonhosted.org/packages/88/4e/0e0bb96670b80cad78ca7b7586a63ec75b092039c526ed0e434b9dabb46b/celine_sdk-1.10.0-py3-none-any.whl", hash = "sha256:af539a9e2f6eed282a39150db50d1b8518cac378f7bfe47158e962a67ad1a3a3", size = 483813, upload-time = "2026-04-16T12:01:45.285Z" },
 ]
 
 [[package]]
 name = "celine-utils"
-version = "1.14.3"
+version = "1.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "bcrypt" },
@@ -361,9 +361,9 @@ dependencies = [
     { name = "sqlalchemy" },
     { name = "typer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ba/16/2a61a9fba1ae4a4a65f27cde53f5d66fb97fb7b8a891ae9e75b3471defe1/celine_utils-1.14.3.tar.gz", hash = "sha256:5835a56b995112960f46a58bcd44bb364a0daf735141a6d23b61dce0de326dfb", size = 52819, upload-time = "2026-04-12T09:48:55.077Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a8/ae/8bdd04fdca20bee1a46dc7011c4b364c2bb45bda5ea5a3300631fcd2b8e7/celine_utils-1.15.0.tar.gz", hash = "sha256:81ca3d179de6e82b0569b29caa162f493741d0ffbcb9a1ecc1fbff596a09ada1", size = 52914, upload-time = "2026-04-16T12:03:37.027Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f1/4d/708cba56771b80c95d964157406a8a8181d4bab9315b658eac0fbed4a6ba/celine_utils-1.14.3-py3-none-any.whl", hash = "sha256:70156b8a5ab6b4bf56f5ca72b552ea21d2a440ec1b95b1dd55465ee0061b6807", size = 67483, upload-time = "2026-04-12T09:48:53.867Z" },
+    { url = "https://files.pythonhosted.org/packages/7c/4e/d7876dda426b43057156c2203844f7ac39919e6588bdff3bf5a544b38594/celine_utils-1.15.0-py3-none-any.whl", hash = "sha256:cdbf452863ab1d275646272ee80bdee785edd46c6bf87c3a56b0b3bfb4684dd7", size = 67652, upload-time = "2026-04-16T12:03:35.415Z" },
 ]
 
 [[package]]
