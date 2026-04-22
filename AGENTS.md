@@ -25,3 +25,13 @@ In `apps/**` each folder is a self-contained pipeline. The structure is
 - `governance.yaml` is a structured format to track processed datasets ownerships, lineage and dataset exposure details via `dataset-api`
 - `requirements.txt` optional, per pipeline, dependencies installed in the container uv env
 - `version.txt` tracks the pipeline version, mapped to the image built via GH actions.
+
+### Governance
+
+`governance.yaml` must be available in every pipeline app. It define information for governance and lineage.
+
+Each pipeline must list only the datasets it handles, duplications across pipelines are not allowed (eg. define the source from another pipeline)
+
+The full schema is available in `celine-utils/schema/governance.schema.json`
+
+A file called `owners.yaml` defines the `ownership` values mapping. See `dataset-api/owners.yaml` (and `owners.local.yaml` if exists) for a reference.
