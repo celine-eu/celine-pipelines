@@ -264,3 +264,60 @@ sources:
     dataspace:
       expose: true
       medallion: gold
+
+  # ---------------------------------------------------------------------------
+  # OBSERVATIONS — 15-minute nowcasting pipeline
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.om_observations:
+    title: "Open-Meteo Observations — Trentino Grid (Raw)"
+    description: >
+      Raw 15-minute resolution weather data fetched from Open-Meteo API via
+      POST for the Trentino region (4.4 km grid, ~798 points, ICON-D2 model).
+      Contains temperature, apparent temperature, wind speed, gusts, direction,
+      and precipitation. Updated every 15 minutes, 9-hour sliding window.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: open-meteo
+        type: open_source
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, observations, nowcasting, trentino, raw]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  datasets.ds_dev_staging.stg_om_obs:
+    title: "Staging - Open-Meteo Observations Data"
+    description: >
+      Technical staging view over raw Open-Meteo 15-minute observations.
+      Casts column types and renames to standard units.
+    license: CC-BY-4.0
+    access_level: internal
+    source_system: Open-Meteo
+    tags: [open-meteo, observations, staging]
+    dataspace:
+      expose: false
+      medallion: silver
+
+  datasets.ds_dev_silver.om_obs_15min:
+    title: "Open-Meteo 15-min Observations — Trentino Grid (Silver)"
+    description: >
+      15-minute weather observations for the Trentino region at 4.4 km
+      resolution (~798 grid points). Deduplicated by (datetime, lat, lon).
+      Contains temperature, apparent temperature, wind, gusts, direction,
+      and precipitation from ICON-D2 model.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, observations, nowcasting, trentino, silver]
+    dataspace:
+      expose: false
+      medallion: silver

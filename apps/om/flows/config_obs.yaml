@@ -1,0 +1,43 @@
+# Observations pipeline configuration for Trentino region
+# Fetches 15-minute resolution weather from Open-Meteo API (minutely_15)
+# Separate from forecast pipelines (config_wind.yaml, config_heat.yaml)
+
+# Trentino grid: 4.4 km resolution (0.04 deg spacing)
+# Same bounding box as wind pipeline
+grid:
+  lat_min: 45.44
+  lat_max: 46.52
+  lon_min: 10.40
+  lon_max: 11.90
+  spacing_deg: 0.04  # ~4.4 km (double ICON-D2 native 2.2 km)
+
+# Open-Meteo API configuration — minutely_15 endpoint
+api:
+  base_url: "https://api.open-meteo.com/v1/forecast"
+  # No model specified = best_match (picks freshest available model per timestamp)
+  # model: "icon_d2"  # disabled: publication delay causes 3-6h staleness
+  variables:
+    - temperature_2m
+    - apparent_temperature
+    - wind_speed_10m
+    - wind_gusts_10m
+    - wind_direction_10m
+    - precipitation
+  wind_speed_unit: "ms"
+  past_minutely_15: 24        # 6 hours back (24 x 15min)
+  forecast_minutely_15: 12    # 3 hours ahead (12 x 15min)
+  timezone: "Europe/Rome"
+  # Open-Meteo POST payload limit is ~1000 locations.
+  # With ~798 grid points, this gives 2 batches (600 + 198).
+  max_points_per_call: 600
+
+# Database targets
+raw:
+  table: om_observations
+  schema: raw
+
+# Schedule: every 30 minutes (best_match model updates every 1-3h;
+# 30 min captures updates promptly without redundant polls)
+schedule:
+  cron: "*/30 * * * *"
+  name: "om-obs-trentino"

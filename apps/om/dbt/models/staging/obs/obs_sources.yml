@@ -1,0 +1,52 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: om_observations
+        description: >
+          Raw 15-minute resolution weather data from Open-Meteo API for the
+          Trentino region. 4.4 km grid (~798 points), ICON-D2 model (2.2 km
+          native), 9-hour sliding window (6h past + 3h ahead). Updated every
+          15 minutes.
+        columns:
+          - name: datetime
+            description: "15-minute timestamp (Europe/Rome timezone)"
+          - name: lat
+            description: "Grid point latitude (WGS84)"
+          - name: lon
+            description: "Grid point longitude (WGS84)"
+          - name: temperature_2m
+            description: "Air temperature at 2m (Celsius)"
+          - name: apparent_temperature
+            description: "Apparent temperature with wind chill/humidity (Celsius)"
+          - name: wind_speed_10m
+            description: "Wind speed at 10m height (m/s)"
+          - name: wind_gusts_10m
+            description: "Max wind gust at 10m (m/s)"
+          - name: wind_direction_10m
+            description: "Wind direction at 10m (degrees from north)"
+          - name: precipitation
+            description: "Precipitation (mm)"
+    config:
+      tags: ["obs"]
+
+models:
+  - name: stg_om_obs
+    description: >
+      Staging view: type-casts raw observation columns and renames to
+      standard names with explicit units (temp_c, apparent_temp_c,
+      wind_speed_ms, wind_gusts_ms, wind_direction_deg, precip_mm).
+    config:
+      tags: ["obs"]
+    columns:
+      - name: datetime
+        tests:
+          - not_null
+      - name: lat
+        tests:
+          - not_null
+      - name: lon
+        tests:
+          - not_null

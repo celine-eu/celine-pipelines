@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: om_obs_15min
+    description: >
+      Silver layer: 15-minute observations per grid point. Deduplicated by
+      (datetime, lat, lon), keeping the most recent extraction. Timestamps
+      are TIMESTAMPTZ (UTC-normalized). Includes PostGIS geography point.
+    config:
+      tags: ["obs"]
+    columns:
+      - name: datetime
+        description: "15-minute timestamp (TIMESTAMPTZ, UTC-normalized)"
+        tests:
+          - not_null
+      - name: lat
+        description: "Grid point latitude"
+        tests:
+          - not_null
+      - name: lon
+        description: "Grid point longitude"
+        tests:
+          - not_null
+      - name: geoposition
+        description: "PostGIS geography point (SRID 4326)"
+      - name: temp_c
+        description: "Air temperature at 2m (Celsius)"
+      - name: apparent_temp_c
+        description: "Apparent temperature (Celsius)"
+      - name: wind_speed_ms
+        description: "Wind speed at 10m (m/s)"
+      - name: wind_gusts_ms
+        description: "Max wind gust at 10m (m/s)"
+      - name: wind_direction_deg
+        description: "Wind direction (degrees from north)"
+      - name: precip_mm
+        description: "Precipitation (mm)"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - datetime
+            - lat
+            - lon
