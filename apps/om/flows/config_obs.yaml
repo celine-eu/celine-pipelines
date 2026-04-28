@@ -43,5 +43,5 @@ raw:
 # with wind (:00) and heat (:30) pipelines.
 # Each run covers 1/4 of the grid; full coverage every hour.
 schedule:
-  cron: "5,20,35,50 * * * *"
+  cron: "12,27,42,57 * * * *"
   name: "om-obs-trentino"
