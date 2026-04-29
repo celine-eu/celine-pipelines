@@ -17,9 +17,13 @@ logger = logging.getLogger(__name__)
 
 RETRIABLE_STATUS_CODES: Set[int] = {429, 500, 502, 503, 504}
 
-_DEFAULT_MAX_RETRIES = 5
+_DEFAULT_MAX_RETRIES = 2
 _DEFAULT_BASE_DELAY = 30.0  # seconds
 _DEFAULT_MAX_DELAY = 300.0  # seconds
+
+
+class DailyLimitExceeded(Exception):
+    """Open-Meteo daily API limit exhausted — retrying is pointless until midnight UTC."""
 
 
 def post_with_retry(
@@ -61,6 +65,11 @@ def post_with_retry(
             if response.status_code not in RETRIABLE_STATUS_CODES:
                 response.raise_for_status()
                 return response
+
+            if response.status_code == 429 and "daily" in response.text.lower():
+                raise DailyLimitExceeded(
+                    f"Daily API request limit exceeded (url={url})"
+                )
 
             # Retriable status — exhaust retries before raising
             if attempt >= max_retries:

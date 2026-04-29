@@ -8,7 +8,6 @@ Full spatial coverage every ``grid.chunks × 15 min``.
 Schedule: every 15 minutes (offset to avoid wind/heat collisions).
 """
 
-import datetime
 import logging
 import os
 import time
@@ -161,21 +160,6 @@ def _load_to_postgres(
 # Open-Meteo API
 # ---------------------------------------------------------------------------
 
-def _select_chunk(
-    grid: List[Tuple[float, float]],
-    num_chunks: int,
-) -> Tuple[List[Tuple[float, float]], int]:
-    """Return the grid subset for the current time slot.
-
-    Deterministic round-robin: slot index = (hour * 4 + quarter) % num_chunks.
-    """
-    now = datetime.datetime.now()
-    slot = (now.hour * 4 + now.minute // 15) % num_chunks
-    chunk_size = -(-len(grid) // num_chunks)  # ceil division
-    start = slot * chunk_size
-    return grid[start : start + chunk_size], slot
-
-
 def _fetch_obs_data(
     grid: List[Tuple[float, float]],
     obs_cfg: Dict[str, Any],
@@ -248,7 +232,7 @@ def _fetch_obs_data(
 # Prefect tasks
 # ---------------------------------------------------------------------------
 
-@task(name="Extract obs data", retries=3, retry_delay_seconds=60)
+@task(name="Extract obs data", retries=1, retry_delay_seconds=180)
 def extract_obs_data(cfg: PipelineConfig) -> PipelineTaskResult:
     """Fetch 15-min weather data from Open-Meteo and load into raw table."""
     run_logger = get_run_logger()
@@ -257,7 +241,7 @@ def extract_obs_data(cfg: PipelineConfig) -> PipelineTaskResult:
     grid_cfg = obs_cfg["grid"]
     raw_cfg = obs_cfg["raw"]
 
-    full_grid = _generate_grid(
+    grid = _generate_grid(
         lat_min=grid_cfg["lat_min"],
         lat_max=grid_cfg["lat_max"],
         lon_min=grid_cfg["lon_min"],
@@ -265,14 +249,8 @@ def extract_obs_data(cfg: PipelineConfig) -> PipelineTaskResult:
         spacing=grid_cfg["spacing_deg"],
     )
 
-    num_chunks = grid_cfg.get("chunks", 1)
-    grid, chunk_idx = _select_chunk(full_grid, num_chunks)
-
     run_logger.info(
-        "Grid: %d total points, chunk %d/%d → %d points (%.1f km spacing)",
-        len(full_grid),
-        chunk_idx + 1,
-        num_chunks,
+        "Grid: %d points (%.1f km spacing)",
         len(grid),
         grid_cfg["spacing_deg"] * 111,
     )
@@ -326,8 +304,8 @@ def test_obs_task(cfg: PipelineConfig) -> PipelineTaskResult:
 def om_obs_flow(config: Dict[str, Any] | None = None) -> dict:
     """Observations pipeline for Trentino: Open-Meteo API -> dbt transforms.
 
-    Each run fetches one chunk of the ~5 km grid (~213 of 850 points)
-    in round-robin, then transforms through staging -> silver layers.
+    Each run fetches the full 10 km grid (~234 points),
+    then transforms through staging -> silver layers.
     """
     cfg = PipelineConfig.model_validate(config or {})
 

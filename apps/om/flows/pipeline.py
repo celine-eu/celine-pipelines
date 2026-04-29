@@ -156,7 +156,7 @@ def _upsert_gold_rows(
 # Prefect tasks
 # ---------------------------------------------------------------------------
 
-@task(name="Import raw data", retries=3, retry_delay_seconds=60)
+@task(name="Import raw data", retries=1, retry_delay_seconds=180)
 def import_raw_data(cfg: PipelineConfig) -> PipelineTaskResult:
     """Extract weather data via tap-openmeteo and load into Postgres raw."""
     return meltano_run_import(cfg)

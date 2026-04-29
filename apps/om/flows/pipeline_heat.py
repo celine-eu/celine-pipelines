@@ -246,7 +246,7 @@ def _fetch_heat_data(
 # Prefect tasks
 # ---------------------------------------------------------------------------
 
-@task(name="Extract heat data", retries=3, retry_delay_seconds=120)
+@task(name="Extract heat data", retries=1, retry_delay_seconds=180)
 def extract_heat_data(cfg: PipelineConfig) -> PipelineTaskResult:
     """Fetch temperature data from Open-Meteo and load into raw table."""
     run_logger = get_run_logger()

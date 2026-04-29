@@ -236,7 +236,7 @@ def _fetch_wind_data(
 # Prefect tasks
 # ---------------------------------------------------------------------------
 
-@task(name="Extract wind data", retries=3, retry_delay_seconds=120)
+@task(name="Extract wind data", retries=1, retry_delay_seconds=180)
 def extract_wind_data(cfg: PipelineConfig) -> PipelineTaskResult:
     """Fetch wind data from Open-Meteo and load into raw table."""
     run_logger = get_run_logger()
