@@ -66,6 +66,7 @@ See:
 ## Contributing
 
 To propose changes:
+
 1. Fork the repository
 2. Modify configs, dbt models, or Prefect flows
 3. Update governance if datasets change
