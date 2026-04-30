@@ -19,7 +19,7 @@ Open-source tools & docs: https://celine-eu.github.io/
 | Document | Description |
 |---|---|
 | [Pipeline Overview](https://celine-eu.github.io/projects/celine-pipelines/docs/pipeline-overview) | Standard pipeline anatomy, data layers, governance.yaml |
-| [Pipelines Reference](https://celine-eu.github.io/projects/celine-pipelines/docs/pipelines-reference) | Per-pipeline reference: om, dwd, owm, copernicus, osm |
+| [Pipelines Reference](https://celine-eu.github.io/projects/celine-pipelines/docs/pipelines-reference) | Per-pipeline reference: om, mt, dwd, owm, copernicus, osm, rec_registry, rec_flexibility_commitments |
 | [Development](https://celine-eu.github.io/projects/celine-pipelines/docs/development) | Prerequisites, task setup, running pipelines, releasing |
 
 ---
@@ -29,11 +29,16 @@ Open-source tools & docs: https://celine-eu.github.io/
 This repository hosts **end-to-end data pipelines** based on **open and public data sources**, including:
 
 - **Meteorological data**
+  - Open-Meteo (OM) — weather forecasts, historical archive, wind/heat risks, observations
+  - MeteoTrentino (MT) — regional weather: stations, observations, forecasts, alerts
   - OpenWeatherMap (OWM)
-  - Deutscher Wetterdienst (DWD – ICON-D2)
+  - Deutscher Wetterdienst (DWD — ICON-D2)
   - Copernicus Climate & Atmosphere Services (ERA5, CAMS)
 - **Geospatial open data**
   - OpenStreetMap (OSM)
+- **REC data mirrors**
+  - REC Registry — community/member/asset data mirror
+  - Flexibility commitments — commitment data mirror from flexibility-api
 
 Each pipeline follows the same **canonical CELINE structure**:
 - ingestion (Meltano / Singer taps)
@@ -49,11 +54,14 @@ Each pipeline follows the same **canonical CELINE structure**:
 ```text
 celine-pipelines/
 ├── apps/
-│   ├── copernicus/     # Copernicus Climate & Atmosphere pipelines
-│   ├── dwd/            # DWD ICON-D2 weather model
-│   ├── om/             # Open-Meteo weather pipeline (forecast + historical + ML features)
-│   ├── osm/            # OpenStreetMap ingestion & curation
-│   └── owm/            # OpenWeatherMap pipelines
+│   ├── copernicus/                  # Copernicus Climate & Atmosphere pipelines
+│   ├── dwd/                         # DWD ICON-D2 weather model
+│   ├── mt/                          # MeteoTrentino regional weather
+│   ├── om/                          # Open-Meteo (weather, wind, heat, observations)
+│   ├── osm/                         # OpenStreetMap ingestion & curation
+│   ├── owm/                         # OpenWeatherMap pipelines
+│   ├── rec_flexibility_commitments/ # Flexibility commitments mirror
+│   └── rec_registry/                # REC Registry data mirror
 │
 ├── scripts/            # Release & utility scripts
 ├── skaffold.yaml       # Container build configuration
@@ -108,7 +116,7 @@ All pipelines in this repository are built following that guide.
 
 ### Prerequisites
 
-- Python ≥ 3.11
+- Python >= 3.12
 - Docker & Docker Compose
 - `uv` 
 - Prefect
@@ -184,56 +192,26 @@ limitations under the License.
 This work is part of the **CELINE project**, funded under the European Union framework, and builds upon multiple open data initiatives including:
 - Copernicus Programme
 - Deutscher Wetterdienst (DWD)
+- Open-Meteo
+- MeteoTrentino / Provincia Autonoma di Trento
 - OpenStreetMap contributors
 - OpenWeather Ltd.
 
 
 ---
 
-## OM pipeline (Open-Meteo)
+## Pipeline Summary
 
-The Open-Meteo pipeline fetches hourly weather data (forecast + historical archive),
-transforms it through staging and silver layers (4 natural weather variables),
-then computes 29 ML features in a gold layer for energy consumption forecasting.
-
-### Pipeline layers
-
-| Layer | Description |
-|-------|-------------|
-| **RAW** | Verbatim API data (`raw.om_weather`) |
-| **STAGING** | Type-cast and deduplicated records (`ds_dev_staging.stg_om_weather`) |
-| **SILVER** | 4 natural weather variables: `shortwave_radiation`, `cloud_cover`, `temperature_2m`, `precipitation` (`ds_dev_silver.om_weather_hourly`) |
-| **GOLD** | 29 ML features: temporal/Fourier encodings, rolling stats, thermal dynamics, interaction features (`ds_dev_gold.om_weather_features`) |
-
-### Run in Docker
-
-```bash
-# Forecast mode (daily use)
-docker compose up datasets-db -d
-docker compose build pipeline-om
-docker compose run --rm pipeline-om python3 -c "
-from flows.pipeline import om_flow
-om_flow(config={'mode': 'forecast'})
-"
-```
-
-```bash
-# Historical backfill
-docker compose run --rm pipeline-om python3 -c "
-from flows.pipeline import om_flow
-om_flow(config={'mode': 'historical', 'start_date': '2024-12-01'})
-"
-```
-
-```bash
-# Both historical + forecast
-docker compose run --rm pipeline-om python3 -c "
-from flows.pipeline import om_flow
-om_flow(config={'mode': 'both', 'start_date': '2024-12-01'})
-"
-```
-
-Or start as a scheduled service (daily at 06:00):
-```bash
-docker compose up pipeline-om -d
-```
+| Pipeline | Source | Schedule | Key Outputs |
+|---|---|---|---|
+| **om** (weather) | Open-Meteo | 2x daily | Weather features for energy forecasting |
+| **om** (wind) | Open-Meteo | Daily | Wind risk assessments per grid node |
+| **om** (heat) | Open-Meteo | Daily | Heat risk assessments (P90 altitude-band) |
+| **om** (obs) | Open-Meteo | Every 2h | 15-min weather observations |
+| **mt** | MeteoTrentino | Hourly | Regional weather stations, forecasts, alerts |
+| **owm** | OpenWeatherMap | Scheduled | Weather data for specific locations |
+| **dwd** | DWD | Scheduled | ICON-D2 weather model data |
+| **copernicus** | Copernicus | Scheduled | ERA5/CAMS climate data |
+| **osm** | OpenStreetMap | On-demand | Geospatial layers for REC areas |
+| **rec_registry** | REC Registry API | Every 5 min | Community/member/asset mirror |
+| **rec_flexibility_commitments** | Flexibility API | Every 15 min | Commitment data mirror (90-day window) |
