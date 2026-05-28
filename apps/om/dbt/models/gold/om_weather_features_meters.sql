@@ -6,7 +6,7 @@
 
 {#
     Gold-layer features for PV/solar metering.
-    15 features focused on solar production forecasting.
+    19 features focused on solar production and meter forecasting.
     Identical output for historical and forecast data (train/test parity).
 #}
 
@@ -28,14 +28,20 @@ with source as (
         cast(cloud_cover as float)                           as cloud_cover,
         cast(temperature_2m as float)                        as temperature_2m,
 
-        -- Solar-derived (3)
+        -- Solar-derived (5)
         cast(clearsky_index as float)                        as clearsky_index,
         cast(effective_solar_pv as float)                    as effective_solar_pv,
+        cast(solar_elevation as float)                       as solar_elevation,
         cast(theoretical_prod as float)                      as theoretical_prod,
+        cast(ghi_ramp as float)                              as ghi_ramp,
 
-        -- Temperature-derived (2)
+        -- Cloud-derived (1)
+        cast(cloud_cover_diff as float)                      as cloud_cover_diff,
+
+        -- Temperature-derived (3)
         cast(heating_degree as float)                        as heating_degree,
         cast(cooling_degree as float)                        as cooling_degree,
+        cast(pv_temp_factor as float)                        as pv_temp_factor,
 
         -- Daylight (1)
         cast(is_daylight as int)                             as is_daylight,

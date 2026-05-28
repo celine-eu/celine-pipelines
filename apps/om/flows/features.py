@@ -60,6 +60,10 @@ SELECTED_METERS_FEATURES: list[str] = [
     "temperature_2m",
     "clearsky_index",
     "effective_solar_pv",
+    "solar_elevation",
+    "cloud_cover_diff",
+    "pv_temp_factor",
+    "ghi_ramp",
     "heating_degree",
     "cooling_degree",
     "is_daylight",
@@ -735,6 +739,29 @@ def build_gold_features_meters(
         df["global_tilted_irradiance"].fillna(0)
         * df["effective_solar_pv"].fillna(0)
     )
+
+    # --- Solar elevation (degrees) ---
+    dt_series = pd.to_datetime(df[DATETIME_COL])
+    hour = dt_series.dt.hour
+    day_of_year = dt_series.dt.dayofyear
+    declination = 23.45 * np.sin(np.radians(360 / 365 * (day_of_year - 81)))
+    hour_angle = 15 * (hour - 12)
+    lat_rad = np.radians(FOLGARIA_LAT)
+    sin_elevation = (
+        np.sin(lat_rad) * np.sin(np.radians(declination))
+        + np.cos(lat_rad) * np.cos(np.radians(declination))
+        * np.cos(np.radians(hour_angle))
+    )
+    df["solar_elevation"] = np.degrees(np.arcsin(np.clip(sin_elevation, -1, 1)))
+
+    # --- Cloud variability ---
+    df["cloud_cover_diff"] = df["cloud_cover"].diff().abs()
+
+    # --- PV efficiency correction (~0.4%/°C loss above 25°C) ---
+    df["pv_temp_factor"] = 1 - 0.004 * np.maximum(0, df["temperature_2m"] - 25)
+
+    # --- GHI ramp (cloud transient signal) ---
+    df["ghi_ramp"] = df["global_tilted_irradiance"].diff().fillna(0)
 
     # --- Select output columns ---
     available = [col for col in SELECTED_METERS_FEATURES if col in df.columns]

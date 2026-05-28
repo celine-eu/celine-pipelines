@@ -4,10 +4,12 @@ models:
   - name: om_weather_features_meters
     description: >
       Gold-layer features for PV/solar metering and production forecasting.
-      15 features computed from 7 natural weather variables plus datetime.
+      19 features computed from 7 natural weather variables plus datetime.
       Includes physics-derived solar features (clearsky_index,
-      effective_solar_pv, theoretical_prod). Identical output for
-      historical and forecast data, ensuring train/test consistency.
+      effective_solar_pv, solar_elevation, theoretical_prod) and
+      variability signals (cloud_cover_diff, ghi_ramp, pv_temp_factor).
+      Identical output for historical and forecast data, ensuring
+      train/test consistency.
     columns:
       - name: datetime
         description: "Hourly timestamp (Europe/Rome timezone)"
@@ -37,19 +39,29 @@ models:
       - name: temperature_2m
         description: "Air temperature at 2m (C)"
 
-      # --- Solar-derived (3 features) ---
+      # --- Solar-derived (5 features) ---
       - name: clearsky_index
         description: "Ratio of actual GHI to theoretical clear-sky GHI, clipped [0, 1.5]"
       - name: effective_solar_pv
         description: "direct_radiation + 0.9 * diffuse_radiation — effective PV input (W/m2)"
+      - name: solar_elevation
+        description: "Solar elevation angle (degrees) computed from Folgaria lat (45.9167°) and datetime"
       - name: theoretical_prod
         description: "global_tilted_irradiance * effective_solar_pv — theoretical PV production proxy"
+      - name: ghi_ramp
+        description: "Hour-over-hour change in global_tilted_irradiance — cloud transient signal"
 
-      # --- Temperature-derived (2 features) ---
+      # --- Cloud-derived (1 feature) ---
+      - name: cloud_cover_diff
+        description: "abs(cloud_cover - lag(cloud_cover)) — cloud variability indicator"
+
+      # --- Temperature-derived (3 features) ---
       - name: heating_degree
         description: "max(0, 18 - temperature_2m) — heating demand indicator"
       - name: cooling_degree
         description: "max(0, temperature_2m - 24) — cooling demand indicator"
+      - name: pv_temp_factor
+        description: "1 - 0.004 * max(0, temperature_2m - 25) — PV efficiency correction (~0.4%/°C loss above 25°C)"
 
       # --- Daylight (1 feature) ---
       - name: is_daylight
