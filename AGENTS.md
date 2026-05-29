@@ -35,3 +35,7 @@ Each pipeline must list only the datasets it handles, duplications across pipeli
 The full schema is available in `celine-utils/schema/governance.schema.json`
 
 A file called `owners.yaml` defines the `ownership` values mapping. See `dataset-api/owners.yaml` (and `owners.local.yaml` if exists) for a reference.
+
+### Docker
+
+In `docker-compose.yaml` each pipeline has its own container for local replication. Ensure pipelines in `apps/*` have it, following the established pattern.

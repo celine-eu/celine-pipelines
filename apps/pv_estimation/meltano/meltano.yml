@@ -1,0 +1,52 @@
+default_environment: prod
+project_id: energy_community_platform
+
+environments:
+  - name: prod
+
+plugins:
+  extractors:
+    - name: tap-overture-buildings
+      inherit_from: tap-geo
+      config:
+        files:
+          - paths:
+              - "s3://overturemaps-us-west-2/release/2026-05-20.0/theme=buildings/type=building/*"
+            table_name: overture_buildings
+            bbox: [10.5, 45.7, 11.9, 46.4]
+            geometry_format: "wkt"
+
+    - name: tap-trentinopvgis
+      pip_url: git+https://github.com/celine-eu/tap-trentinopvgis.git@main
+      namespace: tap_trentinopvgis
+      capabilities:
+        - catalog
+        - discover
+        - state
+      select:
+        - aree_idonee.*
+        - aree_non_idonee.*
+        - vincoli_indiretti.*
+        - vincoli_diretti.*
+
+    - name: tap-geo
+      variant: celine-eu
+      pip_url: tap-geo>=0.1.2
+
+  loaders:
+    - name: target-postgres
+      variant: meltanolabs
+      pip_url: meltanolabs-target-postgres
+      config:
+        host: ${POSTGRES_HOST}
+        port: ${POSTGRES_PORT}
+        user: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        database: ${POSTGRES_DB}
+        default_target_schema: raw
+
+jobs:
+  - name: import
+    tasks:
+      - tap-overture-buildings target-postgres
+      - tap-trentinopvgis target-postgres

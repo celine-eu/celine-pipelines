@@ -67,6 +67,10 @@ tasks:
     cmds:
       - task pipeline:release:app -- rec_registry --commit
 
+  pipeline:release:pv_estimation:
+    cmds:
+      - task pipeline:release:app -- pv_estimation --commit
+
   pipeline:release:all:
     cmds:
       - task pipeline:release:app -- copernicus
@@ -75,6 +79,7 @@ tasks:
       - task pipeline:release:app -- om
       - task pipeline:release:app -- osm
       - task pipeline:release:app -- owm
+      - task pipeline:release:app -- pv_estimation
       - task pipeline:release:app -- rec_flexibility_commitments
       - task pipeline:release:app -- rec_registry
       - |

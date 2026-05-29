@@ -260,3 +260,14 @@ services:
     env_file:
       - path: ./apps/mt/.env
         required: false
+
+  pipeline-pv-estimation:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-pv-estimation
+    build:
+      context: .
+      args:
+        APP_NAME: pv_estimation
+    env_file:
+      - path: ./apps/pv_estimation/.env
+        required: false

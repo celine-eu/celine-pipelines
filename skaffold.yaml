@@ -49,6 +49,16 @@ build:
         - image: ghcr.io/celine-eu/pipeline-base
           alias: pipeline_base
 
+    - image: ghcr.io/celine-eu/pipeline-pv-estimation
+      context: .
+      docker:
+        dockerfile: Dockerfile
+        buildArgs:
+          APP_NAME: pv_estimation
+      requires:
+        - image: ghcr.io/celine-eu/pipeline-base
+          alias: pipeline_base
+
 # Disable deployment completely
 manifests:
   rawYaml: []
