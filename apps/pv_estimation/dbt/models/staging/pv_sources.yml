@@ -6,8 +6,6 @@ sources:
     tables:
       - name: overture_buildings
         description: "Overture Maps building footprints for Trentino region"
-      - name: aree_idonee
-        description: "Suitable areas for PV installations (L.P. 4/2022 Allegato B)"
       - name: aree_non_idonee
         description: "Unsuitable areas for PV installations (PUP invariants)"
       - name: vincoli_indiretti

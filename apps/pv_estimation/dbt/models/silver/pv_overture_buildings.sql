@@ -2,8 +2,8 @@
     materialized='incremental',
     unique_key='building_id',
     schema='silver',
-    post_hook=[
-        "CREATE INDEX IF NOT EXISTS idx_{{ this.name }}_geometry ON {{ this }} USING GIST (geometry)"
+    indexes=[
+        {'columns': ['geometry'], 'type': 'gist'}
     ]
 ) }}
 

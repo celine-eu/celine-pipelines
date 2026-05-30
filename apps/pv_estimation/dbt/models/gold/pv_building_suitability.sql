@@ -3,8 +3,8 @@
     unique_key='building_id',
     incremental_strategy='merge',
     schema='gold',
-    post_hook=[
-        "CREATE INDEX IF NOT EXISTS idx_{{ this.name }}_geometry ON {{ this }} USING GIST (geometry)"
+    indexes=[
+        {'columns': ['geometry'], 'type': 'gist'}
     ]
 ) }}
 
@@ -28,9 +28,8 @@ with buildings as (
 ),
 
 eligible as (
-    select distinct b.building_id
+    select b.building_id
     from buildings b
-    join {{ ref('pv_aree_idonee') }} s on ST_Intersects(b.geometry, s.geometry)
     where not exists (
         select 1 from {{ ref('pv_aree_non_idonee') }} u
         where ST_Intersects(b.geometry, u.geometry)
