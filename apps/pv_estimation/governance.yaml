@@ -256,9 +256,9 @@ sources:
   datasets.ds_dev_gold.pv_building_suitability:
     title: "PV Building Suitability - Trentino (Gold)"
     description: >
-      Overture Maps buildings in Trentino enriched with PV suitability flags:
-      whether the building falls within a suitable area (L.P. 4/2022),
-      an unsuitable area (PUP invariants), or is affected by direct/indirect
+      Overture Maps buildings in Trentino eligible for PV installation:
+      located within a suitable area (L.P. 4/2022 Allegato B) and not
+      intersecting unsuitable areas (PUP invariants) or direct/indirect
       heritage constraints.
     license: ODbL-1.0
     access_level: open

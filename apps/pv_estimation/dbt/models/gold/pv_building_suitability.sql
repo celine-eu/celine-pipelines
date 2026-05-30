@@ -27,28 +27,22 @@ with buildings as (
     {% endif %}
 ),
 
-suitable_hits as (
+eligible as (
     select distinct b.building_id
     from buildings b
     join {{ ref('pv_aree_idonee') }} s on ST_Intersects(b.geometry, s.geometry)
-),
-
-unsuitable_hits as (
-    select distinct b.building_id
-    from buildings b
-    join {{ ref('pv_aree_non_idonee') }} u on ST_Intersects(b.geometry, u.geometry)
-),
-
-direct_hits as (
-    select distinct b.building_id
-    from buildings b
-    join {{ ref('pv_vincoli_diretti') }} cd on ST_Intersects(b.geometry, cd.geometry)
-),
-
-indirect_hits as (
-    select distinct b.building_id
-    from buildings b
-    join {{ ref('pv_vincoli_indiretti') }} ci on ST_Intersects(b.geometry, ci.geometry)
+    where not exists (
+        select 1 from {{ ref('pv_aree_non_idonee') }} u
+        where ST_Intersects(b.geometry, u.geometry)
+    )
+    and not exists (
+        select 1 from {{ ref('pv_vincoli_diretti') }} cd
+        where ST_Intersects(b.geometry, cd.geometry)
+    )
+    and not exists (
+        select 1 from {{ ref('pv_vincoli_indiretti') }} ci
+        where ST_Intersects(b.geometry, ci.geometry)
+    )
 )
 
 select
@@ -61,11 +55,6 @@ select
     b.footprint_area_m2,
     b._sdc_extracted_at,
 
-    sh.building_id is not null as in_suitable_area,
-    uh.building_id is not null as in_unsuitable_area,
-    dh.building_id is not null as has_direct_constraint,
-    ih.building_id is not null as has_indirect_constraint,
-
     (
         jsonb_build_object(
             'type', 'Feature',
@@ -75,7 +64,4 @@ select
     )::text as geom_geojson
 
 from buildings b
-left join suitable_hits sh on sh.building_id = b.building_id
-left join unsuitable_hits uh on uh.building_id = b.building_id
-left join direct_hits dh on dh.building_id = b.building_id
-left join indirect_hits ih on ih.building_id = b.building_id
+join eligible e on e.building_id = b.building_id
