@@ -39,3 +39,6 @@ A file called `owners.yaml` defines the `ownership` values mapping. See `dataset
 ### Docker
 
 In `docker-compose.yaml` each pipeline has its own container for local replication. Ensure pipelines in `apps/*` have it, following the established pattern.
+
+You can use local docker postgres at `postgres:securepassword123@host.docker.internal:15432/datasets` with pgsql or via docker exec.
+Operate read only, ask for permission otherwise. Pipeline should be self contained, and ensure the table is created at runtime.

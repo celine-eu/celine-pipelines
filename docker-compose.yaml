@@ -261,6 +261,28 @@ services:
       - path: ./apps/mt/.env
         required: false
 
+  pipeline-overture:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-overture
+    build:
+      context: .
+      args:
+        APP_NAME: overture
+    env_file:
+      - path: ./apps/overture/.env
+        required: false
+
+  pipeline-trentino-rooftops:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-trentino-rooftops
+    build:
+      context: .
+      args:
+        APP_NAME: trentino_rooftops
+    env_file:
+      - path: ./apps/trentino_rooftops/.env
+        required: false
+
   pipeline-pv-estimation:
     <<: *pipeline-service
     image: ghcr.io/celine-eu/pipeline-pv-estimation
