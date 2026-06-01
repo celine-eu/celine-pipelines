@@ -1,0 +1,49 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: pv_roi_estimates
+        description: >
+          ROI estimates computed by the Prefect flow using celine-roi.
+          One row per building with financial metrics (NPV, IRR, payback).
+        columns:
+          - name: building_id
+            description: "Overture building ID — md5(ST_AsText(geometry))"
+            tests:
+              - not_null
+          - name: kwp
+            description: "Estimated PV capacity (kWp) from rooftop area"
+          - name: capex
+            description: "Estimated installation cost (EUR)"
+          - name: annual_production_kwh
+            description: "Estimated annual production (kWh)"
+          - name: annual_consumption_kwh
+            description: "Estimated annual consumption (kWh) from area-based model"
+          - name: npv
+            description: "Net Present Value (EUR) over 25-year useful life"
+          - name: irr
+            description: "Internal Rate of Return (decimal)"
+          - name: payback_simple
+            description: "Simple payback period (years)"
+          - name: payback_discounted
+            description: "Discounted payback period (years)"
+          - name: tasso_autoconsumo
+            description: "Self-consumption ratio (0-1)"
+          - name: user_type
+            description: "Consumer category used for incentive calculation"
+          - name: regime
+            description: "Incentive regime (RID, CER, RID_CER)"
+
+  - name: overture_silver
+    schema: "{{ target.schema }}_silver"
+    tables:
+      - name: pv_overture_buildings
+        description: "Overture Maps building footprints (silver), produced by the overture pipeline"
+
+  - name: rec_it_gold
+    schema: "{{ target.schema }}_gold"
+    tables:
+      - name: gse_cabine_primarie
+        description: "GSE primary substation coverage areas with cod_ac identifiers (from rec_it pipeline)"

@@ -1,0 +1,64 @@
+buildings:
+  suitability:
+    schema: ds_dev_gold
+    table: pv_building_suitability
+  # Set to false to estimate all suitable buildings without waiting for pv_detection
+  require_detection: false
+  detections:
+    schema: ds_dev_gold
+    table: pv_detected_installations
+
+estimation:
+  # Trentino specific yield (kWh/kWp/year)
+  specific_yield: 1100
+  # Usable roof fraction * panel density (kWp/m2)
+  panel_kwp_per_m2: 0.130
+  # Residential cap (IRPEF deduction threshold)
+  max_kwp: 20
+  # Minimum viable system size
+  min_kwp: 3
+  # CAPEX per kWp (EUR)
+  capex_per_kwp: 1500
+
+  # Building classification heuristic
+  # Buildings are classified by footprint area and floor count
+  classification:
+    # Footprint above this → non-residential (unless low-rise)
+    max_residential_area_m2: 200
+    # Floors above this → non-residential regardless of area
+    max_residential_floors: 3
+    # Large footprint + low floors → industrial/agricultural
+    industrial_min_area_m2: 500
+
+  # Consumption model
+  # Residential: fixed per household (kWh/year), NOT area-based
+  residential_consumption_kwh: 3500
+  # Residential sizing: system covers consumption + 20% headroom
+  # Prevents over-building on large rooftops where the investment wouldn't pay off
+  residential_sizing_headroom: 0.20
+  # Non-residential: area-based (kWh/m2/year)
+  consumption_per_m2:
+    office: 80
+    commercial: 100
+    industrial: 150
+    agricultural: 30
+
+  # Overture building_class → celine-roi user_type (when Overture provides it)
+  user_type_mapping:
+    residential: residential
+    office: office
+    commercial: commercial
+    industrial: industrial
+    agricultural: agricultural
+  # Fallback when both Overture class and heuristic are inconclusive
+  default_user_type: residential
+  # Incentive regime
+  regime: RID
+
+predictions:
+  schema: raw
+  table: pv_roi_estimates
+
+schedule:
+  cron: "0 4 * * 1"
+  name: "pv-estimation-weekly"

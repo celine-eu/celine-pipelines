@@ -1,0 +1,113 @@
+version: "3"
+
+vars:
+  APP_DIR: "{{.TASKFILE_DIR}}"
+  POSTGRES_HOST: '{{.POSTGRES_HOST | default "localhost"}}'
+  POSTGRES_PORT: '{{.POSTGRES_PORT | default "15432"}}'
+  POSTGRES_USER: '{{.POSTGRES_USER | default "postgres"}}'
+  POSTGRES_PASSWORD: '{{.POSTGRES_PASSWORD | default "securepassword123"}}'
+  POSTGRES_DB: '{{.POSTGRES_DB | default "datasets"}}'
+
+env:
+  POSTGRES_HOST: "{{.POSTGRES_HOST}}"
+  POSTGRES_PORT: "{{.POSTGRES_PORT}}"
+  POSTGRES_USER: "{{.POSTGRES_USER}}"
+  POSTGRES_PASSWORD: "{{.POSTGRES_PASSWORD}}"
+  POSTGRES_DB: "{{.POSTGRES_DB}}"
+
+tasks:
+  # ---------- ROI estimation ----------
+
+  estimate:
+    desc: Run ROI estimation (parallel, incremental)
+    cmds:
+      - python {{.APP_DIR}}/flows/roi_estimator.py {{.CLI_ARGS}}
+
+  estimate:full-refresh:
+    desc: Truncate estimates and recompute all buildings
+    cmds:
+      - python {{.APP_DIR}}/flows/roi_estimator.py --full-refresh {{.CLI_ARGS}}
+
+  estimate:dry-run:
+    desc: Test estimation without writing to DB
+    cmds:
+      - python {{.APP_DIR}}/flows/roi_estimator.py --dry-run --limit 10 {{.CLI_ARGS}}
+
+  # ---------- dbt ----------
+
+  dbt:deps:
+    desc: Install dbt packages
+    dir: "{{.APP_DIR}}/dbt"
+    cmds:
+      - dbt deps
+
+  dbt:seed:
+    desc: Load seed data (installation plan parameters)
+    dir: "{{.APP_DIR}}/dbt"
+    cmds:
+      - dbt seed
+
+  dbt:run:
+    desc: Run all dbt models
+    dir: "{{.APP_DIR}}/dbt"
+    cmds:
+      - dbt run
+
+  dbt:gold:
+    desc: Run gold models only (opportunities, plan, REC)
+    dir: "{{.APP_DIR}}/dbt"
+    cmds:
+      - dbt run --select gold
+
+  dbt:rec:
+    desc: Run REC substation models only
+    dir: "{{.APP_DIR}}/dbt"
+    cmds:
+      - dbt run --select rec_it
+
+  dbt:full-refresh:
+    desc: Full refresh all dbt models
+    dir: "{{.APP_DIR}}/dbt"
+    cmds:
+      - dbt run --full-refresh
+
+  dbt:test:
+    desc: Run dbt tests
+    dir: "{{.APP_DIR}}/dbt"
+    cmds:
+      - dbt test
+
+  # ---------- Pipeline (full) ----------
+
+  run:
+    desc: Run the full pipeline (estimate + dbt)
+    cmds:
+      - task: estimate
+      - task: dbt:seed
+      - task: dbt:run
+
+  run:full-refresh:
+    desc: Full refresh (truncate estimates, recompute, rebuild dbt)
+    cmds:
+      - task: estimate:full-refresh
+      - task: dbt:seed
+      - task: dbt:full-refresh
+
+  # ---------- Dashboard ----------
+
+  dashboard:
+    desc: Launch the Streamlit dashboard
+    cmds:
+      - streamlit run {{.APP_DIR}}/tools/dashboard.py
+
+  # ---------- Prefect ----------
+
+  serve:
+    desc: Start the Prefect flow server (dev mode)
+    cmds:
+      - python {{.APP_DIR}}/flows/pipeline.py
+    env:
+      PREFECT_MODE: dev
+      APP_NAME: pv_estimation
+      DBT_PROJECT_DIR: "{{.APP_DIR}}/dbt"
+      DBT_PROFILES_DIR: "{{.APP_DIR}}/dbt"

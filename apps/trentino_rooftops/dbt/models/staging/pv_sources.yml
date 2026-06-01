@@ -4,11 +4,15 @@ sources:
   - name: raw
     schema: raw
     tables:
-      - name: overture_buildings
-        description: "Overture Maps building footprints for Trentino region"
       - name: aree_non_idonee
         description: "Unsuitable areas for PV installations (PUP invariants)"
       - name: vincoli_indiretti
         description: "Indirect constraints on architectural heritage properties"
       - name: vincoli_diretti
         description: "Direct constraints on architectural heritage properties"
+
+  - name: overture_silver
+    schema: "{{ target.schema }}_silver"
+    tables:
+      - name: pv_overture_buildings
+        description: "Overture Maps building footprints (silver), produced by the overture pipeline"

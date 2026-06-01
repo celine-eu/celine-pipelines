@@ -18,7 +18,7 @@ with buildings as (
         num_floors,
         footprint_area_m2,
         _sdc_extracted_at
-    from {{ ref('pv_overture_buildings') }}
+    from {{ source('overture_silver', 'pv_overture_buildings') }}
     {% if is_incremental() %}
     where _sdc_extracted_at > (
         select coalesce(max(_sdc_extracted_at), '1900-01-01'::timestamp)

@@ -1,0 +1,50 @@
+provider:
+  type: filesystem
+  filesystem:
+    tile_dir: "data/tiles"
+  # wms:
+  #   proxy_url: "https://webgis.provincia.tn.it/wgt/services/ogcproxy/wms"
+  #   internal_url: "https://geoservices.cloud-intra.tn.it/geoserver/ows"
+  #   layer: "pub_stem:ortofoto_agea_2023"
+  #   crs: "EPSG:25832"
+
+detector:
+  type: ollama
+  ollama:
+    host: "http://localhost:11434"
+    # Alternatives: deepseek-vl2:latest, llava:7b, minicpm-v:8b
+    model: "qwen2.5vl:7b"
+    timeout: 120
+    confidence_threshold: 0.6
+    temperature: 0.2
+
+# Building source — the pipeline queries these to drive detection
+buildings:
+  schema: ds_dev_silver
+  table: pv_overture_buildings
+
+# Filters — limit which buildings to process
+filters:
+  # For dev/testing: use tiles available on filesystem instead of querying DB
+  use_available_tiles: true
+  # Set to true to reprocess all buildings, ignoring previous predictions
+  # force_refresh: false
+  # Uncomment to filter by bounding box [xmin, ymin, xmax, ymax] in EPSG:4326
+  # bbox: [11.0, 45.9, 11.3, 46.1]
+  # Uncomment to filter by minimum footprint area
+  # min_area_m2: 100
+  # Uncomment to limit number of buildings
+  # limit: 100
+  # Uncomment to filter by specific building IDs
+  # building_ids:
+  #   - "0dd0b8aa13c24b4cb6ead40d9c4556fb"
+  #   - "26c875395eb98c1e4c9b85d3c2b9cc43"
+
+# Where predictions are written (Python → raw schema)
+predictions:
+  schema: raw
+  table: pv_predictions
+
+schedule:
+  cron: "0 3 * * 0"
+  name: "pv-detection-weekly"

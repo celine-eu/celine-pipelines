@@ -1,0 +1,267 @@
+defaults:
+  license: null
+  ownership: []
+  access_level: internal
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: null
+  attribution: null
+  access_requirements: null
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: false
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
+
+sources:
+  # ---------------------------------------------------------------------------
+  # RAW - verbatim extracts from TrentinoPvGis
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.aree_idonee:
+    title: "Suitable PV Areas - Trentino (Raw)"
+    description: >
+      Suitable areas for photovoltaic installations in Trentino as defined by
+      L.P. 4/2022 Allegato B, ingested from TrentinoPvGis WFS service.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: pat
+        type: public_authority
+    source_system: TrentinoPvGis
+    documentation_url: https://webgis.provincia.tn.it
+    tags: [pvgis, raw, trentino, pv]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  datasets.raw.aree_non_idonee:
+    title: "Unsuitable PV Areas - Trentino (Raw)"
+    description: >
+      Unsuitable areas for photovoltaic installations in Trentino defined by
+      PUP invariants, ingested from TrentinoPvGis WFS service.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: pat
+        type: public_authority
+    source_system: TrentinoPvGis
+    documentation_url: https://webgis.provincia.tn.it
+    tags: [pvgis, raw, trentino, pv]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  datasets.raw.vincoli_indiretti:
+    title: "Indirect Heritage Constraints - Trentino (Raw)"
+    description: >
+      Indirect constraints on architectural heritage properties in Trentino,
+      ingested from TrentinoPvGis WFS service.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: pat
+        type: public_authority
+    source_system: TrentinoPvGis
+    documentation_url: https://webgis.provincia.tn.it
+    tags: [pvgis, raw, trentino, constraints]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  datasets.raw.vincoli_diretti:
+    title: "Direct Heritage Constraints - Trentino (Raw)"
+    description: >
+      Direct constraints on architectural heritage properties in Trentino,
+      ingested from TrentinoPvGis WFS service.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: pat
+        type: public_authority
+    source_system: TrentinoPvGis
+    documentation_url: https://webgis.provincia.tn.it
+    tags: [pvgis, raw, trentino, constraints]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  # ---------------------------------------------------------------------------
+  # SILVER - geometry-normalized and enriched datasets
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_silver.pv_aree_non_idonee:
+    title: "Unsuitable PV Areas - Trentino (Silver)"
+    description: >
+      Geometry-normalized unsuitable areas for PV installations with computed
+      area in square meters.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: pat
+        type: public_authority
+    source_system: TrentinoPvGis
+    tags: [pvgis, silver, trentino, pv]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENER
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ITA
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
+
+  datasets.ds_dev_silver.pv_vincoli_indiretti:
+    title: "Indirect Heritage Constraints - Trentino (Silver)"
+    description: >
+      Geometry-normalized indirect constraints on architectural heritage
+      properties.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: pat
+        type: public_authority
+    source_system: TrentinoPvGis
+    tags: [pvgis, silver, trentino, constraints]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ITA
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
+
+  datasets.ds_dev_silver.pv_vincoli_diretti:
+    title: "Direct Heritage Constraints - Trentino (Silver)"
+    description: >
+      Geometry-normalized direct constraints on architectural heritage
+      properties.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: pat
+        type: public_authority
+    source_system: TrentinoPvGis
+    tags: [pvgis, silver, trentino, constraints]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ITA
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
+
+  # ---------------------------------------------------------------------------
+  # GOLD - PV building suitability assessment
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.pv_building_suitability:
+    title: "PV Building Suitability - Trentino (Gold)"
+    description: >
+      Overture Maps buildings in Trentino eligible for PV installation:
+      located within a suitable area (L.P. 4/2022 Allegato B) and not
+      intersecting unsuitable areas (PUP invariants) or direct/indirect
+      heritage constraints.
+    license: ODbL-1.0
+    access_level: open
+    ownership:
+      - name: celine
+        type: project
+    source_system: CELINE
+    tags: [pv, gold, trentino, buildings, suitability]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [energy_planning, pv_estimation]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENER
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
+
+  # ---------------------------------------------------------------------------
+  # SINGER / TAP - ingestion artifacts (never exposed)
+  # ---------------------------------------------------------------------------
+
+  singer.tap-trentinopvgis.aree_idonee:
+    title: "Tap Config - TrentinoPvGis Aree Idonee"
+    description: >
+      Meltano tap configuration for ingesting suitable PV areas.
+      Internal ingestion artifact.
+    license: proprietary
+    access_level: internal
+    tags: [pvgis, singer, tap]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  singer.tap-trentinopvgis.aree_non_idonee:
+    title: "Tap Config - TrentinoPvGis Aree Non Idonee"
+    description: >
+      Meltano tap configuration for ingesting unsuitable PV areas.
+      Internal ingestion artifact.
+    license: proprietary
+    access_level: internal
+    tags: [pvgis, singer, tap]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  singer.tap-trentinopvgis.vincoli_indiretti:
+    title: "Tap Config - TrentinoPvGis Vincoli Indiretti"
+    description: >
+      Meltano tap configuration for ingesting indirect heritage constraints.
+      Internal ingestion artifact.
+    license: proprietary
+    access_level: internal
+    tags: [pvgis, singer, tap]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  singer.tap-trentinopvgis.vincoli_diretti:
+    title: "Tap Config - TrentinoPvGis Vincoli Diretti"
+    description: >
+      Meltano tap configuration for ingesting direct heritage constraints.
+      Internal ingestion artifact.
+    license: proprietary
+    access_level: internal
+    tags: [pvgis, singer, tap]
+    dataspace:
+      expose: false
+      medallion: bronze

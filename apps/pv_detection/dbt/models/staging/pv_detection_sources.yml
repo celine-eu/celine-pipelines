@@ -1,0 +1,39 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: pv_predictions
+        description: >
+          PV detection predictions from vision model inference.
+          Written by the detect_pv_task in the Prefect flow.
+          building_id is the stable Overture Maps identifier (md5 of geometry WKT).
+        columns:
+          - name: building_id
+            description: "Overture building ID — md5(ST_AsText(geometry)), stable across runs"
+            tests:
+              - not_null
+          - name: has_pv
+            description: "Whether PV panels were detected on this building"
+          - name: confidence
+            description: "Model confidence score (0.0 to 1.0)"
+          - name: model_name
+            description: "Vision model used for inference (e.g. qwen2.5vl:7b)"
+          - name: reasoning
+            description: "Structured reasoning from the LLM (JSON conclusion)"
+          - name: description
+            description: "Step-by-step analysis text from the LLM before the JSON conclusion"
+          - name: raw_response
+            description: "Full unprocessed LLM response"
+          - name: lon
+            description: "Building centroid longitude (EPSG:4326)"
+          - name: lat
+            description: "Building centroid latitude (EPSG:4326)"
+
+  - name: overture_silver
+    schema: "{{ target.schema }}_silver"
+    description: "Cross-schema reference to overture pipeline silver tables"
+    tables:
+      - name: pv_overture_buildings
+        description: "Overture Maps building footprints for Trentino"

@@ -1,0 +1,138 @@
+version: "3"
+
+vars:
+  APP_DIR: "{{.TASKFILE_DIR}}"
+  OLLAMA_MODEL: '{{.OLLAMA_MODEL | default "qwen2.5vl:7b"}}'
+  OLLAMA_HOST: '{{.OLLAMA_HOST | default "http://localhost:11434"}}'
+
+tasks:
+  setup:
+    desc: Install dependencies and pull the vision model
+    cmds:
+      - uv pip install -r {{.APP_DIR}}/tools/requirements.txt
+      - task: ollama:up
+      - task: ollama:pull
+
+  ollama:up:
+    desc: Start Ollama container with GPU
+    cmds:
+      - docker compose -f {{.APP_DIR}}/docker-compose.yaml up -d
+      - echo "Waiting for Ollama to be ready..."
+      - |
+        for i in $(seq 1 30); do
+          curl -sf {{.OLLAMA_HOST}}/api/tags >/dev/null 2>&1 && break
+          sleep 1
+        done
+      - echo "Ollama is ready"
+
+  ollama:down:
+    desc: Stop Ollama container
+    cmds:
+      - docker compose -f {{.APP_DIR}}/docker-compose.yaml down
+
+  ollama:pull:
+    desc: Pull the vision model into Ollama
+    cmds:
+      - |
+        echo "Pulling {{.OLLAMA_MODEL}}..."
+        curl -sf {{.OLLAMA_HOST}}/api/tags >/dev/null 2>&1 || { echo "Ollama not running. Run 'task ollama:up' first."; exit 1; }
+        docker compose -f {{.APP_DIR}}/docker-compose.yaml exec ollama ollama pull {{.OLLAMA_MODEL}}
+
+  ollama:models:
+    desc: List available models in Ollama
+    cmds:
+      - ollama list
+
+  viewer:
+    desc: Launch the Streamlit tile viewer
+    cmds:
+      - streamlit run {{.APP_DIR}}/tools/viewer.py
+
+  download:
+    desc: Download tiles from WMS (by coords or from DB)
+    cmds:
+      - python {{.APP_DIR}}/tools/download_tiles.py {{.CLI_ARGS}}
+    env:
+      POSTGRES_HOST: '{{.POSTGRES_HOST | default "localhost"}}'
+      POSTGRES_PORT: '{{.POSTGRES_PORT | default "15432"}}'
+      POSTGRES_USER: '{{.POSTGRES_USER | default "postgres"}}'
+      POSTGRES_PASSWORD: '{{.POSTGRES_PASSWORD | default "securepassword123"}}'
+      POSTGRES_DB: '{{.POSTGRES_DB | default "datasets"}}'
+
+  download:samples:
+    desc: Download the reference sample tiles (Folgaria + buildings from gold table)
+    cmds:
+      # Folgaria centro paese (200m tile)
+      - python {{.APP_DIR}}/tools/download_tiles.py --lon 11.1695 --lat 45.9175 --size 200 --name 05_centro_paese
+      # Folgaria zona SE (200m tile)
+      - python {{.APP_DIR}}/tools/download_tiles.py --lon 11.1800 --lat 45.9130 --size 200 --name 07_zona_se
+      # Buildings from gold table (100m tiles)
+      - python {{.APP_DIR}}/tools/download_tiles.py --building-ids 0dd0b8aa13c24b4cb6ead40d9c4556fb,26c875395eb98c1e4c9b85d3c2b9cc43,cb9369895e11a59caaa2bcdaf5a0c917,97d4eaa4ca5a581c8c98dfa97f093040,1a7ea567be9c5ea9698c50c7622f0d2c,1e9828510db2f6dbd65b53f7847754a3
+    env:
+      POSTGRES_HOST: '{{.POSTGRES_HOST | default "localhost"}}'
+      POSTGRES_PORT: '{{.POSTGRES_PORT | default "15432"}}'
+      POSTGRES_USER: '{{.POSTGRES_USER | default "postgres"}}'
+      POSTGRES_PASSWORD: '{{.POSTGRES_PASSWORD | default "securepassword123"}}'
+      POSTGRES_DB: '{{.POSTGRES_DB | default "datasets"}}'
+
+  detect:
+    desc: Run PV detection on available tiles (standalone, no Prefect)
+    cmds:
+      - python {{.APP_DIR}}/flows/pipeline.py
+    env:
+      OLLAMA_HOST: "{{.OLLAMA_HOST}}"
+      OLLAMA_MODEL: "{{.OLLAMA_MODEL}}"
+      POSTGRES_HOST: '{{.POSTGRES_HOST | default "localhost"}}'
+      POSTGRES_PORT: '{{.POSTGRES_PORT | default "15432"}}'
+      POSTGRES_USER: '{{.POSTGRES_USER | default "postgres"}}'
+      POSTGRES_PASSWORD: '{{.POSTGRES_PASSWORD | default "securepassword123"}}'
+      POSTGRES_DB: '{{.POSTGRES_DB | default "datasets"}}'
+
+  dbt:run:
+    desc: Run dbt models
+    dir: "{{.APP_DIR}}/dbt"
+    cmds:
+      - dbt deps
+      - dbt run
+    env:
+      POSTGRES_HOST: '{{.POSTGRES_HOST | default "localhost"}}'
+      POSTGRES_PORT: '{{.POSTGRES_PORT | default "15432"}}'
+      POSTGRES_USER: '{{.POSTGRES_USER | default "postgres"}}'
+      POSTGRES_PASSWORD: '{{.POSTGRES_PASSWORD | default "securepassword123"}}'
+      POSTGRES_DB: '{{.POSTGRES_DB | default "datasets"}}'
+
+  dbt:full-refresh:
+    desc: Run dbt models with --full-refresh (rebuild incremental tables)
+    dir: "{{.APP_DIR}}/dbt"
+    cmds:
+      - dbt deps
+      - dbt run --full-refresh
+    env:
+      POSTGRES_HOST: '{{.POSTGRES_HOST | default "localhost"}}'
+      POSTGRES_PORT: '{{.POSTGRES_PORT | default "15432"}}'
+      POSTGRES_USER: '{{.POSTGRES_USER | default "postgres"}}'
+      POSTGRES_PASSWORD: '{{.POSTGRES_PASSWORD | default "securepassword123"}}'
+      POSTGRES_DB: '{{.POSTGRES_DB | default "datasets"}}'
+
+  import:
+    desc: Import local detection results into raw.pv_predictions (incremental)
+    cmds:
+      - python {{.APP_DIR}}/tools/import_detections.py {{.CLI_ARGS}}
+    env:
+      POSTGRES_HOST: '{{.POSTGRES_HOST | default "localhost"}}'
+      POSTGRES_PORT: '{{.POSTGRES_PORT | default "15432"}}'
+      POSTGRES_USER: '{{.POSTGRES_USER | default "postgres"}}'
+      POSTGRES_PASSWORD: '{{.POSTGRES_PASSWORD | default "securepassword123"}}'
+      POSTGRES_DB: '{{.POSTGRES_DB | default "datasets"}}'
+
+  dbt:test:
+    desc: Run dbt tests
+    dir: "{{.APP_DIR}}/dbt"
+    cmds:
+      - dbt test
+    env:
+      POSTGRES_HOST: '{{.POSTGRES_HOST | default "localhost"}}'
+      POSTGRES_PORT: '{{.POSTGRES_PORT | default "15432"}}'
+      POSTGRES_USER: '{{.POSTGRES_USER | default "postgres"}}'
+      POSTGRES_PASSWORD: '{{.POSTGRES_PASSWORD | default "securepassword123"}}'
+      POSTGRES_DB: '{{.POSTGRES_DB | default "datasets"}}'

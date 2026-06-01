@@ -1,0 +1,60 @@
+defaults:
+  license: null
+  ownership: []
+  access_level: internal
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: null
+  attribution: null
+  access_requirements: null
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: false
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
+
+sources:
+  datasets.raw.pv_predictions:
+    title: "PV Detection Predictions (Raw)"
+    description: >
+      Vision model predictions for PV panel presence on building rooftops.
+      Produced by Ollama-based inference on aerial orthophoto tiles.
+    source_system: ollama
+    tags: [pv_detection, ml_inference]
+    dataspace:
+      medallion: bronze
+
+  datasets.ds_dev_silver.pv_detections:
+    title: "PV Detections (Silver)"
+    description: >
+      Deduplicated PV detection results per building. Latest prediction wins
+      when a building is re-processed with a newer model or imagery.
+    tags: [pv_detection]
+    dataspace:
+      medallion: silver
+    dcat:
+      themes: [ENER, REGI]
+      language: ENG
+      spatial: ITH2
+
+  datasets.ds_dev_gold.pv_detected_installations:
+    title: "PV Detected Installations"
+    description: >
+      Buildings with detected PV installations, enriched with Overture building
+      geometry and metadata. Exposed for energy community planning.
+    tags: [pv_detection, energy_planning]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      purpose: [energy_planning, pv_detection]
+    dcat:
+      themes: [ENER, REGI]
+      language: ENG
+      spatial: ITH2

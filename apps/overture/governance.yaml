@@ -1,0 +1,90 @@
+defaults:
+  license: null
+  ownership: []
+  access_level: internal
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: null
+  attribution: null
+  access_requirements: null
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: false
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
+
+sources:
+  # ---------------------------------------------------------------------------
+  # RAW - verbatim extracts from Overture Maps
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.overture_buildings:
+    title: "Overture Maps Building Footprints - Trentino (Raw)"
+    description: >
+      Raw building footprints from Overture Maps release 2026-05-20.0 for the
+      Trentino region (bbox 10.5,45.7,11.9,46.4), ingested via tap-geo.
+      Geometry and properties are stored verbatim.
+    license: ODbL-1.0
+    access_level: open
+    ownership:
+      - name: overture_maps
+        type: community
+    source_system: Overture Maps
+    documentation_url: https://docs.overturemaps.org
+    tags: [overture, raw, buildings, trentino]
+    dataspace:
+      expose: false
+      medallion: bronze
+
+  # ---------------------------------------------------------------------------
+  # SILVER - geometry-normalized building footprints
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_silver.pv_overture_buildings:
+    title: "Overture Buildings - Trentino (Silver)"
+    description: >
+      Geometry-normalized Overture Maps building footprints for Trentino with
+      extracted properties (class, height, floors) and computed footprint area.
+    license: ODbL-1.0
+    access_level: open
+    ownership:
+      - name: overture_maps
+        type: community
+    source_system: Overture Maps
+    tags: [overture, silver, buildings, trentino]
+    dataspace:
+      expose: false
+      medallion: silver
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+        - http://publications.europa.eu/resource/authority/data-theme/ENER
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+      conforms_to: null
+      temporal: null
+
+  # ---------------------------------------------------------------------------
+  # SINGER / TAP - ingestion artifacts (never exposed)
+  # ---------------------------------------------------------------------------
+
+  singer.tap-overture-buildings.overture_buildings:
+    title: "Tap Config - Overture Buildings Extract"
+    description: >
+      Meltano tap configuration for ingesting Overture Maps building footprints.
+      Internal ingestion artifact, not a user-facing dataset.
+    license: proprietary
+    access_level: internal
+    tags: [overture, singer, tap]
+    dataspace:
+      expose: false
+      medallion: bronze
