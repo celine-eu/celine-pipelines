@@ -413,7 +413,18 @@ with tab_rec:
     ).tolist()
     cod_ac_list = cab_summary["cod_ac"].tolist()
 
-    default_codes = ["AC221E00023", "AC221E00024", "AC221E00027"]
+    # valugana
+    # default_codes = ["AC221E00023", "AC221E00024", "AC221E00027"]
+
+    # C.P. di Caldonazzo (AC221E00020)
+    # C.P. di S. Colombano (AC221E00017)
+    # C.P. di Rovereto Nord (AC221E00014)
+    default_codes = [
+        "AC221E00020",
+        "AC221E00017",
+        "AC221E00014"
+    ]
+
     default_selection = [o for o in cabina_options if any(c in o for c in default_codes)]
     if not default_selection:
         default_selection = cabina_options[:3] if len(cabina_options) >= 3 else cabina_options
