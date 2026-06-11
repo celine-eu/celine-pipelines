@@ -1,0 +1,56 @@
+defaults:
+  license: null
+  ownership:
+    - name: rec
+      type: DATA_OWNER
+  access_level: internal
+  access_requirements: partner
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: rec-metering
+  dcat:
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENER
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://publications.europa.eu/resource/authority/country/ITA
+    accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+  dataspace:
+    odrl_action: use
+    purpose:
+      - energy-monitoring
+
+sources:
+  # ---------------------------------------------------------------------------
+  # OUTPUTS
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.meters_data_15m:
+    tags: [meters, gold, aggregated]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.meters_data_1h:
+    tags: [meters, gold, aggregated]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.meters_data_15m_missing_intervals:
+    tags: [meters, quality, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true

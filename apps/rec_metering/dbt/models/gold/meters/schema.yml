@@ -1,0 +1,14 @@
+version: 2
+
+models:
+  - name: meters_data_15m
+    config:
+      tags: ["rec_metering"]
+
+  - name: meters_data_1h
+    config:
+      tags: ["rec_metering"]
+
+  - name: meters_data_15m_missing_intervals
+    config:
+      tags: ["rec_metering"]

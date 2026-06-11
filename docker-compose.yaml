@@ -293,3 +293,47 @@ services:
     env_file:
       - path: ./apps/pv_estimation/.env
         required: false
+
+  pipeline-grid:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-grid
+    build:
+      context: .
+      args:
+        APP_NAME: grid
+    env_file:
+      - path: ./apps/grid/.env
+        required: false
+
+  pipeline-rec-metering:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-rec-metering
+    build:
+      context: .
+      args:
+        APP_NAME: rec_metering
+    env_file:
+      - path: ./apps/rec_metering/.env
+        required: false
+
+  pipeline-rec-it:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-rec-it
+    build:
+      context: .
+      args:
+        APP_NAME: rec_it
+    env_file:
+      - path: ./apps/rec_it/.env
+        required: false
+
+  pipeline-rec-flexibility:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-rec-flexibility
+    build:
+      context: .
+      args:
+        APP_NAME: rec_flexibility
+    env_file:
+      - path: ./apps/rec_flexibility/.env
+        required: false

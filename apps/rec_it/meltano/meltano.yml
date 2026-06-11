@@ -1,0 +1,48 @@
+default_environment: dev
+project_id: 0198ecdb-203b-7347-b1c0-37155dd630b4
+environments:
+  - name: dev
+  - name: staging
+  - name: prod
+plugins:
+  extractors:
+    - name: tap-copertura-cabine-primarie-gse
+      inherit_from: tap-geo
+      config:
+        files:
+          - paths:
+              # https://github.com/ondata/liberiamoli-tutti/tree/main/cabine_primarie_ges/dati
+              - s3://${S3_BUCKET}/20260403_gse_aree_convenzionali_cabine_primarie.gpkg
+            table_name: gse_cabine_primarie
+            primary_keys: [fid]
+
+    - name: tap-geo
+      variant: celine-eu
+
+  loaders:
+    - name: target-postgres
+      variant: meltanolabs
+      pip_url: meltanolabs-target-postgres
+      config:
+        host: ${POSTGRES_HOST}
+        port: ${POSTGRES_PORT}
+        user: ${POSTGRES_USER}
+        password: ${POSTGRES_PASSWORD}
+        database: ${POSTGRES_DB}
+        default_target_schema: raw
+        # batch_size_rows: 10000
+        # flush_all_streams: true
+
+    - name: target-jsonl
+      variant: andyh1203
+      pip_url: target-jsonl
+jobs:
+  # 15min updates
+  # - name: import-meters
+  #   tasks:
+  #     - tap-meters target-postgres
+
+  # daily updates, to be agreed
+  - name: import
+    tasks:
+      - tap-copertura-cabine-primarie-gse target-postgres

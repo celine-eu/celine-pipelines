@@ -1,0 +1,98 @@
+defaults:
+  license: null
+  ownership:
+    - name: dso
+      type: DATA_OWNER
+  access_level: internal
+  access_requirements: partner
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: grid-pipeline
+  dcat:
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENER
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://publications.europa.eu/resource/authority/country/ITA
+    accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
+  dataspace:
+    odrl_action: use
+    purpose:
+      - energy-monitoring
+      - grid-resilience
+
+sources:
+
+  # ---------------------------------------------------------------------------
+  # OUTPUTS — Gold risk overlays and topology tables
+  # Source: grid topology + weather data
+  # expose: true — consumed by the Grid Resilience dashboard (DT domain)
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.grid_wind_risks:
+    tags: [ grid, wind, risk, gold, intermediary ]
+    dataspace:
+      expose: false
+
+  datasets.ds_dev_gold.grid_heat_risks:
+    tags: [ grid, heat, risk, gold, intermediary ]
+    dataspace:
+      expose: false
+
+  datasets.ds_dev_gold.grid_substations:
+    tags: [ grid, geo, substations, gold ]
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.grid_network_topology:
+    tags: [ grid, topology, filter, gold ]
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.grid_shapes:
+    tags: [ grid, geo, topology, gold ]
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.grid_tiles:
+    tags: [ grid, geo, tiles, gold, intermediary ]
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.grid_tile_index:
+    tags: [ grid, geo, tiles, gold ]
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.grid_risks:
+    tags: [ grid, risk, gold ]
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.grid_risks_trendline:
+    tags: [ grid, risk, trendline, gold ]
+    dataspace:
+      expose: true
+
+  # ---------------------------------------------------------------------------
+  # NOWCASTING — Observation-based risk overlays (real-time counterpart)
+  # Source: grid topology + om_obs_15min observations
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.grid_wind_risks_now:
+    tags: [ grid, wind, risk, nowcast, gold, intermediary ]
+    dataspace:
+      expose: false
+
+  datasets.ds_dev_gold.grid_heat_risks_now:
+    tags: [ grid, heat, risk, nowcast, gold, intermediary ]
+    dataspace:
+      expose: false
+
+  datasets.ds_dev_gold.grid_risks_now:
+    tags: [ grid, risk, nowcast, gold ]
+    dataspace:
+      expose: true

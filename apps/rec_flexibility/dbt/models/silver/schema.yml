@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: rec_meters_15m
+    description: >
+      Analysis-ready 15-min meter table derived from ds_dev_silver.meters_data.
+      Replaces every downstream read of the banned ds_dev_gold.meters_data_15m. Columns
+      remain in kW (avg power over the 15-min bucket); x 0.25 gives kWh per bucket.
+      self_consumed_kw is derived from the M1+M2/M2_2 merge (matches
+      gamification/data_loader.py).
+    config:
+      tags: ["rec_flexibility"]
+    columns:
+      - name: _id
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: ts
+        data_tests:
+          - not_null
+      - name: self_consumed_kw
+        data_tests:
+          - not_null
+
+  - name: silver_flexibility_commitments
+    description: >
+      Normalised mirror of raw.flexibility_commitments_mirror. status is stripped of any
+      'StatusSchema.' enum prefix so downstream bare-token filters work as written.
+    config:
+      tags: ["rec_flexibility"]
+    columns:
+      - name: commitment_id
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: status
+        data_tests:
+          - not_null

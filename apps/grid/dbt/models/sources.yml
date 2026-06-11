@@ -1,0 +1,37 @@
+version: 2
+
+sources:
+  - name: grid_silver
+    schema: "{{ env_var('CELINE_SILVER_SCHEMA', 'ds_dev_silver') }}"
+    description: "Normalized silver grid topology models produced by the DSO-specific pipeline."
+    tables:
+      - name: silver_grid_ac_line_segment
+        description: "CIM ACLineSegment: MT line segments with vegetation annotation."
+      - name: silver_grid_substation
+        description: "CIM Substation: MV/LV substations (voltage_class='mv_lv')."
+
+  - name: om_wind
+    schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
+    description: "Open-Meteo wind gust forecasts (produced by celine-pipelines)."
+    tables:
+      - name: om_wind_gusts
+
+  - name: om_heat
+    schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
+    description: "Open-Meteo heat risk forecasts (produced by celine-pipelines)."
+    tables:
+      - name: om_heat_risk
+
+  - name: om_obs
+    schema: "{{ env_var('CELINE_SILVER_SCHEMA', 'ds_dev_silver') }}"
+    description: "Open-Meteo observations (produced by celine-pipelines)."
+    tables:
+      - name: om_obs_15min
+        description: "15-minute weather observations per grid point (temp, wind, precipitation)."
+
+  - name: heat_obs
+    schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
+    description: "Daily observed temperature for heat risk nowcasting."
+    tables:
+      - name: heat_daily_obs
+        description: "Daily max observed temperature per weather station (date, lat, lon, elevation_m, altitude_band, temp_max_c, latest_obs)."

@@ -1,0 +1,29 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: flexibility_commitments_mirror
+        description: >
+          90-day sliding window mirror of all flexibility commitments from the
+          CELINE Flexibility API. Refreshed every 15 minutes by the
+          rec_flexibility_commitments pipeline.
+        freshness:
+          warn_after: {count: 30, period: minute}
+          error_after: {count: 2, period: hour}
+        loaded_at_field: last_updated
+
+  - name: rec_metering_silver
+    schema: "{{ env_var('CELINE_SILVER_SCHEMA', 'ds_dev_silver') }}"
+    description: >
+      Silver meters data — one row per (device_id, ts, meter_type ∈ {M1, M2, M2_2}).
+      consumption_kw / production_kw are kW (average power over the 15-min bucket).
+      15-min kWh = column × 0.25. Hourly kWh = mean of four 15-min values.
+    tables:
+      - name: meters_data
+        description: "Source of truth for device meter readings. DO NOT use gold meters_data_15m/_1h."
+        freshness:
+          warn_after: {count: 30, period: minute}
+          error_after: {count: 2, period: hour}
+        loaded_at_field: ts

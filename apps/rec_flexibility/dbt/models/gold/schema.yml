@@ -1,0 +1,357 @@
+version: 2
+
+models:
+  - name: rec_flexibility_windows
+    description: >
+      Pre-computed daily load-shift opportunity windows derived from community net-export surplus.
+      Replaces the on-demand suggestion algorithm in the webapp BFF.
+      Logic mirrors digital-twin/flexibility.py _find_opportunity_windows().
+      estimated_kwh is proportionally normalised against community_kwh so the sum of all
+      device estimates for the same window never exceeds the available solar surplus.
+      flexibility_model tags the generating mechanism (default: solar_overproduction);
+      set via dbt var flexibility_model at run time for future model types.
+    config:
+      tags: ["rec_flexibility"]
+    columns:
+      - name: _id
+        description: MD5 surrogate key on (device_id, ts_date, window_start, window_end).
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: window_start
+        data_tests:
+          - not_null
+      - name: window_end
+        data_tests:
+          - not_null
+      - name: estimated_kwh
+        data_tests:
+          - not_null
+      - name: reward_points_estimated
+        data_tests:
+          - not_null
+
+  - name: rec_gamification_summary
+    description: >
+      Per-device daily ranking and budget-aware passive points allocation.
+      Source: rec_settlement_15m filtered to window intervals (window_start IS NOT NULL).
+
+      Two-tier allocation:
+        Committed devices (status in committed/settled on that date) receive total_allocated_kwh = 0
+        here — their authoritative points are in rec_commitment_settlement.reward_points_actual.
+        They are included for leaderboard ranking but excluded from the passive budget pool.
+
+        Passive devices (no active commitment on that date) receive a proportional share of
+        remaining_budget = community_kwh − sum(committed allocated_kwh for the window).
+        If committed devices exhaust the budget, passive devices receive 0 allocated_kwh.
+
+      Ranking (percentile_rank, rank_position) is based on total_consumption_kwh across all
+      devices in the same day regardless of committed status, for leaderboard display.
+    config:
+      tags: ["rec_flexibility"]
+    columns:
+      - name: _id
+        description: MD5 surrogate key on (device_id, ts_date).
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: ts_date
+        data_tests:
+          - not_null
+      - name: total_consumption_kwh
+        description: Raw window consumption for the day, used for leaderboard ranking.
+        data_tests:
+          - not_null
+      - name: total_allocated_kwh
+        description: >
+          Budget-aware allocation for the day.
+          0 for committed devices (points in rec_commitment_settlement).
+          Proportional share of remaining community budget for passive devices.
+      - name: committed
+        description: True when the device held an active commitment on this date.
+
+  - name: rec_settlement_15m
+    description: >
+      Per-device 15-min settlement intervals joined with flexibility window context.
+      Every metered interval is present (LEFT JOIN). window_start IS NOT NULL indicates
+      the interval falls inside a forecast flexibility window.
+      Used as the source for rec_settlement_1h and by flexibility-api for per-commitment
+      actual reward point computation.
+    config:
+      tags: ["rec_flexibility", "settlement"]
+    columns:
+      - name: _id
+        description: MD5 surrogate key on (device_id, ts).
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: ts
+        data_tests:
+          - not_null
+      - name: consumption_kwh
+        data_tests:
+          - not_null
+
+  - name: rec_settlement_1h
+    description: >
+      Hourly rollup of rec_settlement_15m. Consumed by flexibility-api settlement service:
+      query by device_id + window timestamp range, sum consumption_kwh to get
+      actual kWh consumed during a committed flexibility window. Points = consumption_kwh × 10.
+    config:
+      tags: ["rec_flexibility", "settlement"]
+    columns:
+      - name: _id
+        description: MD5 surrogate key on (device_id, date_trunc('hour', ts)).
+        data_tests:
+          - unique
+          - not_null
+
+  - name: rec_participant_points
+    description: >
+      Per-device daily points. Three-layer scoring (2026-04-17):
+        daily_settlement_points = sum of rec_settlement_points over the day (every device).
+        daily_bonus_points      = sum of rec_flexibility_bonus over the day (committed only).
+        daily_points            = settlement + bonus.
+      Supersedes the prior round(total_allocated_kwh × 10) formula.
+      season_start tags each day with its 2-month calendar season (rec_season_start macro,
+      anchor 2025-09-01) so points can be bucketed into resettable seasons downstream.
+    config:
+      tags: ["rec_flexibility", "settlement", "gamification"]
+    columns:
+      - name: _id
+        description: MD5 surrogate key on (device_id, ts_date).
+        data_tests:
+          - unique
+          - not_null
+      - name: season_start
+        description: Start date of the 2-month season this day belongs to (calendar-aligned).
+        data_tests:
+          - not_null
+      - name: daily_settlement_points
+        data_tests:
+          - not_null
+      - name: daily_bonus_points
+        data_tests:
+          - not_null
+      - name: daily_points
+        data_tests:
+          - not_null
+
+  - name: rec_points_leaderboard
+    description: >
+      Per-device, per-season points standings with periodic reset. One row per
+      (device_id, season_start); seasons are 2-month calendar blocks anchored at 2025-09-01
+      (dbt vars season_anchor_date / season_months, mirrored in flexibility_config.yaml).
+      DISPLAYED (resettable, shown to the participant): season_base_points,
+      season_bonus_points, season_points — they accrue within a season and start again at 0
+      every season. The frontend shows the row WHERE is_current_season.
+      PRIVATE (never shown): alltime_base_points, alltime_bonus_points — lifetime cumulative
+      since the anchor date, for analytics/audit only. Consumers MUST exclude them from any
+      participant-facing payload.
+    config:
+      tags: ["rec_flexibility", "gamification"]
+    columns:
+      - name: _id
+        description: MD5 surrogate key on (device_id, season_start).
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: season_start
+        data_tests:
+          - not_null
+      - name: season_points
+        description: Displayed (resettable) total points for the device in this season.
+        data_tests:
+          - not_null
+      - name: alltime_base_points
+        description: PRIVATE — lifetime base points since anchor. Do not expose to participants.
+        meta:
+          private: true
+        data_tests:
+          - not_null
+      - name: alltime_bonus_points
+        description: PRIVATE — lifetime bonus points since anchor. Do not expose to participants.
+        meta:
+          private: true
+        data_tests:
+          - not_null
+
+  - name: rec_co2_savings
+    description: >
+      Per-device daily CO2 avoided and tree-equivalent based on self-consumed renewable
+      energy (all day, all self-consumption). Country CO2 factor configured via dbt var
+      co2_country (default: it).
+    config:
+      tags: ["rec_flexibility"]
+    columns:
+      - name: _id
+        description: MD5 surrogate key on (device_id, ts_date).
+        data_tests:
+          - unique
+          - not_null
+
+  - name: rec_commitment_settlement
+    description: >
+      Per-commitment settlement. allocated_kwh is the proportional share of the window
+      budget (community_kwh for solar_overproduction); committed devices have priority
+      over the full community_kwh and are scaled proportionally when they collectively
+      exceed it. Falls back to actual_kwh when no window budget row exists (DSO flex).
+      Rejected/cancelled receive allocated_kwh = 0.
+      Three-layer scoring (2026-04-17): reward_points_actual = sum of Layer-1 settlement
+      points over [period_start, period_end) + Layer-2 flexibility bonus for the matching
+      window (previously round(allocated_kwh × 10)). adherence_ratio = reward_points_actual
+      / reward_points_estimated for settled commitments; both sides now use the same
+      log-scaled formula (estimated was rewritten in Task 0 Step 0.8), keeping the ratio
+      a coherent delivery measure.
+      All statuses present for acceptance-rate and no-show analytics.
+    config:
+      tags: ["rec_flexibility", "settlement"]
+    columns:
+      - name: commitment_id
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: actual_kwh
+        data_tests:
+          - not_null
+      - name: allocated_kwh
+        data_tests:
+          - not_null
+      - name: reward_points_actual
+        data_tests:
+          - not_null
+
+  - name: rec_co2_savings_community
+    description: >
+      Community-level daily CO2 avoided attributable to the flexibility programme.
+      Only intervals inside a flexibility window (rec_settlement_15m.window_start IS NOT NULL)
+      are counted — energy shifts the programme actually induced.
+      Includes participating_devices for context. Country factor via co2_country var (default: it).
+    config:
+      tags: ["rec_flexibility"]
+    columns:
+      - name: ts_date
+        data_tests:
+          - unique
+          - not_null
+
+  - name: rec_settlement_points
+    description: >
+      Per-15-min settlement points using log scaling + effort multiplier (v2 grid-based).
+      Surplus is grid-based: comm_grid_export_kwh ≥ comm_grid_import_kwh. The reward
+      numerator consumption_kwh is behind-meter total_consumption for M1+M2 devices and the
+      consumption proxy (grid_import + max(0, grid_export_median − grid_export)) for M1-only
+      devices, matched basis-for-basis with the settlement baseline. Surplus intervals earn
+      ln(1 + consumption_kwh) × effort_mult × 10; deficit-with-production intervals share a
+      linear (comm_grid_export_kwh × 10) pool by log-weighted, effort-weighted shares;
+      no-production intervals earn 0. Every device, every interval — the Layer-1 building
+      block of rec_commitment_settlement.reward_points_actual and rec_participant_points.
+    config:
+      tags: ["rec_flexibility", "settlement", "gamification"]
+    columns:
+      - name: _id
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: ts
+        data_tests:
+          - not_null
+      - name: settlement_points
+        data_tests:
+          - not_null
+
+  - name: rec_flexibility_bonus
+    description: >
+      Per-window flexibility bonus for committed devices (semi-join against
+      silver_flexibility_commitments where status in ('committed','settled')).
+      bonus = shifted_kwh × 15 × shift_effort × event × accuracy × streak, capped per-window
+      at 2× the device's 30-day rolling average.
+    config:
+      tags: ["rec_flexibility", "gamification"]
+    columns:
+      - name: _id
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: window_start
+        data_tests:
+          - not_null
+      - name: bonus_points
+        data_tests:
+          - not_null
+
+  - name: rec_anti_gaming_flags
+    description: >
+      L3 (per-window bonus cap exceeded) and L4 (daily spike > 10× 30-day median) flags.
+      L1/L2/L5 are not implemented at this scale (10 devices) — only threshold-based layers.
+    config:
+      tags: ["rec_flexibility", "gamification"]
+    columns:
+      - name: _id
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: flag_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["L3_WINDOW_CAP", "L4_DAILY_SPIKE"]
+
+  - name: rec_device_baselines
+    description: >
+      View over Python-written _rec_device_baselines_raw. baseline_kwh is kWh per 15-min
+      bucket; baseline_type ∈ {'settlement','reference','grid_export_median'}. The
+      grid_export_median type exists only for M1-only devices and is the median export
+      reference the v2 consumption proxy subtracts against.
+    config:
+      tags: ["rec_flexibility", "gamification"]
+    columns:
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: baseline_type
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["settlement", "reference", "grid_export_median"]
+
+  - name: rec_device_streaks
+    description: >
+      View over Python-written _rec_device_streaks_raw. One row per device with current
+      level, peak, and multiplier (1.0–1.5).
+    config:
+      tags: ["rec_flexibility", "gamification"]
+    columns:
+      - name: device_id
+        data_tests:
+          - unique
+          - not_null
+      - name: multiplier
+        data_tests:
+          - not_null

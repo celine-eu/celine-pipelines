@@ -1,0 +1,9 @@
+schedule:
+  name: grid-resilience-daily
+  # Run after om wind + heat pipelines (which run at 06:00 UTC)
+  cron: "0 8 * * *"
+
+dbt:
+  project_dir: "../dbt"
+  profiles_dir: "../dbt"
+  target: dev

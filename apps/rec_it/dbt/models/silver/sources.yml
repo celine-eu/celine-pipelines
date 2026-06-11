@@ -1,0 +1,8 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: gse_cabine_primarie
+      - name: rec_registry_mirror

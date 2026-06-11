@@ -1,0 +1,212 @@
+# Flexibility Points System Configuration
+# ========================================
+# All tunable parameters for the CER flexibility incentive system.
+# Adjust these values to calibrate the points distribution without changing code.
+
+# --- Section 0: Fleet scope (v2 grid-based migration) ---
+# The points pipeline is scoped to exactly the active-device fleet. Those device IDs
+# are PRIVATE demo data and are kept OUT of git: the authoritative source is the
+# REC_ACTIVE_DEVICES env var (comma-separated, injected via the sops-encrypted deploy
+# values). lib/config.get_active_devices reads the env; the flow generates the dbt seed
+# dbt/seeds/rec_active_devices.csv from it at start-up (the CSV is git-ignored too).
+# The list below is a LOCAL-DEV fallback only and ships empty.
+fleet:
+  active_devices: []
+
+# --- Section 0b: Seasons (periodic points reset) ---
+# Displayed points reset to 0 every `months_per_season` calendar months, anchored at
+# `anchor_date`. Seasons are calendar-aligned blocks (e.g. 2 months → Sep-Oct, Nov-Dec, …).
+# The all-time cumulative totals (base + bonus since anchor_date) are kept privately in
+# rec_points_leaderboard and never reset.
+# NOTE: dbt reads these via vars in dbt_project.yml (season_anchor_date, season_months);
+# keep the two in sync — this block is the operator-facing source of truth.
+season:
+  anchor_date: 2025-09-01
+  months_per_season: 2
+
+# --- Section 1: Baseline Computation ---
+
+baseline:
+  # High X of Y method: select top `select_days` from `candidate_days` recent eligible days
+  candidate_days: 7
+  select_days: 4
+
+  # Minimum readings per day to consider a day "complete" (out of 96 expected)
+  min_readings_per_day: 90
+
+  # Outlier exclusion: days with avg consumption below this fraction of the
+  # candidate-pool average are excluded (handles vacations, holidays)
+  outlier_threshold_fraction: 0.25
+
+  # Minimum baseline value (kW) below which the effort multiplier is capped at 1.0x
+  # Prevents near-zero-baseline devices from gaming percentage swings
+  min_baseline_threshold_kw: 0.1
+
+  # Same-day adjustment
+  same_day_adjustment:
+    enabled: true
+    direction: upward_only       # "upward_only" or "bidirectional"
+    max_cap_fraction: 0.20       # Maximum adjustment as fraction of baseline
+    window_hours: 2              # Hours before notification time used for adjustment
+
+  # New device onboarding
+  onboarding:
+    min_days_for_own_baseline: 7       # Days before switching from peer to own baseline
+    peer_matching_days: 3              # Days of data used to match new device to peer
+
+  # Two-baseline system: both update daily; reference uses longer lookback + winsorization
+  bonus_reference:
+    method: high_4_of_7                # Same method as settlement baseline
+    recalibration_frequency: daily     # Recompute every run (winsorization provides stability)
+    lookback_days: 90                  # Days of data used at recalibration
+    winsorize_pct: 0.05                # Trim top/bottom 5% of days before High 4/7 selection
+    # Winsorization order: collect 90 days → trim extremes → apply High 4/7 on remainder
+
+
+# --- Section 2: Points & Settlement ---
+
+settlement:
+  # Base rate: points awarded per scaled consumption unit
+  base_rate_points_per_kwh: 10
+
+  # Interval duration in hours (15 minutes = 0.25)
+  interval_hours: 0.25
+
+  # Logarithmic scaling: compresses gap between large and small consumers
+  # Formula: log(1 + consumption_kwh) instead of raw consumption_kwh
+  # A device consuming 10x more earns ~2.4x more base points (not 10x)
+  scaling: logarithmic   # "logarithmic" or "linear"
+
+  # Separate leaderboards by device category for gamification fairness
+  # Points are computed identically — only the ranking display is segmented.
+  # Per-category device membership is PRIVATE demo data, kept out of git and injected
+  # at runtime (no pipeline model/SQL currently reads these lists). Ships empty.
+  leaderboards:
+    enabled: true
+    categories:
+      households: []
+      public_buildings: []
+      unclassified: []
+
+  # Effort multiplier tiers
+  # Each tier defines a lower bound (ratio of actual/baseline) and its multiplier
+  # Ratios are checked in order; the LAST matching tier applies
+  effort_multiplier_tiers:
+    - ratio_min: 0.0     # Below baseline
+      multiplier: 0.25
+    - ratio_min: 1.0     # At baseline (within 10%)
+      multiplier: 0.50
+    - ratio_min: 1.10    # Slightly above baseline
+      multiplier: 1.00
+    - ratio_min: 1.25    # Moderately above baseline
+      multiplier: 1.50
+    - ratio_min: 1.50    # Significantly above baseline
+      multiplier: 2.00
+
+
+# --- Section 3: Flexibility Bonus ---
+
+flexibility_bonus:
+  # Bonus rate: points per shifted kWh (higher than base_rate to incentivize active participation)
+  bonus_rate_points_per_kwh: 15
+
+  # Minimum average shift (kW) over the window to qualify for bonus
+  min_shift_kw: 0.05
+
+  # Minimum shift as fraction of baseline to qualify (5% = 0.05)
+  min_shift_fraction: 0.05
+
+  # Minimum window duration (hours) to be considered actionable
+  min_window_duration_hours: 1.0
+
+  # False positive notification handling
+  # When forecast is wrong and surplus doesn't materialize, scale bonus by accuracy
+  forecast_accuracy:
+    floor: 0.5                         # Minimum factor — responding is ALWAYS net positive
+    # factor = max(floor, actual_surplus_intervals / total_window_intervals)
+
+  # Shift-effort multiplier tiers
+  # Based on shifted_kwh / baseline_kwh for the window
+  shift_effort_tiers:
+    - shift_pct_min: 0.05    # 5% shift
+      multiplier: 1.0
+    - shift_pct_min: 0.25    # 25% shift
+      multiplier: 1.5
+    - shift_pct_min: 0.50    # 50% shift
+      multiplier: 2.0
+    - shift_pct_min: 1.00    # 100% shift
+      multiplier: 2.5
+
+  # Event multiplier tiers
+  # Based on window-average surplus/consumption ratio
+  event_multiplier_tiers:
+    - ratio_min: 0.0      # Normal surplus
+      multiplier: 1.0
+    - ratio_min: 1.0      # High surplus
+      multiplier: 1.5
+    - ratio_min: 3.0      # Critical surplus
+      multiplier: 2.0
+
+  # Streak bonus: rewards consistent participation
+  streak:
+    increment_per_response: 0.05     # +5% per qualifying response
+    max_multiplier: 1.5              # Cap (reached after 10 qualifying responses)
+
+    # Decay: per calendar week, not per window
+    decay_period: weekly             # "weekly" — decay evaluated once per calendar week
+    decay_per_period: 1              # Streak levels lost per week without qualifying response
+
+    # Availability: a "miss" only counts if device could have responded
+    # A window is "available" if device baseline > this threshold during the window
+    availability_threshold_kw: 0.1   # Same as min_baseline_threshold
+
+    # Floor: streak cannot drop below this fraction of peak
+    floor_fraction: 0.5              # 50% of historical peak streak level
+    # Example: peak=10 → floor=5 → streak can never drop below 5
+
+
+# --- Section 4: Anti-Gaming Protections ---
+
+anti_gaming:
+  # Randomized validation windows
+  # Fraction of eligible surplus windows designated as "silent" (no notification)
+  validation_window_fraction: 0.15
+
+  # Per-window bonus cap
+  # Maximum flexibility bonus per window = this multiplier × rolling 30-day avg bonus per window
+  per_window_bonus_cap_multiplier: 2.0
+  # Minimum qualifying windows in 30-day period before device-specific cap applies
+  # Below this, community median × cap_multiplier is used instead
+  min_windows_for_device_cap: 5
+
+  # Anomaly detection flags (alerts for human review, NOT automatic penalties)
+  anomaly_flags:
+    # Flag 1: Notified vs silent window divergence
+    # Trigger when above-baseline frequency differs by more than this between notified/silent windows
+    notified_silent_divergence_pp: 20    # percentage points
+    divergence_lookback_days: 30
+
+    # Flag 2: Daily point spikes
+    # Trigger when daily points exceed this multiplier × rolling 30-day median
+    daily_spike_multiplier: 10
+    spike_lookback_days: 30
+
+    # Flag 3: Pre-notification consumption inflation
+    # Trigger when avg consumption in pre-notification window is this fraction higher
+    # on notification days vs non-notification days
+    pre_notification_inflation_fraction: 0.30
+    min_notifications_for_flag: 10       # Minimum notifications before flag can trigger
+
+  # New device onboarding protection
+  onboarding:
+    protection_days: 14                  # Days of reduced bonus and suppressed flags
+    bonus_multiplier_during_onboarding: 0.5  # Flexibility bonus multiplied by this during onboarding
+    suppress_anomaly_flags: true         # No flags generated during onboarding
+
+  # Offline pod handling
+  offline:
+    inactive_threshold_hours: 72         # No data for this long → mark device inactive
+    stale_baseline_days: 14              # Reference baseline older than this → considered stale
+    re_onboarding_days: 7                # Days of re-onboarding when inactive device returns
+    exclude_from_forecast: true          # Inactive devices excluded from community forecast
+    exclude_from_aggregation: true       # Inactive devices excluded from surplus/deficit calculation

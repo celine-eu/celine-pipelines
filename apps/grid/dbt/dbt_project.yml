@@ -1,0 +1,17 @@
+name: "grid"
+version: "1.0.0"
+config-version: 2
+
+profile: "grid"
+
+model-paths: ["models"]
+macro-paths: ["macros"]
+
+clean-targets:
+  - "target"
+  - "logs"
+
+models:
+  grid:
+    +materialized: table
+    +schema: gold

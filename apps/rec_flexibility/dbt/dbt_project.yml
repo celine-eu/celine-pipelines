@@ -1,0 +1,33 @@
+name: "rec_flexibility"
+version: "1.0.0"
+config-version: 2
+
+profile: "rec_flexibility"
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+  - "logs"
+
+vars:
+  co2_country: "it"
+  # Season config — keep in sync with flexibility_config.yaml `season`.
+  # Displayed points reset every `season_months` calendar months from `season_anchor_date`.
+  season_anchor_date: "2025-09-01"
+  season_months: 2
+
+models:
+  rec_flexibility:
+    silver:
+      +materialized: table
+      +schema: silver
+    gold:
+      +materialized: table
+      +schema: gold

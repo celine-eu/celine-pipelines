@@ -1,0 +1,43 @@
+version: 2
+
+models:
+  - name: rec_virtual_consumption_15m
+    config:
+      tags: ["rec_it"]
+
+  - name: rec_virtual_consumption_hourly
+    config:
+      tags: ["rec_it"]
+
+  - name: rec_virtual_consumption_per_device_15m
+    config:
+      tags: ["rec_it"]
+
+  - name: rec_virtual_consumption_per_device_hourly
+    config:
+      tags: ["rec_it"]
+
+  - name: gse_cabine_primarie
+    description: >
+      GSE primary substation coverage areas — geometry and key identifiers,
+      incrementally updated by extraction timestamp.
+    config:
+      tags: ["gse", "batches"]
+    columns:
+      - name: cod_ac
+        description: Acceptance area code — natural key
+        tests:
+          - unique
+          - not_null
+      - name: geometry
+        description: PostGIS geometry polygon/multipolygon of the coverage area (SRID 4326)
+      - name: rag_soc
+        description: Company name (ragione sociale)
+      - name: cod_conseg
+        description: Delivery code (nullable)
+      - name: shape__area
+        description: Area in geographic degrees squared
+      - name: shape__length
+        description: Perimeter in geographic degrees
+      - name: last_updated_at
+        description: Timestamp when the record was extracted from source

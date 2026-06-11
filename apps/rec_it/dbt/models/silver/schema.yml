@@ -1,0 +1,33 @@
+version: 2
+
+models:
+  - name: silver_gse_cabine_primarie
+    description: >
+      Normalized GSE primary substation coverage areas.
+      Flattens the features JSON from raw ingestion and filters soft-deleted rows.
+    config:
+      tags: ["gse", "batches"]
+    columns:
+      - name: fid
+        description: Source primary key
+        tests:
+          - unique
+          - not_null
+      - name: geometry
+        description: WKT polygon/multipolygon geometry of the coverage area
+      - name: cod_ac
+        description: Acceptance area code (e.g. AC002E00001)
+        tests:
+          - not_null
+      - name: rag_soc
+        description: Company name (ragione sociale)
+        tests:
+          - not_null
+      - name: cod_conseg
+        description: Delivery code (nullable)
+      - name: shape__area
+        description: Area of the polygon in geographic degrees squared
+      - name: shape__length
+        description: Perimeter length in geographic degrees
+      - name: last_updated_at
+        description: Best available extraction timestamp (_sdc_extracted_at coalesced with received/batched)

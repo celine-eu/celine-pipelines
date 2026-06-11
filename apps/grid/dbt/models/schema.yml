@@ -1,0 +1,386 @@
+version: 2
+
+models:
+  - name: grid_wind_risks
+    description: >
+      Wind risk per MT overhead line segment (all overhead conductor types) — intermediary model.
+      Source: silver_grid_ac_line_segment (conductor_type != underground_cable) + om_wind_gusts.
+      Nearest weather station within 5 km per segment per date (today + 2 days).
+      is_vegetated_zone flags segments that pass through forested areas.
+      No geometry output — geom lives in grid_shapes; consumed by grid_risks.
+    config:
+      tags: ["grid", "daily"]
+    columns:
+      - name: dso_id
+        description: "UUID of the Distribution System Operator. Foreign key to the dso_registry seed."
+        tests:
+          - not_null
+      - name: line_name
+        description: "ACLineSegment.name"
+      - name: conductor_type
+        description: "overhead_bare | overhead_insulated"
+      - name: parent_substation_name
+        description: "Upstream HV/MV substation name"
+      - name: operational_unit
+        description: "Distribution network operational unit"
+      - name: feeder_id
+        description: "Feeder circuit identifier"
+      - name: municipality
+        description: "Administrative municipality"
+      - name: length_m
+        description: "Segment length in metres (ACLineSegment.length)"
+      - name: is_vegetated_zone
+        description: "True when segment intersects a forested area"
+      - name: elevation_start_m
+        description: "Elevation at segment start (vegetated zones only)"
+      - name: elevation_end_m
+        description: "Elevation at segment end (vegetated zones only)"
+      - name: date
+        description: "Forecast date"
+      - name: risk_level
+        description: "ALERT | WARNING | NORMAL"
+      - name: gust_excess
+        description: "Wind gust speed excess above threshold"
+      - name: wind_speed_max
+        description: "Maximum wind speed (m/s)"
+      - name: wind_gusts_max
+        description: "Maximum wind gusts (m/s)"
+      - name: risk_color_hex
+        description: "Hex color for map rendering"
+
+  - name: grid_heat_risks
+    description: >
+      Heat risk per MT underground cable segment — intermediary model.
+      Source: silver_grid_ac_line_segment (conductor_type = underground_cable) + om_heat_risk.
+      Nearest weather station within 5 km per segment per date (today + 2 days).
+      No geometry output — geom lives in grid_shapes; consumed by grid_risks.
+    config:
+      tags: ["grid", "daily"]
+    columns:
+      - name: dso_id
+        description: "UUID of the Distribution System Operator. Foreign key to the dso_registry seed."
+        tests:
+          - not_null
+      - name: line_name
+        description: "ACLineSegment.name"
+      - name: conductor_type
+        description: "underground_cable"
+      - name: parent_substation_name
+        description: "Upstream HV/MV substation name"
+      - name: operational_unit
+        description: "Distribution network operational unit"
+      - name: feeder_id
+        description: "Feeder circuit identifier"
+      - name: municipality
+        description: "Administrative municipality"
+      - name: length_m
+        description: "Segment length in metres (ACLineSegment.length)"
+      - name: date
+        description: "Forecast date"
+      - name: risk_level
+        description: "ALERT | WARNING | NORMAL"
+      - name: temp_max_c
+        description: "Maximum forecast temperature (°C)"
+      - name: p90_threshold
+        description: "P90 temperature threshold for the location"
+      - name: consecutive_heat_days
+        description: "Number of consecutive heat days at this station"
+      - name: elevation_m
+        description: "Station elevation (m)"
+      - name: altitude_band
+        description: "Altitude classification band"
+      - name: forecast_model
+        description: "Source forecast model identifier"
+      - name: risk_color_hex
+        description: "Hex color for map rendering"
+
+  - name: grid_substations
+    description: >
+      Static GeoJSON map layer for MV/LV substations (CIM: Substation, voltage_class='mv_lv').
+      Source: silver_grid_substation. No weather join.
+    config:
+      tags: ["grid", "monthly"]
+    columns:
+      - name: dso_id
+        description: "UUID of the Distribution System Operator. Foreign key to the dso_registry seed."
+        tests:
+          - not_null
+      - name: asset_id
+        description: "IdentifiedObject.mRID"
+        tests:
+          - not_null
+          - unique
+      - name: parent_substation_name
+        description: "Upstream HV/MV substation name"
+      - name: longitude
+        description: "WGS84 longitude (EPSG:4326)"
+      - name: latitude
+        description: "WGS84 latitude (EPSG:4326)"
+      - name: feature_geojson
+        description: "GeoJSON Feature (EPSG:4326) with point icon styling"
+
+  - name: grid_shapes
+    description: >
+      Unified CIM asset registry — geometry only, no risk properties.
+      Combines ACLineSegment and Substation assets so the frontend can load
+      network topology once and cache it independently from daily risk updates.
+      segment_id is MD5(dso_id|asset_type|asset_key|conductor_type|municipality) for lines,
+      MD5(dso_id|'substation'|asset_id) for substations. Lines are aggregated per
+      municipality via ST_Union.
+    config:
+      tags: ["grid", "monthly"]
+    columns:
+      - name: segment_id
+        description: "MD5(dso_id|asset_type|asset_key|conductor_type|municipality) for lines; MD5(dso_id|'substation'|asset_id) for substations — stable cross-table FK"
+        tests:
+          - not_null
+          - unique
+      - name: asset_type
+        description: "ac_line_segment | substation"
+      - name: asset_key
+        description: "line_name for lines, asset_id for substations"
+      - name: line_name
+        description: "ACLineSegment.name — equals asset_key for lines, source line for substations"
+      - name: name
+        description: "Human-readable name — null for lines, substation name for substations"
+      - name: geom
+        description: "PostGIS geometry EPSG:32632 — for spatial ops and Superset"
+      - name: feature_geojson
+        description: "GeoJSON Feature (EPSG:4326) geometry only — for API layer"
+
+  - name: grid_tiles
+    description: >
+      Spatial tile-to-segment mapping for progressive loading.
+      Overlays a 5 km x 5 km UTM grid (EPSG:32632) on grid_shapes and assigns
+      each segment to every tile it intersects. Segments spanning tile borders
+      appear in multiple tiles — the frontend deduplicates by segment_id.
+    config:
+      tags: ["grid", "monthly"]
+    columns:
+      - name: tile_id
+        description: "Tile identifier: tile_{x}_{y} (0-based from SW corner of extent)"
+        tests:
+          - not_null
+      - name: tile_x
+        description: "0-based column index from the western edge of the grid extent"
+      - name: tile_y
+        description: "0-based row index from the southern edge of the grid extent"
+      - name: segment_id
+        description: "FK to grid_shapes.segment_id"
+        tests:
+          - not_null
+      - name: tile_bbox_geojson
+        description: "GeoJSON Polygon of the tile boundary (EPSG:4326)"
+
+  - name: grid_tile_index
+    description: >
+      Lightweight tile catalog for progressive loading.
+      One row per tile with its bounding polygon and segment count.
+      The frontend fetches this first, then loads tiles on demand.
+    config:
+      tags: ["grid", "monthly"]
+    columns:
+      - name: tile_id
+        description: "Tile identifier: tile_{x}_{y}"
+        tests:
+          - not_null
+          - unique
+      - name: tile_x
+        description: "0-based column index"
+      - name: tile_y
+        description: "0-based row index"
+      - name: tile_bbox_geojson
+        description: "GeoJSON Polygon of the tile boundary (EPSG:4326)"
+      - name: segment_count
+        description: "Number of grid_shapes segments intersecting this tile"
+
+  - name: grid_risks
+    description: >
+      Collapsed risk table for frontend visualization.
+      WARNING and ALERT only — NORMAL excluded at pipeline level.
+      Maps to grid_shapes by segment_id; no geometry stored here.
+      metrics JSONB holds vector-specific KVs for the detail panel.
+    config:
+      tags: ["grid", "daily"]
+    columns:
+      - name: segment_id
+        description: "FK to grid_shapes.segment_id — MD5 hash includes municipality, matching grid_shapes grain"
+        tests:
+          - not_null
+      - name: date
+        description: "Forecast date"
+      - name: risk_vector
+        description: "wind | heat"
+      - name: risk_level
+        description: "ALERT | WARNING"
+      - name: metrics
+        description: "JSONB — vector-specific metrics (gust_excess, temp_max_c, etc.)"
+
+  - name: grid_risks_trendline
+    description: >
+      Daily risk percentage indicator per vector.
+      risk_ratio = (alert+warning) / total_segments (conductor-type-aware denominator).
+      day_risk_level: >0.65 ALERT, >0.35 WARNING, else NORMAL.
+    config:
+      tags: ["grid", "daily"]
+    columns:
+      - name: date
+        description: "Forecast date"
+      - name: risk_vector
+        description: "wind | heat"
+      - name: risk_ratio
+        description: "Fraction of relevant network segments at elevated risk"
+      - name: day_risk_level
+        description: "ALERT | WARNING | NORMAL derived from risk_ratio thresholds"
+
+  - name: v_superset_grid
+    description: >
+      Superset visualization view. Joins grid_risks + grid_shapes at query time.
+      Filters to today + future forecasts only — no history.
+      Uses geom (PostGIS binary) not feature_geojson to avoid text replication.
+    config:
+      tags: ["grid", "superset"]
+
+  - name: grid_network_topology
+    description: >
+      Distinct topology entities for UI filter autocomplete.
+      Source: silver_grid_ac_line_segment. Updated on monthly topology cadence.
+      Powers the /filters DT endpoint — no weather join needed.
+    config:
+      tags: ["grid", "monthly"]
+    columns:
+      - name: dso_id
+        description: "UUID of the Distribution System Operator. Foreign key to the dso_registry seed."
+        tests:
+          - not_null
+      - name: line_name
+        description: "ACLineSegment.name"
+      - name: parent_substation_name
+        description: "Upstream HV/MV substation name"
+      - name: operational_unit
+        description: "Distribution network operational unit"
+      - name: municipality
+        description: "Administrative municipality"
+      - name: conductor_type
+        description: "overhead_bare | overhead_insulated | underground_cable"
+
+  - name: grid_wind_risks_now
+    description: >
+      Wind risk per MT overhead line segment from real-time observations (nowcasting).
+      Same logic as grid_wind_risks but sourced from om_obs_15min.
+      Nearest observation within 5 km, most recent reading (3-hour window).
+      Gust excess thresholds: WARNING >= 7.62 m/s, ALERT >= 12.46 m/s.
+    config:
+      tags: ["grid", "nowcast"]
+    columns:
+      - name: dso_id
+        description: "UUID of the Distribution System Operator."
+        tests:
+          - not_null
+      - name: line_name
+        description: "ACLineSegment.name"
+      - name: conductor_type
+        description: "overhead_bare | overhead_insulated"
+      - name: parent_substation_name
+        description: "Upstream HV/MV substation name"
+      - name: operational_unit
+        description: "Distribution network operational unit"
+      - name: feeder_id
+        description: "Feeder circuit identifier"
+      - name: municipality
+        description: "Administrative municipality"
+      - name: length_m
+        description: "Segment length in metres"
+      - name: is_vegetated_zone
+        description: "True when segment intersects a forested area"
+      - name: elevation_start_m
+        description: "Elevation at segment start (vegetated zones only)"
+      - name: elevation_end_m
+        description: "Elevation at segment end (vegetated zones only)"
+      - name: date
+        description: "Assessment date (current_date)"
+      - name: risk_level
+        description: "ALERT | WARNING | NORMAL"
+      - name: gust_excess
+        description: "Wind gust speed excess above sustained wind (m/s)"
+      - name: wind_speed_max
+        description: "Most recent observed wind speed (m/s)"
+      - name: wind_gusts_max
+        description: "Most recent observed wind gust (m/s)"
+      - name: risk_color_hex
+        description: "Hex color for map rendering"
+      - name: observed_at
+        description: "Timestamp of the observation used (TIMESTAMPTZ)"
+
+  - name: grid_heat_risks_now
+    description: >
+      Heat risk per underground cable segment from real-time observations (nowcasting).
+      Reads from heat_daily_obs proxy table (provider-agnostic daily max temperature).
+      Applies P90 thresholds by altitude band, computes consecutive heat days
+      (gaps-and-islands), nearest observation point within 15 km per segment.
+    config:
+      tags: ["grid", "nowcast"]
+    columns:
+      - name: dso_id
+        description: "UUID of the Distribution System Operator."
+        tests:
+          - not_null
+      - name: line_name
+        description: "ACLineSegment.name"
+      - name: conductor_type
+        description: "underground_cable"
+      - name: parent_substation_name
+        description: "Upstream HV/MV substation name"
+      - name: operational_unit
+        description: "Distribution network operational unit"
+      - name: feeder_id
+        description: "Feeder circuit identifier"
+      - name: municipality
+        description: "Administrative municipality"
+      - name: length_m
+        description: "Segment length in metres"
+      - name: date
+        description: "Assessment date (current_date)"
+      - name: risk_level
+        description: "ALERT | WARNING | NORMAL"
+      - name: temp_max_c
+        description: "Maximum observed temperature today (°C)"
+      - name: p90_threshold
+        description: "P90 temperature threshold for the location"
+      - name: consecutive_heat_days
+        description: "Number of consecutive observed heat stress days"
+      - name: elevation_m
+        description: "Grid point elevation (m)"
+      - name: altitude_band
+        description: "Altitude classification: low (<500m) | mid (500-1000m) | high (>1000m)"
+      - name: risk_color_hex
+        description: "Hex color for map rendering"
+      - name: observed_at
+        description: "Timestamp of the most recent observation used (TIMESTAMPTZ)"
+
+  - name: grid_risks_now
+    description: >
+      Collapsed nowcasting risk table — observation-based counterpart of grid_risks.
+      Same structure as grid_risks plus observed_at timestamp.
+      WARNING and ALERT only — NORMAL excluded at pipeline level.
+      Maps to grid_shapes by segment_id.
+      metrics JSONB holds vector-specific KVs for the detail panel.
+    config:
+      tags: ["grid", "nowcast"]
+    columns:
+      - name: segment_id
+        description: "FK to grid_shapes.segment_id"
+        tests:
+          - not_null
+      - name: date
+        description: "Assessment date (current_date)"
+      - name: risk_vector
+        description: "wind | heat"
+      - name: risk_level
+        description: "ALERT | WARNING"
+      - name: risk_color_hex
+        description: "Hex color for map rendering"
+      - name: metrics
+        description: "JSONB — vector-specific metrics (gust_excess, temp_max_c, etc.)"
+      - name: observed_at
+        description: "Timestamp of the observation used (TIMESTAMPTZ)"

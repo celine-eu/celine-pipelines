@@ -1,0 +1,660 @@
+unit_tests:
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_flexibility_windows
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: w1_three_consecutive_surplus_hours_produce_one_window
+    description: >
+      Three consecutive hours of surplus → one window spanning all three hours.
+      window_end = max(ts) + 1h. estimated_kwh is the sum of device forecasts.
+      No normalization needed (device total < community_kwh).
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.2, period: 'forecast'}
+          - {timestamp: '2024-06-01 11:00:00', net_exchange_kwh: 0.8, period: 'forecast'}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 11:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', reward_points_estimated: 14}
+
+  - name: w2_single_surplus_hour_produces_no_window
+    description: >
+      One surplus hour is below MIN_WINDOW_HOURS (2) and must not emit any row.
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows: []
+
+  - name: w3_nine_consecutive_hours_produce_three_subwindows
+    description: >
+      Nine consecutive surplus hours must be sliced into 3 × 3h sub-windows (MAX_WINDOW_HOURS).
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 06:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 07:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 08:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 11:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 12:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 13:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 14:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-01', timestamp: '2024-06-01 06:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 07:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 08:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 11:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 12:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 13:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 14:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-01', window_start: '2024-06-01 06:00:00', window_end: '2024-06-01 09:00:00'}
+        - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00'}
+        - {device_id: 'dev-01', window_start: '2024-06-01 12:00:00', window_end: '2024-06-01 15:00:00'}
+
+  - name: w4_gap_in_surplus_produces_two_separate_windows
+    description: >
+      Two 2h surplus runs separated by a 3h gap must yield two independent windows.
+      The gap (ts − prev_ts > 1h) triggers a new window_group.
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 13:00:00', net_exchange_kwh: 0.9, period: 'forecast'}
+          - {timestamp: '2024-06-01 14:00:00', net_exchange_kwh: 0.9, period: 'forecast'}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 13:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 14:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00'}
+        - {device_id: 'dev-01', window_start: '2024-06-01 13:00:00', window_end: '2024-06-01 15:00:00'}
+
+  - name: w5_surplus_during_sleeping_hours_is_excluded
+    description: >
+      Surplus hours before 05:00 must be filtered out. Only hours ≥ 05:00 form windows.
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 03:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 04:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 06:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 07:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-01', timestamp: '2024-06-01 06:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 07:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-01', window_start: '2024-06-01 06:00:00', window_end: '2024-06-01 08:00:00', reward_points_estimated: 9}
+
+  - name: w6_normalised_kwh_over_budget
+    description: >
+      When the sum of per-device estimated_kwh exceeds community_kwh, each device's share
+      is scaled proportionally: device_kwh / total_device_kwh × community_kwh.
+      dev-01 (1.0 kWh) and dev-02 (3.0 kWh) → total=4.0, budget=2.0.
+      dev-01 gets 0.50 (5 pts), dev-02 gets 1.50 (14 pts).
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-02', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 1.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-02', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 1.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', reward_points_estimated: 5}
+        - {device_id: 'dev-02', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', reward_points_estimated: 14}
+
+  - name: w7_kwh_unchanged_within_budget
+    description: >
+      When total device estimated_kwh ≤ community_kwh, no normalization is applied.
+      dev-01 (1.0 kWh) + dev-02 (1.6 kWh) = 2.6 < community_kwh=4.0.
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 2.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 2.0, period: 'forecast'}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-02', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.8, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-02', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.8, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', reward_points_estimated: 9}
+        - {device_id: 'dev-02', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', reward_points_estimated: 15}
+
+  - name: w8_device_with_zero_forecast_excluded_from_output
+    description: >
+      A device forecasting zero consumption during the window must not appear in output
+      (filtered by where estimated_kwh > 0). A device with positive forecast is still returned.
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.5, period: 'forecast'}
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.5, period: 'forecast'}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-02', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-02', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-01'}
+      # dev-02 must not appear
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_commitment_settlement
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: c1_single_device_under_budget_gets_full_actual_kwh
+    description: >
+      One committed device whose actual_kwh is below community_kwh gets allocated = actual.
+      adherence_ratio = reward_points_actual / reward_points_estimated = 1.0 when settled.
+    model: rec_commitment_settlement
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('silver_flexibility_commitments')
+        rows:
+          - {commitment_id: 'c-01', device_id: 'dev-01', suggestion_id: 's-01',
+             suggestion_type: 'solar_overproduction', community_id: 'com-01',
+             period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00',
+             status: 'settled', reward_points_estimated: 30,
+             committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 13:00:00'}
+      - input: ref('rec_settlement_1h')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+          - {device_id: 'dev-01', ts: '2024-06-01 10:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+          - {device_id: 'dev-01', ts: '2024-06-01 11:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
+      - input: ref('rec_settlement_points')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 10.0}
+          - {device_id: 'dev-01', ts: '2024-06-01 10:00:00', settlement_points: 10.0}
+          - {device_id: 'dev-01', ts: '2024-06-01 11:00:00', settlement_points: 10.0}
+      - input: ref('rec_flexibility_bonus')
+        rows: []
+    expect:
+      rows:
+        - {commitment_id: 'c-01', reward_points_actual: 30}
+
+  - name: c2_multiple_devices_over_budget_get_proportional_share
+    description: >
+      Three devices share the same suggestion. Their combined actual_kwh (7.0) exceeds
+      community_kwh (4.0). Each device receives actual/total × budget.
+      dev-01 (1.0): 1/7×4=0.5714... wait — using clean numbers: dev-01=1.0, dev-02=3.0 → total=4.0, budget=2.0.
+      dev-01: 1.0/4.0×2.0=0.5, dev-02: 3.0/4.0×2.0=1.5. Points: 5 and 15.
+    model: rec_commitment_settlement
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('silver_flexibility_commitments')
+        rows:
+          - {commitment_id: 'c-01', device_id: 'dev-01', suggestion_id: 's-01',
+             suggestion_type: 'solar_overproduction', community_id: 'com-01',
+             period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00',
+             status: 'committed', reward_points_estimated: 10,
+             committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 09:00:00'}
+          - {commitment_id: 'c-02', device_id: 'dev-02', suggestion_id: 's-01',
+             suggestion_type: 'solar_overproduction', community_id: 'com-01',
+             period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00',
+             status: 'committed', reward_points_estimated: 30,
+             committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 09:00:00'}
+      - input: ref('rec_settlement_1h')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+          - {device_id: 'dev-02', ts: '2024-06-01 09:00:00', consumption_kwh: 3.0, window_start: '2024-06-01 09:00:00'}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 2.0}
+          - {device_id: 'dev-02', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 2.0}
+      - input: ref('rec_settlement_points')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 5.0}
+          - {device_id: 'dev-02', ts: '2024-06-01 09:00:00', settlement_points: 15.0}
+      - input: ref('rec_flexibility_bonus')
+        rows: []
+    expect:
+      rows:
+        - {commitment_id: 'c-01', actual_kwh: 1.0, allocated_kwh: 0.5, reward_points_actual: 5}
+        - {commitment_id: 'c-02', actual_kwh: 3.0, allocated_kwh: 1.5, reward_points_actual: 15}
+
+  - name: c3_rejected_commitment_gets_zero_allocation
+    description: >
+      A rejected commitment receives allocated_kwh = 0 and reward_points_actual = 0,
+      regardless of actual consumption recorded. Included in output for no-show analytics.
+    model: rec_commitment_settlement
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('silver_flexibility_commitments')
+        rows:
+          - {commitment_id: 'c-01', device_id: 'dev-01', suggestion_id: 's-01',
+             suggestion_type: 'solar_overproduction', community_id: 'com-01',
+             period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00',
+             status: 'rejected', reward_points_estimated: 20,
+             committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 09:00:00'}
+      - input: ref('rec_settlement_1h')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 1.5, window_start: '2024-06-01 09:00:00'}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
+      - input: ref('rec_settlement_points')
+        rows: []
+      - input: ref('rec_flexibility_bonus')
+        rows: []
+    expect:
+      rows:
+        - {commitment_id: 'c-01', actual_kwh: 1.5, allocated_kwh: 0.0, reward_points_actual: 0}
+
+  - name: c4_commitment_with_no_window_budget_falls_back_to_actual
+    description: >
+      When no matching rec_flexibility_windows row exists (e.g. DSO flex or window outside
+      refresh range), allocated_kwh falls back to actual_kwh (no redistribution).
+    model: rec_commitment_settlement
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('silver_flexibility_commitments')
+        rows:
+          - {commitment_id: 'c-01', device_id: 'dev-01', suggestion_id: 's-01',
+             suggestion_type: 'dso_flex', community_id: 'com-01',
+             period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00',
+             status: 'committed', reward_points_estimated: 20,
+             committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 09:00:00'}
+      - input: ref('rec_settlement_1h')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 2.0, window_start: '2024-06-01 09:00:00'}
+      - input: ref('rec_flexibility_windows')
+        rows: []
+      - input: ref('rec_settlement_points')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 20.0}
+      - input: ref('rec_flexibility_bonus')
+        rows: []
+    expect:
+      rows:
+        - {commitment_id: 'c-01', actual_kwh: 2.0, allocated_kwh: 2.0, reward_points_actual: 20}
+
+  - name: c5_adherence_ratio_is_null_for_committed_not_yet_settled
+    description: >
+      adherence_ratio is only computed for settled commitments. A device that has committed
+      but not yet settled must return adherence_ratio = NULL.
+    model: rec_commitment_settlement
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('silver_flexibility_commitments')
+        rows:
+          - {commitment_id: 'c-01', device_id: 'dev-01', suggestion_id: 's-01',
+             suggestion_type: 'solar_overproduction', community_id: 'com-01',
+             period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00',
+             status: 'committed', reward_points_estimated: 30,
+             committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 09:00:00'}
+      - input: ref('rec_settlement_1h')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 3.0, window_start: '2024-06-01 09:00:00'}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
+      - input: ref('rec_settlement_points')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 15.0}
+      - input: ref('rec_flexibility_bonus')
+        rows: []
+    expect:
+      rows:
+        - {commitment_id: 'c-01', adherence_ratio: null}
+
+  - name: c6_adherence_ratio_is_populated_for_settled_commitment
+    description: >
+      A settled commitment with reward_points_actual = reward_points_estimated yields
+      adherence_ratio = 1.0 (full delivery). Under-budget scenario: allocated = actual.
+    model: rec_commitment_settlement
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('silver_flexibility_commitments')
+        rows:
+          - {commitment_id: 'c-01', device_id: 'dev-01', suggestion_id: 's-01',
+             suggestion_type: 'solar_overproduction', community_id: 'com-01',
+             period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00',
+             status: 'settled', reward_points_estimated: 30,
+             committed_at: '2024-06-01 08:00:00', settled_at: '2024-06-01 13:00:00',
+             last_updated: '2024-06-01 13:00:00'}
+      - input: ref('rec_settlement_1h')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 3.0, window_start: '2024-06-01 09:00:00'}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
+      - input: ref('rec_settlement_points')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 10.0}
+          - {device_id: 'dev-01', ts: '2024-06-01 10:00:00', settlement_points: 10.0}
+          - {device_id: 'dev-01', ts: '2024-06-01 11:00:00', settlement_points: 10.0}
+      - input: ref('rec_flexibility_bonus')
+        rows: []
+    expect:
+      rows:
+        - {commitment_id: 'c-01', reward_points_actual: 30}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_settlement_15m
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: s1_interval_inside_window_has_window_context_populated
+    description: >
+      A 15-min interval whose ts falls within a flexibility window must have window_start
+      and window_end populated, and consumption_kwh = consumption_kw × 0.25.
+    model: rec_settlement_15m
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_meters_15m')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kw: 2.0}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00',
+             ts_date: '2024-06-01', estimated_kwh: 3.0, reward_points_estimated: 30}
+    expect:
+      rows:
+        - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kwh: 0.5,
+           window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00'}
+
+  - name: s2_interval_outside_window_has_null_window_context
+    description: >
+      A 15-min interval outside all flexibility windows must have window_start = NULL
+      (LEFT JOIN preserves all metered intervals).
+    model: rec_settlement_15m
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_meters_15m')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 14:00:00', consumption_kw: 1.0}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00',
+             ts_date: '2024-06-01', estimated_kwh: 3.0, reward_points_estimated: 30}
+    expect:
+      rows:
+        - {device_id: 'dev-01', ts: '2024-06-01 14:00:00', consumption_kwh: 0.25, window_start: null}
+
+  - name: s3_consumption_kw_converted_to_kwh_by_quarter_hour_factor
+    description: >
+      consumption_kwh = consumption_kw × 0.25 (15-min slot = 1/4 hour).
+      2.0 kW → 0.50 kWh, 4.0 kW → 1.00 kWh.
+    model: rec_settlement_15m
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_meters_15m')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kw: 2.0}
+          - {device_id: 'dev-01', ts: '2024-06-01 09:15:00', consumption_kw: 4.0}
+      - input: ref('rec_flexibility_windows')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 0.5}
+        - {device_id: 'dev-01', ts: '2024-06-01 09:15:00', consumption_kwh: 1.0}
+
+  - name: s4_interval_matching_two_windows_keeps_earliest_window_start
+    description: >
+      When a 15-min interval falls inside two overlapping windows, DISTINCT ON keeps the
+      row with the earliest window_start (order by window_start nulls last).
+    model: rec_settlement_15m
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_meters_15m')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kw: 2.0}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {device_id: 'dev-01', window_start: '2024-06-01 08:00:00', window_end: '2024-06-01 12:00:00',
+             ts_date: '2024-06-01', estimated_kwh: 4.0, reward_points_estimated: 40}
+          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00',
+             ts_date: '2024-06-01', estimated_kwh: 2.0, reward_points_estimated: 20}
+    expect:
+      rows:
+        - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', window_start: '2024-06-01 08:00:00'}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_gamification_summary
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: g1_passive_device_receives_share_of_remaining_budget
+    description: >
+      Committed device (dev-01) consumes 2.0 kWh, allocated 2.0 in rec_commitment_settlement.
+      Remaining budget = 5.0 − 2.0 = 3.0.
+      Passive devices dev-02 (1.0 kWh) and dev-03 (2.0 kWh) → total passive = 3.0 ≤ remaining.
+      Each passive device keeps its full consumption as allocated_kwh.
+    model: rec_gamification_summary
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_settlement_15m')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 2.0}
+          - {device_id: 'dev-02', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 1.0}
+          - {device_id: 'dev-03', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 2.0}
+      - input: ref('silver_flexibility_commitments')
+        rows:
+          - {device_id: 'dev-01', committed_at: '2024-06-01 08:00:00', status: 'committed'}
+      - input: ref('rec_commitment_settlement')
+        rows:
+          - {period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00', allocated_kwh: 2.0, status: 'committed'}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0, device_id: 'dev-01'}
+    expect:
+      rows:
+        - {device_id: 'dev-01', ts_date: '2024-06-01', committed: true,  total_consumption_kwh: 2.0, total_allocated_kwh: 0.0}
+        - {device_id: 'dev-02', ts_date: '2024-06-01', committed: false, total_consumption_kwh: 1.0, total_allocated_kwh: 1.0}
+        - {device_id: 'dev-03', ts_date: '2024-06-01', committed: false, total_consumption_kwh: 2.0, total_allocated_kwh: 2.0}
+
+  - name: g2_passive_devices_get_zero_when_committed_exhaust_budget
+    description: >
+      Committed devices together consume exactly community_kwh (remaining = 0).
+      Passive device dev-02 must receive total_allocated_kwh = 0.
+    model: rec_gamification_summary
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_settlement_15m')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 3.0}
+          - {device_id: 'dev-02', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 1.0}
+      - input: ref('silver_flexibility_commitments')
+        rows:
+          - {device_id: 'dev-01', committed_at: '2024-06-01 08:00:00', status: 'committed'}
+      - input: ref('rec_commitment_settlement')
+        rows:
+          - {period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00', allocated_kwh: 3.0, status: 'committed'}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 3.0, device_id: 'dev-01'}
+    expect:
+      rows:
+        - {device_id: 'dev-01', committed: true,  total_allocated_kwh: 0.0}
+        - {device_id: 'dev-02', committed: false, total_allocated_kwh: 0.0}
+
+  - name: g3_passive_proportional_cap
+    description: >
+      remaining_budget = 5.0 − 3.0 = 2.0.
+      dev-02 (1.0 kWh) + dev-03 (3.0 kWh) → passive_total = 4.0 > remaining = 2.0.
+      dev-02: 1.0/4.0×2.0 = 0.5, dev-03: 3.0/4.0×2.0 = 1.5.
+    model: rec_gamification_summary
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_settlement_15m')
+        rows:
+          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 2.0}
+          - {device_id: 'dev-02', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 1.0}
+          - {device_id: 'dev-03', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 3.0}
+      - input: ref('silver_flexibility_commitments')
+        rows:
+          - {device_id: 'dev-01', committed_at: '2024-06-01 08:00:00', status: 'committed'}
+      - input: ref('rec_commitment_settlement')
+        rows:
+          - {period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00', allocated_kwh: 3.0, status: 'committed'}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0, device_id: 'dev-01'}
+    expect:
+      rows:
+        - {device_id: 'dev-01', committed: true,  total_allocated_kwh: 0.0}
+        - {device_id: 'dev-02', committed: false, total_allocated_kwh: 0.5}
+        - {device_id: 'dev-03', committed: false, total_allocated_kwh: 1.5}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_participant_points — season tagging
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: pp1_daily_rows_tagged_with_calendar_aligned_season
+    description: >
+      Each daily row is tagged with season_start = start of its 2-month calendar season
+      anchored at 2025-09-01. 2025-09-15 → 2025-09-01 (Sep-Oct); 2025-11-05 → 2025-11-01
+      (Nov-Dec); 2026-05-28 → 2026-05-01 (May-Jun).
+    model: rec_participant_points
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_settlement_points')
+        rows:
+          - {device_id: 'dev-01', ts: '2025-09-15 09:00:00', consumption_kwh: 1.0, settlement_points: 10}
+          - {device_id: 'dev-01', ts: '2025-11-05 09:00:00', consumption_kwh: 1.0, settlement_points: 20}
+          - {device_id: 'dev-01', ts: '2026-05-28 09:00:00', consumption_kwh: 1.0, settlement_points: 30}
+      - input: ref('rec_flexibility_bonus')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10}
+        - {device_id: 'dev-01', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 20}
+        - {device_id: 'dev-01', ts_date: '2026-05-28', season_start: '2026-05-01', daily_settlement_points: 30}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_points_leaderboard — seasonal reset + private all-time totals
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: lb1_points_reset_per_season_and_alltime_is_cumulative
+    description: >
+      Each (device, season) is a separate row, so displayed season points reset at every
+      season boundary. The private all-time columns sum across ALL of a device's seasons
+      (never reset) and are identical on every one of that device's rows. all-time is
+      per-device (partition), so dev-02 is independent of dev-01.
+    model: rec_points_leaderboard
+    given:
+      - input: ref('rec_participant_points')
+        rows:
+          # dev-01, season Sep-Oct 2025
+          - {device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 3, daily_points: 13}
+          - {device_id: 'dev-01', ts_date: '2025-10-02', season_start: '2025-09-01', daily_settlement_points: 20, daily_bonus_points: 2, daily_points: 22}
+          # dev-01, season Nov-Dec 2025
+          - {device_id: 'dev-01', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 40, daily_bonus_points: 0, daily_points: 40}
+          # dev-02, single season
+          - {device_id: 'dev-02', ts_date: '2025-09-20', season_start: '2025-09-01', daily_settlement_points: 5, daily_bonus_points: 1, daily_points: 6}
+    expect:
+      rows:
+        - {device_id: 'dev-01', season_start: '2025-09-01', season_base_points: 30, season_bonus_points: 5, season_points: 35, alltime_base_points: 70, alltime_bonus_points: 5}
+        - {device_id: 'dev-01', season_start: '2025-11-01', season_base_points: 40, season_bonus_points: 0, season_points: 40, alltime_base_points: 70, alltime_bonus_points: 5}
+        - {device_id: 'dev-02', season_start: '2025-09-01', season_base_points: 5, season_bonus_points: 1, season_points: 6, alltime_base_points: 5, alltime_bonus_points: 1}
+
+  - name: lb2_pre_anchor_points_excluded_from_alltime
+    description: >
+      Points dated before the season anchor (2025-09-01) fall in a pre-anchor season and
+      must be excluded entirely — no row for them, and they do NOT inflate the private
+      all-time totals. Only the 2025-09-01 season survives here.
+    model: rec_points_leaderboard
+    given:
+      - input: ref('rec_participant_points')
+        rows:
+          # pre-anchor (2025-07-01 season) — must be dropped
+          - {device_id: 'dev-01', ts_date: '2025-08-26', season_start: '2025-07-01', daily_settlement_points: 99, daily_bonus_points: 9, daily_points: 108}
+          # in-program season
+          - {device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 2, daily_points: 12}
+    expect:
+      rows:
+        - {device_id: 'dev-01', season_start: '2025-09-01', season_base_points: 10, season_bonus_points: 2, season_points: 12, alltime_base_points: 10, alltime_bonus_points: 2}

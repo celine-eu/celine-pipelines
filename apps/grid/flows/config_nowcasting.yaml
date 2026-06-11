@@ -1,0 +1,9 @@
+schedule:
+  name: grid-nowcasting-15min
+  # Every 15 minutes starting at minute 20
+  cron: "20/15 * * * *"
+
+dbt:
+  project_dir: "../dbt"
+  profiles_dir: "../dbt"
+  target: dev

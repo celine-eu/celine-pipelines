@@ -1,0 +1,76 @@
+version: 2
+
+sources:
+  # rec_metering_gold (ds_dev_gold.meters_data_15m / _1h) removed 2026-04-17:
+  #   - meters_data_1h is broken (sums instead of averaging 4 × 15-min kW values)
+  #   - meters_data_15m is banned by project rule even though it passes through
+  #     silver values unchanged.
+  # All rec_flexibility models now read the silver-derived rec_meters_15m intermediate.
+
+  - name: meters_gold
+    schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
+    description: >
+      Meter forecasting gold tables produced by the meter_forecasting pipeline app.
+    tables:
+      - name: total_meters_forecast
+        description: >
+          Community-level hourly production/consumption forecast and actuals.
+          net_exchange_kwh > 0 means community solar surplus (good time to shift load).
+        freshness:
+          warn_after: {count: 1, period: hour}
+          error_after: {count: 3, period: hour}
+        loaded_at_field: generated_at
+
+      - name: meters_energy_forecast
+        description: >
+          Per-device hourly production/consumption forecast and actuals.
+          Used to compute personalized estimated_kwh for flexibility windows.
+        freshness:
+          warn_after: {count: 1, period: hour}
+          error_after: {count: 3, period: hour}
+        loaded_at_field: generated_at
+
+  - name: rec_flexibility_raw
+    schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
+    description: >
+      Raw tables written directly by the rec_flexibility Python tasks
+      (baselines, streaks). Exposed here so gold models can ref them.
+    tables:
+      - name: _rec_device_baselines_raw
+        description: "Raw baseline output written by Python task compute_baselines_task."
+        columns:
+          - name: device_id
+            tests: [not_null]
+          - name: baseline_type
+            description: >
+              'settlement' (rolling), 'reference' (winsorized monthly), or
+              'grid_export_median' (M1-only export reference for the v2 consumption proxy).
+            tests:
+              - not_null
+              - accepted_values:
+                  arguments:
+                    values: ["settlement", "reference", "grid_export_median"]
+          - name: slot
+            description: "15-min slot 0..95"
+            tests: [not_null]
+          - name: is_weekday
+            tests: [not_null]
+          - name: baseline_kwh
+            description: "kWh per 15-min bucket (kW x 0.25 applied at ingest)."
+            tests: [not_null]
+          - name: computed_at
+            tests: [not_null]
+
+      - name: _rec_device_streaks_raw
+        description: "Raw streak state written by Python task update_streaks_task."
+        columns:
+          - name: device_id
+            tests: [not_null, unique]
+          - name: level
+            tests: [not_null]
+          - name: peak
+            tests: [not_null]
+          - name: multiplier
+            tests: [not_null]
+          - name: computed_at
+            tests: [not_null]

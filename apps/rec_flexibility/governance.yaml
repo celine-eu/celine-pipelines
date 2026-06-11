@@ -1,0 +1,97 @@
+defaults:
+  license: null
+  ownership:
+    - name: rec
+      type: DATA_OWNER
+  access_level: internal
+  access_requirements: partner
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: rec-flexibility
+  dcat:
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENER
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://publications.europa.eu/resource/authority/country/ITA
+    accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+  dataspace:
+    odrl_action: use
+    purpose:
+      - energy-monitoring
+
+sources:
+  # ---------------------------------------------------------------------------
+  # OUTPUTS: Flexibility, gamification and CO2 analytics
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.rec_settlement_15m:
+    tags: [flexibility, settlement, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.rec_settlement_1h:
+    tags: [flexibility, settlement, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.rec_participant_points:
+    tags: [flexibility, gamification, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.rec_flexibility_windows:
+    tags: [flexibility, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.rec_gamification_summary:
+    tags: [gamification, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.rec_co2_savings:
+    tags: [co2, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.rec_commitment_settlement:
+    tags: [flexibility, settlement, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true
+
+  datasets.ds_dev_gold.rec_co2_savings_community:
+    tags: [co2, flexibility, gold]
+    dataspace:
+      expose: true
