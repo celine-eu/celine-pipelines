@@ -50,7 +50,7 @@ plugins:
     - name: tap-spreadsheets
       namespace: tap_spreadsheets
       variant: celine-eu
-      pip_url: tap-spreadsheets>=1.1.0
+      pip_url: tap-spreadsheets>=1.1.2
       capabilities:
         - discover
         - catalog
