@@ -1,0 +1,33 @@
+version: "3"
+
+vars:
+  APP_DIR: "{{.TASKFILE_DIR}}"
+
+tasks:
+  run:obs:
+    desc: Run the obs pipeline locally via Prefect
+    cmds:
+      - source <(celine-utils pipeline run envs) && celine-utils pipeline run prefect -f pipeline_obs
+
+  run:heat:
+    desc: Run the heat pipeline locally via Prefect
+    cmds:
+      - source <(celine-utils pipeline run envs) && celine-utils pipeline run prefect -f pipeline_heat
+
+  run:wind:
+    desc: Run the wind pipeline locally via Prefect
+    cmds:
+      - source <(celine-utils pipeline run envs) && celine-utils pipeline run prefect -f pipeline_wind
+
+  run:main:
+    desc: Run the main om pipeline locally via Prefect
+    cmds:
+      - source <(celine-utils pipeline run envs) && celine-utils pipeline run prefect -f pipeline
+
+  run:all:
+    desc: Run all om pipelines locally
+    cmds:
+      - task: run:obs
+      - task: run:heat
+      - task: run:wind
+      - task: run:main
