@@ -21,9 +21,9 @@ with device as (
         r.rec_id,
         r.substation_id,
         m.ts,
-        -- ×0.25 converts instantaneous kW snapshot to kWh for the 15-min slot.
-        -- Assumes one reading per slot; event-triggered readings are approximated.
-        m.consumption_kw * 0.25 as consumption_kwh
+        -- consumption_kw is already kWh per 15-min slot (column name is a
+        -- misnomer) — no ×0.25 conversion, which quartered every figure.
+        m.consumption_kw as consumption_kwh
     from {{ source('rec_metering_gold', 'meters_data_15m') }} m
     join {{ ref('silver_rec_registry') }} r on m.device_id = r.sensor_id
 
@@ -43,10 +43,10 @@ community as (
         ts,
         rec_id,
         substation_id,
-        -- ×0.25 converts kW readings to kWh per 15-min slot (cancels in ratio but
-        -- ensures available_kwh carries correct energy units for virtual allocation).
-        total_consumption_kw * 0.25  as total_consumption_kwh,
-        self_consumption_kw  * 0.25  as available_kwh
+        -- _kw columns are already kWh per 15-min slot — pass through unchanged
+        -- so available_kwh carries real energy units for virtual allocation.
+        total_consumption_kw as total_consumption_kwh,
+        self_consumption_kw  as available_kwh
     from {{ ref('rec_virtual_consumption_15m') }}
 
     {% if is_incremental() %}

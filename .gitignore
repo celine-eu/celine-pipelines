@@ -19,3 +19,4 @@ __pycache__
 temp*
 .claude
 .meltano
+*.grib2*
