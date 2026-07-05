@@ -64,6 +64,11 @@ sources:
     dataspace:
       expose: true
 
+  datasets.ds_dev_gold.rec_flexibility_windows_community:
+    tags: [flexibility, gold]
+    dataspace:
+      expose: true
+
   datasets.ds_dev_gold.rec_gamification_summary:
     tags: [gamification, gold]
     row_filters:

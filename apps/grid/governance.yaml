@@ -96,3 +96,8 @@ sources:
     tags: [ grid, risk, nowcast, gold ]
     dataspace:
       expose: true
+
+  datasets.ds_dev_gold.v_superset_grid:
+    tags: [ grid, superset, gold ]
+    dataspace:
+      expose: false

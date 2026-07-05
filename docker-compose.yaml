@@ -261,6 +261,17 @@ services:
       - path: ./apps/mt/.env
         required: false
 
+  pipeline-weather:
+    <<: *pipeline-service
+    image: ghcr.io/celine-eu/pipeline-weather
+    build:
+      context: .
+      args:
+        APP_NAME: weather
+    env_file:
+      - path: ./apps/weather/.env
+        required: false
+
   pipeline-overture:
     <<: *pipeline-service
     image: ghcr.io/celine-eu/pipeline-overture

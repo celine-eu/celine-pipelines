@@ -14,11 +14,9 @@ unit_tests:
       macros:
         is_incremental: false
     given:
-      - input: source('meters_gold', 'total_meters_forecast')
+      - input: ref('rec_flexibility_windows_community')
         rows:
-          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.2, period: 'forecast'}
-          - {timestamp: '2024-06-01 11:00:00', net_exchange_kwh: 0.8, period: 'forecast'}
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 3.0}
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
           - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
@@ -27,107 +25,6 @@ unit_tests:
     expect:
       rows:
         - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', reward_points_estimated: 14}
-
-  - name: w2_single_surplus_hour_produces_no_window
-    description: >
-      One surplus hour is below MIN_WINDOW_HOURS (2) and must not emit any row.
-    model: rec_flexibility_windows
-    overrides:
-      macros:
-        is_incremental: false
-    given:
-      - input: source('meters_gold', 'total_meters_forecast')
-        rows:
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-      - input: source('meters_gold', 'meters_energy_forecast')
-        rows:
-          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-    expect:
-      rows: []
-
-  - name: w3_nine_consecutive_hours_produce_three_subwindows
-    description: >
-      Nine consecutive surplus hours must be sliced into 3 × 3h sub-windows (MAX_WINDOW_HOURS).
-    model: rec_flexibility_windows
-    overrides:
-      macros:
-        is_incremental: false
-    given:
-      - input: source('meters_gold', 'total_meters_forecast')
-        rows:
-          - {timestamp: '2024-06-01 06:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 07:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 08:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 11:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 12:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 13:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 14:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-      - input: source('meters_gold', 'meters_energy_forecast')
-        rows:
-          - {device_id: 'dev-01', timestamp: '2024-06-01 06:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 07:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 08:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 11:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 12:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 13:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 14:00:00', total_consumption_kwh: 0.3, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-    expect:
-      rows:
-        - {device_id: 'dev-01', window_start: '2024-06-01 06:00:00', window_end: '2024-06-01 09:00:00'}
-        - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00'}
-        - {device_id: 'dev-01', window_start: '2024-06-01 12:00:00', window_end: '2024-06-01 15:00:00'}
-
-  - name: w4_gap_in_surplus_produces_two_separate_windows
-    description: >
-      Two 2h surplus runs separated by a 3h gap must yield two independent windows.
-      The gap (ts − prev_ts > 1h) triggers a new window_group.
-    model: rec_flexibility_windows
-    overrides:
-      macros:
-        is_incremental: false
-    given:
-      - input: source('meters_gold', 'total_meters_forecast')
-        rows:
-          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 13:00:00', net_exchange_kwh: 0.9, period: 'forecast'}
-          - {timestamp: '2024-06-01 14:00:00', net_exchange_kwh: 0.9, period: 'forecast'}
-      - input: source('meters_gold', 'meters_energy_forecast')
-        rows:
-          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 13:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 14:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-    expect:
-      rows:
-        - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00'}
-        - {device_id: 'dev-01', window_start: '2024-06-01 13:00:00', window_end: '2024-06-01 15:00:00'}
-
-  - name: w5_surplus_during_sleeping_hours_is_excluded
-    description: >
-      Surplus hours before 05:00 must be filtered out. Only hours ≥ 05:00 form windows.
-    model: rec_flexibility_windows
-    overrides:
-      macros:
-        is_incremental: false
-    given:
-      - input: source('meters_gold', 'total_meters_forecast')
-        rows:
-          - {timestamp: '2024-06-01 03:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 04:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 06:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 07:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-      - input: source('meters_gold', 'meters_energy_forecast')
-        rows:
-          - {device_id: 'dev-01', timestamp: '2024-06-01 06:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 07:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-    expect:
-      rows:
-        - {device_id: 'dev-01', window_start: '2024-06-01 06:00:00', window_end: '2024-06-01 08:00:00', reward_points_estimated: 9}
 
   - name: w6_normalised_kwh_over_budget
     description: >
@@ -140,10 +37,9 @@ unit_tests:
       macros:
         is_incremental: false
     given:
-      - input: source('meters_gold', 'total_meters_forecast')
+      - input: ref('rec_flexibility_windows_community')
         rows:
-          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 2.0}
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
           - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
@@ -164,10 +60,9 @@ unit_tests:
       macros:
         is_incremental: false
     given:
-      - input: source('meters_gold', 'total_meters_forecast')
+      - input: ref('rec_flexibility_windows_community')
         rows:
-          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 2.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 2.0, period: 'forecast'}
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 4.0}
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
           - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
@@ -188,10 +83,9 @@ unit_tests:
       macros:
         is_incremental: false
     given:
-      - input: source('meters_gold', 'total_meters_forecast')
+      - input: ref('rec_flexibility_windows_community')
         rows:
-          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.5, period: 'forecast'}
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.5, period: 'forecast'}
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0}
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
           - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
@@ -202,6 +96,96 @@ unit_tests:
       rows:
         - {device_id: 'dev-01'}
       # dev-02 must not appear
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_flexibility_windows_community (event layer)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: cw1_single_surplus_hour_produces_no_window
+    description: One surplus hour is below MIN_WINDOW_HOURS (2) and must not emit any row.
+    model: rec_flexibility_windows_community
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+    expect:
+      rows: []
+
+  - name: cw2_nine_consecutive_hours_produce_three_subwindows
+    description: Nine consecutive surplus hours must be sliced into 3 × 3h sub-windows (MAX_WINDOW_HOURS).
+    model: rec_flexibility_windows_community
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 06:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 07:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 08:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 11:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 12:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 13:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 14:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+    expect:
+      rows:
+        - {window_start: '2024-06-01 06:00:00', window_end: '2024-06-01 09:00:00', community_kwh: "3.00"}
+        - {window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: "3.00"}
+        - {window_start: '2024-06-01 12:00:00', window_end: '2024-06-01 15:00:00', community_kwh: "3.00"}
+
+  - name: cw3_gap_in_surplus_produces_two_separate_windows
+    description: Two 2h surplus runs separated by a 3h gap must yield two independent windows.
+    model: rec_flexibility_windows_community
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 13:00:00', net_exchange_kwh: 0.9, period: 'forecast'}
+          - {timestamp: '2024-06-01 14:00:00', net_exchange_kwh: 0.9, period: 'forecast'}
+    expect:
+      rows:
+        - {window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: "2.00"}
+        - {window_start: '2024-06-01 13:00:00', window_end: '2024-06-01 15:00:00', community_kwh: "1.80"}
+
+  - name: cw4_surplus_during_sleeping_hours_is_excluded
+    description: Surplus hours before 05:00 must be filtered out. Only hours ≥ 05:00 form windows.
+    model: rec_flexibility_windows_community
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 03:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 04:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 06:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {timestamp: '2024-06-01 07:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+    expect:
+      rows:
+        - {window_start: '2024-06-01 06:00:00', window_end: '2024-06-01 08:00:00', community_kwh: "2.00"}
+
+  - name: cw5_sub_threshold_surplus_produces_no_window
+    description: Hours with net_exchange_kwh ≤ EXPORT_THRESHOLD_KWH (0.5) are not surplus hours.
+    model: rec_flexibility_windows_community
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 0.4, period: 'forecast'}
+          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 0.5, period: 'forecast'}
+    expect:
+      rows: []
 
   # ─────────────────────────────────────────────────────────────────────────────
   # rec_commitment_settlement
@@ -658,3 +642,4 @@ unit_tests:
     expect:
       rows:
         - {device_id: 'dev-01', season_start: '2025-09-01', season_base_points: 10, season_bonus_points: 2, season_points: 12, alltime_base_points: 10, alltime_bonus_points: 2}
+

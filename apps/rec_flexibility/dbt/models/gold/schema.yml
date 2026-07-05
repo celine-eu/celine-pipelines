@@ -10,6 +10,8 @@ models:
       device estimates for the same window never exceeds the available solar surplus.
       flexibility_model tags the generating mechanism (default: solar_overproduction);
       set via dbt var flexibility_model at run time for future model types.
+      Derived from rec_flexibility_windows_community (event layer); this model adds
+      per-device enrichment only. Do not gate visibility on estimated_kwh.
     config:
       tags: ["rec_flexibility"]
     columns:
@@ -31,6 +33,30 @@ models:
         data_tests:
           - not_null
       - name: reward_points_estimated
+        data_tests:
+          - not_null
+
+  - name: rec_flexibility_windows_community
+    description: >
+      Community-level flexibility windows (event layer of the event/enrichment split).
+      One row per surplus window derived from total_meters_forecast net export.
+      Row existence drives suggestion visibility for EVERY community member; per-device
+      estimates live in rec_flexibility_windows (enrichment layer, derived from this model).
+    config:
+      tags: ["rec_flexibility"]
+    columns:
+      - name: _id
+        description: MD5 surrogate key on (ts_date, window_start, window_end).
+        data_tests:
+          - unique
+          - not_null
+      - name: window_start
+        data_tests:
+          - not_null
+      - name: window_end
+        data_tests:
+          - not_null
+      - name: community_kwh
         data_tests:
           - not_null
 

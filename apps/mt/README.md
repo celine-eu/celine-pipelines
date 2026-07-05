@@ -25,12 +25,18 @@ https://www.meteotrentino.it
   - Type-cast and normalized views
 - **SILVER**
   - Deduplicated station observations (incremental), curated forecasts, active alerts
-- **GOLD**
+- **GOLD — domain-specific**
   - `mt_observations_current` — latest observation per active station
   - `mt_stations` — active station registry
   - `mt_alerts_active` — non-expired deduplicated alerts
   - `mt_forecast_hourly` — 3-hour forecasts with location enrichment
   - `mt_forecast_daily` — daily forecasts with location enrichment
+- **GOLD — contract tables** (consumed by other pipelines via generic aliases)
+  - `weather__forecast_hourly` — weather contract: sub-daily forecasts (consumed by `apps/weather`)
+  - `weather__forecast_daily` — weather contract: daily forecasts (consumed by `apps/weather`)
+  - `weather__alerts` — weather contract: active alerts (consumed by `apps/weather`)
+  - `weather__current` — weather contract: current observations (consumed by `apps/weather`)
+  - `heat_daily_obs` — daily max temperature per station with altitude band (consumed by `apps/grid`)
 
 Licensing follows `CC-BY-4.0`.
 

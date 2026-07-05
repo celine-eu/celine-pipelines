@@ -44,8 +44,8 @@ with its own config (`config_wind.yaml`) and dbt models under
 **No API key required.** Free tier, ~6 calls/day.
 
 **Downstream consumers:**
-- `demo3/pipelines` gold model `grid_wind_risks` (spatial join with power grid shapefiles)
-- `demo3/pipelines` gold model `grid_wind_risks_linee` (spatial join with medium-voltage lines)
+- `apps/grid` gold model `grid_wind_risks` (spatial join with power grid shapefiles)
+- `apps/grid` gold model `grid_wind_risks_now` (nowcasting with 15-min observations)
 
 ---
 

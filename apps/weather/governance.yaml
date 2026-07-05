@@ -1,0 +1,156 @@
+defaults:
+  license: CC-BY-4.0
+  ownership: []
+  access_level: internal
+  classification: green
+  tags: []
+  retention_days: 365
+  documentation_url: null
+  source_system: null
+  attribution: >
+    Aggregated weather data from multiple providers. Individual provider
+    attributions apply per-record (see provider column). MeteoTrentino data
+    © Servizio Meteorologico della Provincia Autonoma di Trento (CC BY 4.0).
+  access_requirements: null
+  dataspace:
+    expose: false
+    medallion: null
+    contract_required: false
+    consent_required: false
+    odrl_action: use
+    purpose: []
+  dcat: null
+
+sources:
+  # ---------------------------------------------------------------------------
+  # GOLD - unified weather interface
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.weather_forecast_hourly:
+    title: "Weather Forecast Hourly — All Locations (Gold)"
+    description: >
+      Unified sub-daily weather forecasts for all configured locations. Each
+      row is attributed to a specific provider via the provider column.
+      Currently sourced from MeteoTrentino for Trentino locations.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [weather, forecast, hourly, unified, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
+
+  datasets.ds_dev_gold.weather_forecast_daily:
+    title: "Weather Forecast Daily — All Locations (Gold)"
+    description: >
+      Unified daily weather forecast summaries for all configured locations.
+      Includes temperature range, precipitation, wind, and sky conditions.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [weather, forecast, daily, unified, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
+      conforms_to: null
+      temporal: null
+
+  datasets.ds_dev_gold.weather_alerts_active:
+    title: "Weather Alerts Active — All Locations (Gold)"
+    description: >
+      Unified active weather alerts for all configured locations. Includes
+      severity, urgency, and CAP-compatible metadata where available.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [weather, alerts, unified, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null
+
+  datasets.ds_dev_gold.weather_current:
+    title: "Weather Current Observations — All Locations (Gold)"
+    description: >
+      Unified current weather observations for all configured locations.
+      Nearest-station matching for station-based providers.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [weather, current, observations, unified, gold]
+    dataspace:
+      expose: true
+      medallion: gold
+      contract_required: false
+      consent_required: false
+      odrl_action: use
+      purpose: [research, analytics]
+    dcat:
+      publisher_uri: null
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
+      accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/CONT
+      conforms_to: null
+      temporal: null

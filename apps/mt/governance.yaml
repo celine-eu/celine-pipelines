@@ -524,3 +524,98 @@ sources:
       accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
       conforms_to: null
       temporal: null
+
+  # ---------------------------------------------------------------------------
+  # GOLD - weather contract tables (consumed by apps/weather)
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.weather__forecast_hourly:
+    title: "Weather Contract — Sub-Daily Forecasts (Gold)"
+    description: >
+      Provider-neutral sub-daily weather forecasts for all Trentino locations.
+      Contract table consumed by the unified weather pipeline. Includes
+      temperature, wind, precipitation, sky condition, and snow data.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [weather, contract, forecast, hourly, gold]
+    dataspace:
+      expose: false
+      medallion: gold
+
+  datasets.ds_dev_gold.weather__forecast_daily:
+    title: "Weather Contract — Daily Forecasts (Gold)"
+    description: >
+      Provider-neutral daily weather forecast summaries for all Trentino
+      locations. Contract table consumed by the unified weather pipeline.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [weather, contract, forecast, daily, gold]
+    dataspace:
+      expose: false
+      medallion: gold
+
+  datasets.ds_dev_gold.weather__alerts:
+    title: "Weather Contract — Active Alerts (Gold)"
+    description: >
+      Provider-neutral active weather alerts for the Trentino region.
+      Contract table consumed by the unified weather pipeline.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [weather, contract, alerts, gold]
+    dataspace:
+      expose: false
+      medallion: gold
+
+  datasets.ds_dev_gold.weather__current:
+    title: "Weather Contract — Current Observations (Gold)"
+    description: >
+      Provider-neutral current station observations for Trentino.
+      Contract table consumed by the unified weather pipeline.
+    license: CC-BY-4.0
+    access_level: open
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [weather, contract, current, gold]
+    dataspace:
+      expose: false
+      medallion: gold
+
+  # ---------------------------------------------------------------------------
+  # GOLD - heat observations contract (consumed by apps/grid)
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.heat_daily_obs:
+    title: "Daily Heat Observations — All Trentino Stations (Gold)"
+    description: >
+      Daily max observed temperature per active weather station with altitude
+      band classification. Contract table consumed by the grid pipeline for
+      heat risk nowcasting.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    tags: [weather, heat, observations, contract, gold]
+    dataspace:
+      expose: false
+      medallion: gold

@@ -1,0 +1,18 @@
+version: 2
+
+sources:
+  - name: weather_contract
+    schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
+    database: datasets
+    description: >
+      Provider-neutral weather contract tables. Produced by provider
+      pipelines (mt, owm, etc.) using generic aliases.
+    tables:
+      - name: weather__forecast_hourly
+        description: "Sub-daily forecasts, all providers merged."
+      - name: weather__forecast_daily
+        description: "Daily forecast summaries, all providers merged."
+      - name: weather__alerts
+        description: "Active weather alerts, all providers merged."
+      - name: weather__current
+        description: "Current observations, all providers merged."

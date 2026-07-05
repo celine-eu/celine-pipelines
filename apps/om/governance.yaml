@@ -321,3 +321,43 @@ sources:
     dataspace:
       expose: false
       medallion: silver
+
+  # ---------------------------------------------------------------------------
+  # GOLD - additional outputs
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.om_weather_features_meters:
+    title: "Open-Meteo Weather ML Features — Per Meter (Gold)"
+    description: >
+      15 PV/solar ML features per meter location for energy forecasting.
+      Computed from Open-Meteo weather data matched to meter coordinates.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    tags: [open-meteo, weather, features, meters, gold]
+    dataspace:
+      expose: false
+      medallion: gold
+
+  datasets.ds_dev_gold.om_weather_hourly_view:
+    title: "Open-Meteo Hourly Weather View (Gold)"
+    description: >
+      Gold view exposing silver hourly weather data for Superset dashboards.
+      Direct pass-through from silver layer.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    tags: [open-meteo, weather, hourly, superset, gold]
+    dataspace:
+      expose: false
+      medallion: gold

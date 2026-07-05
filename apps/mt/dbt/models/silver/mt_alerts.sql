@@ -21,6 +21,6 @@ select
     area_desc,
     area_polygon,
     resource_uri,
-    msg_type::jsonb as msg_type,
-    scope::jsonb as scope
+    msg_type,
+    scope
 from {{ ref('stg_mt_alerts') }}

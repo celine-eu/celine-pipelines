@@ -1,0 +1,4 @@
+location_id,provider,location_name,lat,lon
+it_folgaria,mt,Folgaria,45.9167,11.1667
+fi_lappeenranta,owm,Lappeenranta,61.050009,28.18739
+es_valencia,owm,Valencia,39.6752377,-0.2047335

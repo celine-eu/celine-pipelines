@@ -1,0 +1,4 @@
+schedule:
+  name: weather-hourly
+  # Run after mt pipeline (which runs at :05) completes
+  cron: "15 * * * *"
