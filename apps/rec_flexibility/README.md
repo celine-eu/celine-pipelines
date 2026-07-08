@@ -6,7 +6,7 @@ Computes flexibility opportunity windows, per-commitment settlement with proport
 
 | Table | Schema | Origin | Description |
 |-------|--------|--------|-------------|
-| `meters_data` | `ds_dev_silver` | private ingestion | 15-min raw meters, one row per `(device, ts, meter_type ∈ {M1, M2, M2_2})`. Columns `consumption_kw` / `production_kw` are **kW** — multiply by 0.25 for 15-min kWh. |
+| `meters_data_15m` | `ds_dev_gold` | rec_metering pipeline | Sanctioned 15-min meter interface, one row per `(device, ts)`. `consumption_kwh` (grid import), `production_kwh` (grid export), `self_consumed_kwh` (unclipped, can be negative) — all **kWh per 15-min bucket**, used as-is with no unit conversion. |
 | `meters_energy_forecast` | `ds_dev_gold` | meter_forecasting pipeline | Per-device 48h energy forecast |
 | `total_meters_forecast` | `ds_dev_gold` | meter_forecasting pipeline | Community-level hourly net-exchange forecast |
 | `flexibility_commitments_mirror` | `raw` | private ingestion | 90-day sliding mirror from the Flexibility API, refreshed every 15 min |
@@ -15,13 +15,13 @@ Computes flexibility opportunity windows, per-commitment settlement with proport
 
 **Providing private upstream tables:**
 
-- **`meters_data`** — silver-layer meter readings produced by a private metering ingestion pipeline. Must expose `device_id`, `ts`, `meter_type` (M1/M2/M2_2), `consumption_kw`, `production_kw`. For local development, create the table manually and load sample data.
+- **`meters_data_15m`** — gold-layer 15-min meter table produced by the `rec_metering` pipeline app (exposed via dataset-api governance). Must expose `device_id`, `ts`, `consumption_kwh`, `production_kwh`, `self_consumed_kwh` (kWh per bucket, self_consumed unclipped). For local development, run the rec_metering app or load sample data.
 - **`meters_energy_forecast` / `total_meters_forecast`** — produced by the meter_forecasting pipeline (not in this repository). If unavailable, the flexibility windows model will produce no output (no surplus windows detected). For local development, populate with synthetic forecast rows.
 - **`flexibility_commitments_mirror`** — raw mirror of the Flexibility API (`flexibility-api` service). Loaded by a private pipeline that periodically syncs the API into `raw.flexibility_commitments_mirror`. Must expose `commitment_id`, `device_id`, `status`, `period_start`, `period_end`, `last_updated`. For local development, create the table manually.
 
 The full source contracts are declared in `dbt/models/silver/sources.yml` and `dbt/models/gold/sources.yml`.
 
-> **Note:** `ds_dev_gold.meters_data_15m` and `ds_dev_gold.meters_data_1h` are **banned**. `_1h` sums instead of averaging the four 15-min kW values (4× inflated); `_15m` is not allowed by project rule. Every downstream model reads the silver intermediate `rec_meters_15m` instead (see below).
+> **Note:** every downstream model reads the `rec_meters_15m` intermediate view (see below), which wraps `ds_dev_gold.meters_data_15m`. The old ban on the gold meters tables predated the kW→kWh migration and no longer applies: with energy (kWh) columns, summing 15-min buckets is the correct aggregation.
 
 ### Seed
 
@@ -37,7 +37,7 @@ Normalises the raw API mirror: casts all timestamps to `timestamptz`, computes `
 
 #### `rec_meters_15m`
 
-Analysis-ready 15-min meter table derived from `ds_dev_silver.meters_data`. Pivots M1 against combined M2/M2_2 per `(device, ts)`; derives `self_consumed_kw = clip(pv_production_kw − grid_export_kw, ≥0)`; exposes `consumption_kw`, `production_kw (= grid_export_kw)`, `pv_production_kw`, `self_consumed_kw`, `total_consumption_kw`. Values remain in kW — downstream multiplies by 0.25 for 15-min kWh. Mirrors the pattern used in `src/notebooks/gamification/data_loader.py::load_meters`. Materialized as a view.
+Analysis-ready 15-min meter view over `ds_dev_gold.meters_data_15m`, scoped to the active fleet (`rec_active_devices` seed). Reconstructs `pv_production_kwh = self_consumed_kwh + production_kwh` and clips `self_consumed_kwh` at ≥0 (upstream stores it unclipped); exposes `consumption_kwh`, `production_kwh (= grid export)`, `pv_production_kwh`, `self_consumed_kwh`, `total_consumption_kwh`. All values are kWh per 15-min bucket, passed through with no unit conversion. Materialized as a view.
 
 ### Gold
 
@@ -54,7 +54,7 @@ Pre-computed daily load-shift windows derived from community solar surplus in `t
 
 #### `rec_settlement_15m`
 
-Every 15-min metered interval for every device, annotated with flexibility window context. Left-joins `rec_meters_15m` (silver-derived) against `rec_flexibility_windows`; `window_start IS NOT NULL` marks intervals inside a window. `DISTINCT ON (device_id, ts)` keeps the earliest matching window in case of overlap. `consumption_kwh = consumption_kw × 0.25` (unit-correct kW → 15-min kWh).
+Every 15-min metered interval for every device, annotated with flexibility window context. Left-joins `rec_meters_15m` (silver-derived) against `rec_flexibility_windows`; `window_start IS NOT NULL` marks intervals inside a window. `DISTINCT ON (device_id, ts)` keeps the earliest matching window in case of overlap. All kWh columns pass through from `rec_meters_15m` unchanged (already kWh per bucket).
 
 #### `rec_settlement_1h`
 
@@ -170,7 +170,7 @@ Defined in `models/gold/unit_tests.yml`. Cover 21 scenarios across four models:
 |-------|-------|
 | `rec_flexibility_windows` | W1–W8: window grouping, gap detection, sleeping hours, sub-window capping, proportional normalisation |
 | `rec_commitment_settlement` | C1–C6: under/over budget allocation, rejected status, DSO fallback, adherence ratio |
-| `rec_settlement_15m` | S1–S4: window join, LEFT JOIN preservation, kW→kWh conversion, overlapping window deduplication |
+| `rec_settlement_15m` | S1–S4: window join, LEFT JOIN preservation, kWh pass-through (no unit conversion), overlapping window deduplication |
 | `rec_gamification_summary` | G1–G3: passive budget share, budget exhausted by committed, passive proportional cap |
 
 ### Singular tests (`dbt test --select tag:rec_flexibility`)
@@ -185,7 +185,7 @@ Defined in `tests/`:
 `rec-flexibility-flow` runs five tasks in sequence:
 
 1. **Seed dbt** (`dbt seed`) — seeds `co2_factors.csv`.
-2. **Compute Baselines** (`compute_baselines_task`) — reads `ds_dev_silver.meters_data` via `lib/meters.py`, runs High 4/7 settlement + winsorized reference baseline (`lib/baselines.py`), writes `ds_dev_gold._rec_device_baselines_raw`.
+2. **Compute Baselines** (`compute_baselines_task`) — reads `rec_meters_15m` (over `ds_dev_gold.meters_data_15m`) via `lib/meters.py`, runs High 4/7 settlement + winsorized reference baseline (`lib/baselines.py`), writes `ds_dev_gold._rec_device_baselines_raw`.
 3. **Update Streaks** (`update_streaks_task`) — reads previous state + the past week of `rec_flexibility_bonus`, applies one weekly decay step (`lib/streaks.py`), writes `ds_dev_gold._rec_device_streaks_raw`.
 4. **Transform Gold Layer** (`dbt run --select gold`).
 5. **Run dbt Tests** (`dbt test`).

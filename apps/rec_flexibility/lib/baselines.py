@@ -4,9 +4,9 @@ Two baseline types are computed:
 - Settlement baseline: rolling High 4 of 7 (used for effort multiplier).
 - Reference baseline: winsorized High 4 of 7 over 90-day lookback (used for bonus).
 
-Input DataFrames carry ``consumption_kwh`` = energy consumed in that 15-min bucket
-(= kW average x 0.25 h). The loader upstream is responsible for the x0.25 conversion
-from silver kW values.
+Input DataFrames carry ``consumption_kwh`` = energy consumed in that 15-min bucket,
+read as-is from ``rec_meters_15m`` (over ``ds_dev_gold.meters_data_15m``); the whole
+chain is kWh end-to-end with no unit conversion.
 """
 
 from __future__ import annotations

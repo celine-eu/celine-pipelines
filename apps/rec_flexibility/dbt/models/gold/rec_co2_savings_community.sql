@@ -31,11 +31,11 @@ with window_intervals as (
 ),
 
 daily as (
-    -- self_consumed_kw is avg kW over the 15-min bucket → ×0.25 for kWh per slot.
-    -- Previous revision summed kW directly (4× overcount). See Task 0 Step 0.5.
+    -- self_consumed_kwh is already kWh per 15-min bucket: sum buckets directly,
+    -- NO unit conversion.
     select
         m.ts::date                          as ts_date,
-        sum(m.self_consumed_kwh) * 0.25     as consumption_kwh,
+        sum(m.self_consumed_kwh)            as consumption_kwh,
         count(distinct m.device_id)         as participating_devices
     from {{ ref('rec_meters_15m') }} m
     join window_intervals w

@@ -400,7 +400,7 @@ unit_tests:
   - name: s1_interval_inside_window_has_window_context_populated
     description: >
       A 15-min interval whose ts falls within a flexibility window must have window_start
-      and window_end populated, and consumption_kwh = consumption_kw × 0.25.
+      and window_end populated, and consumption_kwh passed through unchanged (already kWh).
     model: rec_settlement_15m
     overrides:
       macros:
@@ -415,7 +415,7 @@ unit_tests:
              ts_date: '2024-06-01', estimated_kwh: 3.0, reward_points_estimated: 30}
     expect:
       rows:
-        - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kwh: 0.5,
+        - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kwh: 2.0,
            window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00'}
 
   - name: s2_interval_outside_window_has_null_window_context
@@ -436,12 +436,12 @@ unit_tests:
              ts_date: '2024-06-01', estimated_kwh: 3.0, reward_points_estimated: 30}
     expect:
       rows:
-        - {device_id: 'dev-01', ts: '2024-06-01 14:00:00', consumption_kwh: 0.25, window_start: null}
+        - {device_id: 'dev-01', ts: '2024-06-01 14:00:00', consumption_kwh: 1.0, window_start: null}
 
-  - name: s3_consumption_kw_converted_to_kwh_by_quarter_hour_factor
+  - name: s3_consumption_kwh_passes_through_without_unit_conversion
     description: >
-      consumption_kwh = consumption_kw × 0.25 (15-min slot = 1/4 hour).
-      2.0 kW → 0.50 kWh, 4.0 kW → 1.00 kWh.
+      rec_meters_15m already delivers kWh per 15-min bucket; rec_settlement_15m must
+      NOT rescale it. 2.0 kWh → 2.0 kWh, 4.0 kWh → 4.0 kWh.
     model: rec_settlement_15m
     overrides:
       macros:
@@ -455,8 +455,8 @@ unit_tests:
         rows: []
     expect:
       rows:
-        - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 0.5}
-        - {device_id: 'dev-01', ts: '2024-06-01 09:15:00', consumption_kwh: 1.0}
+        - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 2.0}
+        - {device_id: 'dev-01', ts: '2024-06-01 09:15:00', consumption_kwh: 4.0}
 
   - name: s4_interval_matching_two_windows_keeps_earliest_window_start
     description: >

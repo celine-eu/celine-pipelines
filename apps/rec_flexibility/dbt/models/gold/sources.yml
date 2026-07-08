@@ -56,7 +56,7 @@ sources:
           - name: is_weekday
             tests: [not_null]
           - name: baseline_kwh
-            description: "kWh per 15-min bucket (kW x 0.25 applied at ingest)."
+            description: "kWh per 15-min bucket, computed natively in kWh (no unit conversion)."
             tests: [not_null]
           - name: computed_at
             tests: [not_null]

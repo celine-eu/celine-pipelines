@@ -19,8 +19,8 @@ def config_path() -> Path:
 def sample_meter_15m() -> pd.DataFrame:
     """Synthetic 15-min meter data: 3 devices x 7 days x 96 slots.
 
-    ``consumption_kw`` is average kW over the bucket (NOT kWh). Tests should
-    multiply by 0.25 when they need a 15-min kWh figure.
+    ``consumption_kwh`` is energy per 15-min bucket, matching rec_meters_15m
+    (over ds_dev_gold.meters_data_15m). No kW/kWh conversion applies anywhere.
     """
     rng = pd.date_range("2026-04-01 00:00", "2026-04-07 23:45", freq="15min", tz="UTC")
     rows = []
@@ -32,7 +32,7 @@ def sample_meter_15m() -> pd.DataFrame:
                 {
                     "device_id": device_id,
                     "ts": ts,
-                    "consumption_kw": 0.5 + 0.1 * (slot % 5) + rng_state.uniform(-0.05, 0.05),
+                    "consumption_kwh": 0.5 + 0.1 * (slot % 5) + rng_state.uniform(-0.05, 0.05),
                 }
             )
     return pd.DataFrame(rows)

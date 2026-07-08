@@ -30,8 +30,10 @@
 --      basis (baseline_task), so effort_ratio is a consistent, unitless ratio — this
 --      fixes the v1 mixed-basis bug (grid-import numerator vs total-consumption baseline).
 --
--- Unit contract: all *_kwh are kWh per 15-min bucket (silver kW × 0.25; baseline task
--- applies × 0.25 at ingest). total_meters_forecast.production_kwh is hourly → ÷4.
+-- Unit contract: all *_kwh are kWh per 15-min bucket, native from
+-- ds_dev_gold.meters_data_15m via rec_meters_15m/rec_settlement_15m — no unit
+-- conversion anywhere. Exception (grain, not unit): total_meters_forecast is an
+-- HOURLY source, so its kWh are split evenly across the four 15-min slots (÷4).
 
 with intervals as (
     select

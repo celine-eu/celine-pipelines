@@ -20,19 +20,20 @@
 }}
 
 -- Per-device 15-min settlement intervals, annotated with flexibility window context.
--- Source: rec_meters_15m (silver-derived; never the banned ds_dev_gold.meters_data_15m).
+-- Source: rec_meters_15m (view over ds_dev_gold.meters_data_15m, kWh per bucket).
 -- LEFT JOIN means every metered interval is present; window_start IS NOT NULL indicates
 -- the interval falls inside a forecast flexibility window.
 -- Used by rec_settlement_1h (hourly rollup) and consumed by flexibility-api for
 -- per-commitment actual reward point computation (consumption_kwh × 10 points/kWh).
 --
--- consumption_kwh remains grid import (M1 consumption × 0.25) — its long-standing
--- contract for rec_settlement_1h / co2 / summary / flexibility-api. The v2 grid-based
--- points migration additionally carries three explicit bases so rec_settlement_points
--- can pick the right reward numerator per device:
---   grid_import_kwh        = M1 consumption × 0.25      (energy drawn from grid)
---   grid_export_kwh        = M1 production  × 0.25      (energy fed to grid)
---   total_consumption_kwh  = behind-meter total × 0.25 (import + self-consumed PV)
+-- consumption_kwh remains grid import — its long-standing contract for
+-- rec_settlement_1h / co2 / summary / flexibility-api. rec_meters_15m already
+-- delivers kWh per 15-min bucket, so values pass through with NO unit conversion.
+-- The v2 grid-based points migration additionally carries three explicit bases so
+-- rec_settlement_points can pick the right reward numerator per device:
+--   grid_import_kwh        = consumption_kwh (energy drawn from grid)
+--   grid_export_kwh        = production_kwh  (energy fed to grid)
+--   total_consumption_kwh  = behind-meter total (import + self-consumed PV)
 --
 -- Note: virtual_consumption_kwh and ratio (Italian GSE allocation) are intentionally
 -- absent here — they belong in rec_it. Settlement is based on actual device consumption.
@@ -45,13 +46,12 @@ with base as (
     select distinct on (v.device_id, v.ts)
         v.ts,
         v.device_id,
-        -- consumption_kw is average kW over the 15-min bucket (kW, NOT kWh).
-        -- ×0.25 (interval hours) converts to kWh per slot. Do NOT remove this
-        -- multiplication — doing so would 4×-over-count every downstream kWh figure.
-        v.consumption_kwh * 0.25        as consumption_kwh,
-        v.consumption_kwh * 0.25        as grid_import_kwh,
-        v.production_kwh * 0.25         as grid_export_kwh,
-        v.total_consumption_kwh * 0.25  as total_consumption_kwh,
+        -- rec_meters_15m values are already kWh per 15-min bucket: pass through
+        -- unchanged. Any ×0.25 here would 4×-under-count every downstream figure.
+        v.consumption_kwh,
+        v.consumption_kwh               as grid_import_kwh,
+        v.production_kwh                as grid_export_kwh,
+        v.total_consumption_kwh,
         w.window_start,
         w.window_end,
         w.ts_date,

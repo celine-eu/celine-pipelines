@@ -40,22 +40,18 @@ def _build_db_url(cfg: dict[str, Any]) -> str:
 def _prepare_history(
     engine, lookback_days: int, devices: list[str] | None = None
 ) -> pd.DataFrame:
-    """Silver -> merged -> time features -> kWh per bucket (grid + behind-meter).
+    """rec_meters_15m (over gold meters_data_15m) -> time features -> renamed bases.
 
-    Returns a per-(device, ts) frame carrying every basis the v2 settlement needs as
-    kWh per 15-min bucket:
+    Returns a per-(device, ts) frame carrying every basis the v2 settlement needs.
+    All columns already arrive as kWh per 15-min bucket — no unit conversion:
 
-    - ``grid_import_kwh``       = M1 consumption_kw x 0.25 (energy drawn from grid)
-    - ``grid_export_kwh``       = M1 production_kw  x 0.25 (energy fed to grid)
-    - ``total_consumption_kwh`` = behind-meter total (M1 import + self-consumed PV)
-    - ``pv_production_kw``       = gross PV (kept in kW; used only for M1-only detection)
+    - ``grid_import_kwh``       = consumption_kwh (energy drawn from grid)
+    - ``grid_export_kwh``       = production_kwh (energy fed to grid)
+    - ``total_consumption_kwh`` = behind-meter total (grid import + self-consumed PV)
+    - ``pv_production_kwh``     = gross PV (used only for M1-only detection)
     """
-    raw = mt.load_silver(engine, lookback_days=lookback_days, devices=devices)
-    merged = mt.merge_meters(raw)
+    merged = mt.load_meters(engine, lookback_days=lookback_days, devices=devices)
     merged = mt.add_time_features(merged)
-    merged = mt.to_kwh_per_bucket(
-        merged, ["consumption_kw", "production_kw", "total_consumption_kw"]
-    )
     merged = merged.rename(
         columns={
             "consumption_kwh": "grid_import_kwh",
@@ -71,7 +67,7 @@ def _identify_m1_only(history: pd.DataFrame) -> set[str]:
     SQL parity: ``rec_device_class.is_m1_only`` / gamification v2
     ``identify_m1_only_devices``. These devices use the consumption proxy.
     """
-    by_dev = history.groupby("device_id")["pv_production_kw"].max()
+    by_dev = history.groupby("device_id")["pv_production_kwh"].max()
     return set(by_dev[by_dev == 0.0].index)
 
 

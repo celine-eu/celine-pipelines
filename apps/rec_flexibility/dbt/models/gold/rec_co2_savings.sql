@@ -14,10 +14,9 @@
 }}
 
 -- CO2 avoided per device per day based on self-consumed renewable energy.
--- Source: rec_meters_15m (silver-derived; self_consumed_kw computed from M1/M2 merge).
--- self_consumed_kw is average kW over the 15-min bucket. ×0.25 (interval hours)
--- converts each bucket to kWh; summing buckets yields daily kWh.
--- The previous revision summed kW directly → 4× overcount → 4× overstated CO2.
+-- Source: rec_meters_15m (view over ds_dev_gold.meters_data_15m, kWh per bucket).
+-- self_consumed_kwh is already kWh per 15-min bucket: summing buckets yields daily
+-- kWh directly, with NO unit conversion.
 -- Country factor from co2_factors seed (configured via var co2_country, default 'it').
 -- Factors mirror webapp co2_settings.py constants.
 
@@ -25,7 +24,7 @@ with daily as (
     select
         device_id,
         ts::date                          as ts_date,
-        sum(self_consumed_kwh) * 0.25     as consumption_kwh
+        sum(self_consumed_kwh)            as consumption_kwh
     from {{ ref('rec_meters_15m') }}
 
     {% if is_incremental() %}

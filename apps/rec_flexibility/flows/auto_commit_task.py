@@ -53,8 +53,10 @@ def auto_commit_task(cfg: PipelineConfig) -> int:
     tomorrow = today + timedelta(days=1)
 
     with engine.connect() as conn:
+        # Active fleet = distinct devices in rec_meters_15m (the fleet-scoped view
+        # over ds_dev_gold.meters_data_15m; every device there has an M1 meter).
         devices = pd.read_sql(text(
-            f"SELECT DISTINCT device_id FROM {_SILVER_SCHEMA}.meters_data WHERE meter_type = 'M1'"
+            f"SELECT DISTINCT device_id FROM {_SILVER_SCHEMA}.rec_meters_15m"
         ), conn)
 
         windows = pd.read_sql(text(f"""

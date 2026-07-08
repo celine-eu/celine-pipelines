@@ -1,7 +1,10 @@
-"""Silver -> analysis-ready 15-min meter DataFrame.
+"""Analysis-ready 15-min meter DataFrame from ``rec_meters_15m``.
 
-All kW columns remain in kW; downstream callers that
-need kWh per 15-min bucket multiply by 0.25.
+``rec_meters_15m`` is the dbt view over ``ds_dev_gold.meters_data_15m`` (the
+sanctioned rec_metering interface) that reconstructs ``pv_production_kwh``,
+clips ``self_consumed_kwh`` at zero and scopes to the active fleet. All energy
+columns are kWh per 15-min bucket and are read as-is — no kW/kWh conversion
+happens anywhere in this app.
 """
 
 from __future__ import annotations
@@ -12,22 +15,26 @@ import pandas as pd
 from sqlalchemy import Engine, text
 
 _SILVER_SCHEMA = os.environ.get("CELINE_SILVER_SCHEMA", "ds_dev_silver")
+METERS_VIEW = "rec_meters_15m"
 
 
-def load_silver(
+def load_meters(
     engine: Engine,
     lookback_days: int,
     devices: list[str] | None = None,
 ) -> pd.DataFrame:
-    """Read the last ``lookback_days`` of raw silver rows for all meter types.
+    """Read the last ``lookback_days`` of 15-min meter rows (kWh per bucket).
 
     Args:
         engine: SQLAlchemy engine.
         lookback_days: How many days back to read.
-        devices: Optional fleet scope. When provided, rows are restricted to these
-            device_ids (v2: the ``fleet.active_devices`` set). ``None`` reads all.
+        devices: Optional extra fleet scope. The view is already restricted to the
+            active fleet; pass a subset to narrow further. ``None`` reads all.
 
-    Returns columns: ``device_id, ts, meter_type, consumption_kw, production_kw``.
+    Returns:
+        One row per ``(device_id, ts)`` with columns ``consumption_kwh``
+        (grid import), ``production_kwh`` (grid export), ``pv_production_kwh``,
+        ``self_consumed_kwh``, ``total_consumption_kwh``.
     """
     where_device = ""
     params: dict[str, object] = {"lookback": lookback_days}
@@ -36,8 +43,9 @@ def load_silver(
         params["devices"] = list(devices)
     sql = text(
         f"""
-        select device_id, ts, meter_type, consumption_kw, production_kw
-        from {_SILVER_SCHEMA}.meters_data
+        select device_id, ts, consumption_kwh, production_kwh,
+               pv_production_kwh, self_consumed_kwh, total_consumption_kwh
+        from {_SILVER_SCHEMA}.{METERS_VIEW}
         where ts >= now() - make_interval(days => :lookback)
         {where_device}
         """
@@ -48,55 +56,6 @@ def load_silver(
     return df
 
 
-def merge_meters(silver_df: pd.DataFrame) -> pd.DataFrame:
-    """Pivot M1 + combined M2/M2_2 per ``(device, ts)``; derive ``self_consumed_kw``.
-
-    Mirrors gamification/data_loader.py::load_meters exactly::
-
-        pv_production_kw = M2.production_kw + M2_2.production_kw
-        grid_export_kw   = M1.production_kw
-        self_consumed_kw = clip(pv_production_kw - grid_export_kw, >= 0)
-        total_cons_kw    = M1.consumption_kw + self_consumed_kw
-
-    Args:
-        silver_df: raw rows from the silver meters_data table.
-
-    Returns:
-        One row per ``(device_id, ts)`` with derived columns ``consumption_kw,
-        production_kw (= grid_export_kw), pv_production_kw, self_consumed_kw,
-        total_consumption_kw``.
-    """
-    m1 = silver_df[silver_df["meter_type"] == "M1"].copy()
-    m1 = m1.rename(columns={"production_kw": "grid_export_kw"})[
-        ["device_id", "ts", "consumption_kw", "grid_export_kw"]
-    ]
-
-    m2 = silver_df[silver_df["meter_type"].isin(["M2", "M2_2"])]
-    pv = (
-        m2.groupby(["device_id", "ts"])["production_kw"]
-        .sum()
-        .reset_index()
-        .rename(columns={"production_kw": "pv_production_kw"})
-    )
-
-    out = m1.merge(pv, on=["device_id", "ts"], how="left")
-    out["pv_production_kw"] = out["pv_production_kw"].fillna(0.0)
-    out["self_consumed_kw"] = (out["pv_production_kw"] - out["grid_export_kw"]).clip(lower=0.0)
-    out["production_kw"] = out["grid_export_kw"]  # keep original name for SQL parity
-    out["total_consumption_kw"] = out["consumption_kw"] + out["self_consumed_kw"]
-    return out[
-        [
-            "device_id",
-            "ts",
-            "consumption_kw",
-            "production_kw",
-            "pv_production_kw",
-            "self_consumed_kw",
-            "total_consumption_kw",
-        ]
-    ].reset_index(drop=True)
-
-
 def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
     """Add ``slot`` (0..95), ``is_weekday`` (bool), ``date``, ``hour`` derived from ``ts``."""
     df = df.copy()
@@ -104,16 +63,4 @@ def add_time_features(df: pd.DataFrame) -> pd.DataFrame:
     df["is_weekday"] = df["ts"].dt.dayofweek < 5
     df["date"] = df["ts"].dt.date
     df["hour"] = df["ts"].dt.hour
-    return df
-
-
-def to_kwh_per_bucket(df: pd.DataFrame, kw_cols: list[str]) -> pd.DataFrame:
-    """Convert named kW columns to kWh per 15-min bucket (``x 0.25``).
-
-    The returned DataFrame renames each column to the ``_kwh`` suffix.
-    """
-    df = df.copy()
-    for col in kw_cols:
-        kwh_col = col.replace("_kw", "_kwh")
-        df[kwh_col] = df[col] * 0.25
     return df
