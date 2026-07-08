@@ -251,7 +251,12 @@ models:
           - not_null
       - name: device_id
         data_tests:
-          - not_null
+          # Rejected commitments arrive from flexibility-api with NULL device_id
+          # (decline path skips DT resolution); they are kept for acceptance-rate
+          # analytics, so the invariant only holds for non-rejected rows.
+          - not_null:
+              config:
+                where: "status != 'rejected'"
       - name: actual_kwh
         data_tests:
           - not_null

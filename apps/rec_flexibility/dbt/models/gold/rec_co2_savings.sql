@@ -25,7 +25,7 @@ with daily as (
     select
         device_id,
         ts::date                          as ts_date,
-        sum(self_consumed_kw) * 0.25      as consumption_kwh
+        sum(self_consumed_kwh) * 0.25     as consumption_kwh
     from {{ ref('rec_meters_15m') }}
 
     {% if is_incremental() %}

@@ -3,11 +3,12 @@ version: 2
 models:
   - name: rec_meters_15m
     description: >
-      Analysis-ready 15-min meter table derived from ds_dev_silver.meters_data.
-      Replaces every downstream read of the banned ds_dev_gold.meters_data_15m. Columns
-      remain in kW (avg power over the 15-min bucket); x 0.25 gives kWh per bucket.
-      self_consumed_kw is derived from the M1+M2/M2_2 merge (matches
-      gamification/data_loader.py).
+      Analysis-ready 15-min meter view over ds_dev_gold.meters_data_15m (the
+      sanctioned rec_metering interface), scoped to the active fleet. All columns
+      are kWh per 15-min bucket. pv_production_kwh and the clipped
+      self_consumed_kwh are reconstructed from the unclipped upstream
+      self_consumed_kwh (matches gamification/data_loader.py::load_meters).
+      Includes M2-only slots (PV reading with no M1 row, consumption = 0).
     config:
       tags: ["rec_flexibility"]
     columns:
@@ -21,7 +22,7 @@ models:
       - name: ts
         data_tests:
           - not_null
-      - name: self_consumed_kw
+      - name: self_consumed_kwh
         data_tests:
           - not_null
 
@@ -38,7 +39,11 @@ models:
           - not_null
       - name: device_id
         data_tests:
-          - not_null
+          # flexibility-api persists declined suggestions as status=rejected WITHOUT
+          # resolving community_id/device_id (no DT call) — NULL is their contract.
+          - not_null:
+              config:
+                where: "status != 'rejected'"
       - name: status
         data_tests:
           - not_null

@@ -408,7 +408,7 @@ unit_tests:
     given:
       - input: ref('rec_meters_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kw: 2.0}
+          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kwh: 2.0}
       - input: ref('rec_flexibility_windows')
         rows:
           - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00',
@@ -429,7 +429,7 @@ unit_tests:
     given:
       - input: ref('rec_meters_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 14:00:00', consumption_kw: 1.0}
+          - {device_id: 'dev-01', ts: '2024-06-01 14:00:00', consumption_kwh: 1.0}
       - input: ref('rec_flexibility_windows')
         rows:
           - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00',
@@ -449,8 +449,8 @@ unit_tests:
     given:
       - input: ref('rec_meters_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kw: 2.0}
-          - {device_id: 'dev-01', ts: '2024-06-01 09:15:00', consumption_kw: 4.0}
+          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 2.0}
+          - {device_id: 'dev-01', ts: '2024-06-01 09:15:00', consumption_kwh: 4.0}
       - input: ref('rec_flexibility_windows')
         rows: []
     expect:
@@ -469,7 +469,7 @@ unit_tests:
     given:
       - input: ref('rec_meters_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kw: 2.0}
+          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kwh: 2.0}
       - input: ref('rec_flexibility_windows')
         rows:
           - {device_id: 'dev-01', window_start: '2024-06-01 08:00:00', window_end: '2024-06-01 12:00:00',

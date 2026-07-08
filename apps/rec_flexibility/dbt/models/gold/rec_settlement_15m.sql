@@ -48,10 +48,10 @@ with base as (
         -- consumption_kw is average kW over the 15-min bucket (kW, NOT kWh).
         -- ×0.25 (interval hours) converts to kWh per slot. Do NOT remove this
         -- multiplication — doing so would 4×-over-count every downstream kWh figure.
-        v.consumption_kw * 0.25         as consumption_kwh,
-        v.consumption_kw * 0.25         as grid_import_kwh,
-        v.production_kw * 0.25          as grid_export_kwh,
-        v.total_consumption_kw * 0.25   as total_consumption_kwh,
+        v.consumption_kwh * 0.25        as consumption_kwh,
+        v.consumption_kwh * 0.25        as grid_import_kwh,
+        v.production_kwh * 0.25         as grid_export_kwh,
+        v.total_consumption_kwh * 0.25  as total_consumption_kwh,
         w.window_start,
         w.window_end,
         w.ts_date,

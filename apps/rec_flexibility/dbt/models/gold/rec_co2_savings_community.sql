@@ -35,7 +35,7 @@ daily as (
     -- Previous revision summed kW directly (4× overcount). See Task 0 Step 0.5.
     select
         m.ts::date                          as ts_date,
-        sum(m.self_consumed_kw) * 0.25      as consumption_kwh,
+        sum(m.self_consumed_kwh) * 0.25     as consumption_kwh,
         count(distinct m.device_id)         as participating_devices
     from {{ ref('rec_meters_15m') }} m
     join window_intervals w

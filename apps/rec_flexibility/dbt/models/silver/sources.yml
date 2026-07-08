@@ -14,15 +14,20 @@ sources:
           error_after: {count: 2, period: hour}
         loaded_at_field: last_updated
 
-  - name: rec_metering_silver
-    schema: "{{ env_var('CELINE_SILVER_SCHEMA', 'ds_dev_silver') }}"
+  - name: rec_metering_gold
+    schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
     description: >
-      Silver meters data — one row per (device_id, ts, meter_type ∈ {M1, M2, M2_2}).
-      consumption_kw / production_kw are kW (average power over the 15-min bucket).
-      15-min kWh = column × 0.25. Hourly kWh = mean of four 15-min values.
+      Gold meters tables produced by the rec_metering pipeline app and exposed via
+      dataset-api (governance.yaml). One row per (device_id, ts): consumption_kwh =
+      M1 consumption, production_kwh = M1 grid export, self_consumed_kwh =
+      Σ(M2, M2_2 production) − M1 export (unclipped — negative values are real and
+      must be clipped by consumers). Refreshed every 10 minutes.
     tables:
-      - name: meters_data
-        description: "Source of truth for device meter readings. DO NOT use gold meters_data_15m/_1h."
+      - name: meters_data_15m
+        description: >
+          Sanctioned 15-min meter interface, pass-through of
+          ds_dev_silver.meters_data_normalized. Includes M2-only slots (PV reading
+          with no M1 row) as consumption_kwh = production_kwh = 0.
         freshness:
           warn_after: {count: 30, period: minute}
           error_after: {count: 2, period: hour}

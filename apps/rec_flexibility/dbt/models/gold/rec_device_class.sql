@@ -16,6 +16,6 @@
 
 select
     device_id,
-    (max(pv_production_kw) = 0.0) as is_m1_only
+    (max(pv_production_kwh) = 0.0) as is_m1_only
 from {{ ref('rec_meters_15m') }}
 group by device_id

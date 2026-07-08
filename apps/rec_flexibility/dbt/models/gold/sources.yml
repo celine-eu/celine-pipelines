@@ -1,11 +1,11 @@
 version: 2
 
 sources:
-  # rec_metering_gold (ds_dev_gold.meters_data_15m / _1h) removed 2026-04-17:
-  #   - meters_data_1h is broken (sums instead of averaging 4 × 15-min kW values)
-  #   - meters_data_15m is banned by project rule even though it passes through
-  #     silver values unchanged.
-  # All rec_flexibility models now read the silver-derived rec_meters_15m intermediate.
+  # ds_dev_gold.meters_data_15m is the sanctioned metering input again (source
+  # rec_metering_gold, declared in silver/sources.yml where rec_meters_15m lives).
+  # The 2026-04-17 ban predated the kW→kWh rename: with energy columns, summing
+  # 15-min buckets is correct and the old "_1h sums instead of averaging" defect
+  # no longer applies. All models keep reading the rec_meters_15m intermediate.
 
   - name: meters_gold
     schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
