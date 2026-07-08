@@ -21,9 +21,7 @@ with device as (
         r.rec_id,
         r.substation_id,
         m.ts,
-        -- consumption_kw is already kWh per 15-min slot (column name is a
-        -- misnomer) — no ×0.25 conversion, which quartered every figure.
-        m.consumption_kw as consumption_kwh
+        m.consumption_kwh
     from {{ source('rec_metering_gold', 'meters_data_15m') }} m
     join {{ ref('silver_rec_registry') }} r on m.device_id = r.sensor_id
 
@@ -35,18 +33,13 @@ with device as (
     {% endif %}
 ),
 
--- Reuse pre-computed community totals per (ts, rec_id, substation_id).
--- Avoids re-scanning meters_data_15m and ensures consistency with
--- community-level self-consumption figures.
 community as (
     select
         ts,
         rec_id,
         substation_id,
-        -- _kw columns are already kWh per 15-min slot — pass through unchanged
-        -- so available_kwh carries real energy units for virtual allocation.
-        total_consumption_kw as total_consumption_kwh,
-        self_consumption_kw  as available_kwh
+        total_consumption_kwh,
+        self_consumption_kwh as available_kwh
     from {{ ref('rec_virtual_consumption_15m') }}
 
     {% if is_incremental() %}

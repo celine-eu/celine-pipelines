@@ -5,8 +5,8 @@
     incremental_strategy='merge',
     merge_update_columns=[
       'ts',
-      'consumption_kw',
-      'production_kw'
+      'consumption_kwh',
+      'production_kwh'
     ]
   )
 }}
@@ -15,8 +15,8 @@ with base as (
     select
         device_id,
         ts,
-        consumption_kw,
-        production_kw
+        consumption_kwh,
+        production_kwh
     from {{ ref('meters_data_15m') }}
 ),
 
@@ -25,8 +25,8 @@ aggregated as (
         md5(device_id || date_trunc('hour', ts)::text) as _id,  -- unique per device per hour
         device_id,
         date_trunc('hour', ts) as ts,
-        sum(consumption_kw) as consumption_kw,
-        sum(production_kw) as production_kw
+        sum(consumption_kwh) as consumption_kwh,
+        sum(production_kwh) as production_kwh
     from base
     group by device_id, date_trunc('hour', ts)
 ),
