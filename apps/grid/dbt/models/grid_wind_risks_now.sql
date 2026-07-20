@@ -14,6 +14,8 @@
     Source: silver_grid_ac_line_segment (conductor_type != underground_cable).
     Observations: om_obs_15min (spatial join ≤ 5 km, nearest station, most recent).
     Gust excess thresholds: WARNING >= 7.62 m/s, ALERT >= 12.46 m/s.
+
+    Escalation: WARNING → ALERT when strike_tree_tier = 'high' (tree-strike analysis); NORMAL never escalates.
 #}
 
 {% set seg = source('grid_silver', 'silver_grid_ac_line_segment') %}
@@ -48,6 +50,9 @@ with_dist as (
         s.is_vegetated_zone,
         s.elevation_start_m,
         s.elevation_end_m,
+        s.strike_tree_tier,
+        s.strike_tree_multiplier,
+        s.strike_density_per_km,
         o.observed_at,
         o.wind_speed_ms,
         o.wind_gusts_ms,
@@ -83,6 +88,23 @@ classified as (
     from ranked
     where rn = 1
 
+),
+
+escalated as (
+
+    select
+        *,
+        case
+            when risk_level = 'WARNING' and strike_tree_tier = 'high'
+            then 'ALERT'
+            else risk_level
+        end as risk_level_escalated,
+        coalesce(
+            risk_level = 'WARNING' and strike_tree_tier = 'high',
+            false
+        ) as escalated_by_tree_strike
+    from classified
+
 )
 
 select
@@ -97,14 +119,18 @@ select
     is_vegetated_zone,
     elevation_start_m,
     elevation_end_m,
+    strike_tree_tier,
+    strike_tree_multiplier,
+    strike_density_per_km,
 
     current_date       as date,
-    risk_level,
+    risk_level_escalated as risk_level,
+    escalated_by_tree_strike,
     gust_excess,
     wind_speed_ms      as wind_speed_max,
     wind_gusts_ms      as wind_gusts_max,
-    {{ grid_risk_color('risk_level') }} as risk_color_hex,
+    {{ grid_risk_color('risk_level_escalated') }} as risk_color_hex,
     observed_at
 
-from classified
-where risk_level != 'NORMAL'
+from escalated
+where risk_level_escalated != 'NORMAL'

@@ -35,7 +35,11 @@ with wind_ranked as (
         jsonb_build_object(
             'gust_excess',    gust_excess,
             'wind_speed_max', wind_speed_max,
-            'wind_gusts_max', wind_gusts_max
+            'wind_gusts_max', wind_gusts_max,
+            'strike_tree_tier',         strike_tree_tier,
+            'strike_tree_multiplier',   strike_tree_multiplier,
+            'strike_density_per_km',    strike_density_per_km,
+            'escalated_by_tree_strike', escalated_by_tree_strike
         )                       as metrics,
         row_number() over (
             partition by

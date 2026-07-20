@@ -12,6 +12,7 @@
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    full_refresh=false,
     merge_update_columns=[
       'ts_date',
       'window_start',
@@ -23,6 +24,13 @@
     pre_hook="{% if is_incremental() %}delete from {{ this }} where ts_date >= current_date{% endif %}"
   )
 }}
+
+{#
+  full_refresh=false: this table is ACCUMULATE-ONLY. It derives from the LATEST
+  forecast generation (~48h horizon), so history exists only through daily
+  incremental runs — a full refresh would collapse it to ~3 days and the loss is
+  unrecoverable from source (restored once from CNPG PITR on 2026-07-08).
+#}
 
 -- Community surplus threshold (kWh for a 1-hour period, community aggregate)
 {% set EXPORT_THRESHOLD_KWH = 0.5 %}

@@ -17,6 +17,8 @@
     is_vegetated_zone = true marks overhead segments that pass through
     forested areas (derived from tratte boscate spatial annotation).
     Elevation fields are populated for vegetated segments only.
+
+    Escalation: WARNING → ALERT when strike_tree_tier = 'high' (tree-strike analysis); NORMAL never escalates.
 #}
 
 {% set seg   = source('grid_silver', 'silver_grid_ac_line_segment') %}
@@ -58,6 +60,9 @@ with_dist as (
         s.is_vegetated_zone,
         s.elevation_start_m,
         s.elevation_end_m,
+        s.strike_tree_tier,
+        s.strike_tree_multiplier,
+        s.strike_density_per_km,
         s.geom,
         g.date,
         g.gust_excess_tier,
@@ -87,12 +92,29 @@ ranked as (
 
 ),
 
+escalated as (
+
+    select
+        *,
+        case
+            when gust_excess_tier = 'WARNING' and strike_tree_tier = 'high'
+            then 'ALERT'
+            else gust_excess_tier
+        end as risk_level,
+        coalesce(
+            gust_excess_tier = 'WARNING' and strike_tree_tier = 'high',
+            false
+        ) as escalated_by_tree_strike
+    from ranked
+
+),
+
 colored as (
 
     select
         *,
-        {{ grid_risk_color('gust_excess_tier') }} as risk_color_hex
-    from ranked
+        {{ grid_risk_color('risk_level') }} as risk_color_hex
+    from escalated
 
 )
 
@@ -108,9 +130,13 @@ select
     is_vegetated_zone,
     elevation_start_m,
     elevation_end_m,
+    strike_tree_tier,
+    strike_tree_multiplier,
+    strike_density_per_km,
 
     date,
-    gust_excess_tier   as risk_level,
+    risk_level,
+    escalated_by_tree_strike,
     gust_excess,
     wind_speed_max,
     wind_gusts_max,

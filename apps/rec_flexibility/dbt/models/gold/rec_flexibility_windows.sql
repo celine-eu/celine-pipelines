@@ -9,6 +9,7 @@
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    full_refresh=false,
     merge_update_columns=[
       'ts_date',
       'window_start',
@@ -22,6 +23,9 @@
     pre_hook="{% if is_incremental() %}delete from {{ this }} where ts_date >= current_date{% endif %}"
   )
 }}
+
+-- full_refresh=false: accumulate-only, same rationale as rec_flexibility_windows_community
+-- (derives from the latest ~48h forecast generation; history is unrecoverable from source).
 
 -- Per-device flexibility window enrichment.
 --

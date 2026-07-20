@@ -35,10 +35,27 @@ models:
         description: "Elevation at segment start (vegetated zones only)"
       - name: elevation_end_m
         description: "Elevation at segment end (vegetated zones only)"
+      - name: strike_tree_tier
+        description: >
+          Tree-strike exposure tier from the wind_tree_strike LiDAR analysis
+          (worst intersecting span). NULL where the analysis has no coverage.
+        tests:
+          - accepted_values:
+              values: ['low', 'mid', 'high']
+              config:
+                where: "strike_tree_tier is not null"
+      - name: strike_tree_multiplier
+        description: Fault-rate multiplier of the matched span (1.0 / ~1.28 / ~3.30).
+      - name: strike_density_per_km
+        description: Strike-tree density (trees/km) of the matched span.
       - name: date
         description: "Forecast date"
       - name: risk_level
         description: "ALERT | WARNING | NORMAL"
+      - name: escalated_by_tree_strike
+        description: >
+          True when risk_level was escalated WARNING→ALERT because
+          strike_tree_tier = 'high'. NORMAL rows never escalate.
       - name: gust_excess
         description: "Wind gust speed excess above threshold"
       - name: wind_speed_max
@@ -143,6 +160,19 @@ models:
         description: "ACLineSegment.name — equals asset_key for lines, source line for substations"
       - name: name
         description: "Human-readable name — null for lines, substation name for substations"
+      - name: strike_tree_tier
+        description: >
+          Tree-strike exposure tier from the wind_tree_strike LiDAR analysis
+          (worst intersecting span). NULL where the analysis has no coverage.
+        tests:
+          - accepted_values:
+              values: ['low', 'mid', 'high']
+              config:
+                where: "strike_tree_tier is not null"
+      - name: strike_tree_multiplier
+        description: Fault-rate multiplier of the matched span (1.0 / ~1.28 / ~3.30).
+      - name: strike_density_per_km
+        description: Strike-tree density (trees/km) of the matched span.
       - name: geom
         description: "PostGIS geometry EPSG:32632 — for spatial ops and Superset"
       - name: feature_geojson
@@ -297,10 +327,27 @@ models:
         description: "Elevation at segment start (vegetated zones only)"
       - name: elevation_end_m
         description: "Elevation at segment end (vegetated zones only)"
+      - name: strike_tree_tier
+        description: >
+          Tree-strike exposure tier from the wind_tree_strike LiDAR analysis
+          (worst intersecting span). NULL where the analysis has no coverage.
+        tests:
+          - accepted_values:
+              values: ['low', 'mid', 'high']
+              config:
+                where: "strike_tree_tier is not null"
+      - name: strike_tree_multiplier
+        description: Fault-rate multiplier of the matched span (1.0 / ~1.28 / ~3.30).
+      - name: strike_density_per_km
+        description: Strike-tree density (trees/km) of the matched span.
       - name: date
         description: "Assessment date (current_date)"
       - name: risk_level
         description: "ALERT | WARNING | NORMAL"
+      - name: escalated_by_tree_strike
+        description: >
+          True when risk_level was escalated WARNING→ALERT because
+          strike_tree_tier = 'high'. NORMAL rows never escalate.
       - name: gust_excess
         description: "Wind gust speed excess above sustained wind (m/s)"
       - name: wind_speed_max

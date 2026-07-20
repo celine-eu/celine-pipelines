@@ -47,6 +47,13 @@ lines_agg as (
         min(feeder_id)                      as feeder_id,
         sum(length_m)                       as length_m,
         bool_or(is_vegetated_zone)          as is_vegetated_zone,
+        case
+            when bool_or(strike_tree_tier = 'high') then 'high'
+            when bool_or(strike_tree_tier = 'mid')  then 'mid'
+            when bool_or(strike_tree_tier = 'low')  then 'low'
+        end                                 as strike_tree_tier,
+        max(strike_tree_multiplier)         as strike_tree_multiplier,
+        max(strike_density_per_km)          as strike_density_per_km,
         ST_Union(geom)                      as geom
     from lines
     group by
@@ -67,6 +74,9 @@ select
     feeder_id,
     length_m,
     is_vegetated_zone,
+    strike_tree_tier,
+    strike_tree_multiplier,
+    strike_density_per_km,
     null::text              as voltage_class,
     null::text              as label,
     null::text              as label_id,
@@ -82,7 +92,10 @@ select
             'conductor_type',      conductor_type,
             'parent_substation_name', parent_substation_name,
             'operational_unit',    operational_unit,
-            'municipality',        municipality
+            'municipality',        municipality,
+            'strike_tree_tier',       strike_tree_tier,
+            'strike_tree_multiplier', strike_tree_multiplier,
+            'strike_density_per_km',  strike_density_per_km
         )"
     ) }} as feature_geojson
 
@@ -103,6 +116,9 @@ select
     feeder_id,
     null::float             as length_m,
     null::boolean           as is_vegetated_zone,
+    null::text              as strike_tree_tier,
+    null::float             as strike_tree_multiplier,
+    null::float             as strike_density_per_km,
     voltage_class,
     label,
     label_id,
