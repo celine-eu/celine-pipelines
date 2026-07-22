@@ -43,13 +43,18 @@ sources:
             tests: [not_null]
           - name: baseline_type
             description: >
-              'settlement' (rolling), 'reference' (winsorized monthly), or
-              'grid_export_median' (M1-only export reference for the v2 consumption proxy).
+              'settlement' (rolling), 'reference' (winsorized monthly),
+              'grid_export_median' (M1-only export reference for the v2 consumption proxy),
+              'shift_potential' (v3 upward-spread promise, present only for devices with
+              >= min_history_days of history) or 'import_spread' (M1-only cap component,
+              paired with grid_export_median to bound shift_potential).
+              Keep in sync with the rec_device_baselines accepted_values list in schema.yml —
+              both tests cover the same column and drifting them apart breaks the nightly run.
             tests:
               - not_null
               - accepted_values:
                   arguments:
-                    values: ["settlement", "reference", "grid_export_median"]
+                    values: ["settlement", "reference", "grid_export_median", "shift_potential", "import_spread"]
           - name: slot
             description: "15-min slot 0..95"
             tests: [not_null]
