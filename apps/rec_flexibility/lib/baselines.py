@@ -129,6 +129,58 @@ def compute_median_baseline(
     return out
 
 
+def compute_upward_spread(
+    device_data: pd.DataFrame,
+    value_col: str = "consumption_kwh",
+    q_hi: float = 0.75,
+    q_lo: float = 0.5,
+    clear_top: int | None = None,
+) -> dict[tuple[int, bool], float]:
+    """Per (slot, is_weekday) upward spread of daily values: clip(q_hi − q_lo, 0).
+
+    The spread measures how much MORE a device has demonstrably consumed in a slot
+    than its typical level — constant base load (fridge) yields zero spread, so only
+    shiftable consumption contributes to the v3 window-promise ``potential_kwh``.
+
+    Args:
+        device_data: Per-device frame with ``slot``, ``is_weekday``, ``date`` and
+            ``value_col`` columns (plus ``grid_export_kwh`` when ``clear_top`` is set).
+        value_col: Column to measure (settlement consumption basis or grid import).
+        q_hi: Upper quantile of daily per-slot values.
+        q_lo: Lower quantile (central tendency) of daily per-slot values.
+        clear_top: If set, restrict to the ``clear_top`` days with the highest total
+            ``grid_export_kwh`` first ("clear-day filter" for PV devices, so weather
+            variance does not masquerade as behavioral flexibility).
+
+    Returns:
+        ``{(slot, is_weekday): spread_kwh_per_bucket}``; empty dict for empty input.
+    """
+    out: dict[tuple[int, bool], float] = {}
+    if device_data.empty:
+        return out
+
+    data = device_data
+    if clear_top is not None and "grid_export_kwh" in device_data.columns:
+        daily_export = device_data.groupby("date")["grid_export_kwh"].sum()
+        keep_dates = set(daily_export.nlargest(clear_top).index)
+        data = device_data[device_data["date"].isin(keep_dates)]
+        if data.empty:
+            return out
+
+    grp = (
+        data.groupby(["slot", "is_weekday", "date"], sort=True)[value_col]
+        .mean()
+        .reset_index(name="daily_kwh")
+    )
+    for (slot, is_wkday), bucket in grp.groupby(["slot", "is_weekday"], sort=False):
+        daily = bucket["daily_kwh"].to_numpy(dtype=float)
+        if daily.size == 0:
+            continue
+        spread = float(np.quantile(daily, q_hi) - np.quantile(daily, q_lo))
+        out[(int(slot), bool(is_wkday))] = max(0.0, spread)
+    return out
+
+
 def compute_m1_only_consumption_proxy(
     grid_import: float | np.ndarray,
     grid_export_actual: float | np.ndarray,

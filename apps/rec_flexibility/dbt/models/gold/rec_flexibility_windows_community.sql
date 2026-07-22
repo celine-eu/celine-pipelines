@@ -111,13 +111,64 @@ windows as (
     having count(*) >= {{ MIN_WINDOW_HOURS }}
 )
 
+{% if is_incremental() %}
+-- Realized hit-rate: how often did hours we promised as surplus actually turn out
+-- surplus? Scored on the SAME metric detection uses (net_exchange_kwh vs threshold),
+-- over the last 30 days of already-materialized windows. Hours without actual data
+-- are excluded from the denominator. Replaces the 0.75 placeholder
+-- (closes CELINE-FLEX-CONF-CAL).
+, past_window_hours as (
+    select hour_ts
+    from {{ this }} w
+    cross join lateral generate_series(
+        w.window_start,
+        w.window_end - interval '1 hour',
+        interval '1 hour'
+    ) as hour_ts
+    where w.ts_date >= current_date - interval '30 days'
+      and w.ts_date < current_date
+),
+
+actual_hours as (
+    select
+        date_trunc('hour', f.timestamp::timestamp) as hour_ts,
+        avg(f.net_exchange_kwh)                    as net_exchange_kwh
+    from {{ source('meters_gold', 'total_meters_forecast') }} f
+    where f.period = 'actual'
+      and f.timestamp::timestamp >= current_date - interval '31 days'
+      and f.timestamp::timestamp <  current_date
+    group by date_trunc('hour', f.timestamp::timestamp)
+),
+
+hit_rate as (
+    select
+        count(*) filter (where a.net_exchange_kwh > {{ EXPORT_THRESHOLD_KWH }})::numeric
+            / nullif(count(a.hour_ts), 0) as raw_rate
+    from past_window_hours pwh
+    left join actual_hours a using (hour_ts)
+)
+{% endif %}
+
 select
     md5(w.ts_date::text || w.window_start::text || w.window_end::text)  as _id,
     w.ts_date,
     w.window_start,
     w.window_end,
     round(w.community_kwh::numeric, 2)                                  as community_kwh,
-    -- TODO [CELINE-FLEX-CONF-CAL]: placeholder until calibration seed lands.
-    0.75::numeric                                                       as confidence,
+    {% if is_incremental() %}
+    -- NOTE: greatest()/least() silently ignore NULL arguments in Postgres, so a bare
+    -- greatest(0.30, hr.raw_rate) would coerce a NULL (no scored history) into 0.30
+    -- instead of propagating NULL. Guard explicitly to honour the "no data -> no
+    -- number" contract.
+    case
+        when hr.raw_rate is null then null
+        else round(least(0.95, greatest(0.30, hr.raw_rate)), 2)
+    end                                                                  as confidence,
+    {% else %}
+    null::numeric                                                       as confidence,
+    {% endif %}
     '{{ var("flexibility_model", "solar_overproduction") }}'::text      as flexibility_model
 from windows w
+{% if is_incremental() %}
+cross join hit_rate hr
+{% endif %}

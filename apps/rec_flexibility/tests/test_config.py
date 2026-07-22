@@ -71,3 +71,15 @@ def test_get_event_tiers_sorted(config_path):
     cfg = cfg_mod.load_config(config_path)
     tiers = cfg_mod.get_event_tiers(cfg)
     assert tiers == sorted(tiers, key=lambda t: t[0])
+
+
+def test_window_promise_config_keys(config_path):
+    cfg = cfg_mod.load_config(config_path)
+    wp = cfg["window_promise"]
+    assert wp["shift_q_hi"] == 0.75
+    assert wp["shift_q_lo"] == 0.5
+    assert wp["clear_top_days"] == 7
+    assert wp["pv_export_threshold_kwh"] == 1.0
+    assert wp["lookback_days"] == 35
+    assert wp["min_history_days"] == 14
+    assert wp["calibration_lambda"] == 1.0

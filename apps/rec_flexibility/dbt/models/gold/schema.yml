@@ -178,8 +178,11 @@ models:
       (device_id, season_start); seasons are 2-month calendar blocks anchored at 2025-09-01
       (dbt vars season_anchor_date / season_months, mirrored in flexibility_config.yaml).
       DISPLAYED (resettable, shown to the participant): season_base_points,
-      season_bonus_points, season_points — they accrue within a season and start again at 0
-      every season. The frontend shows the row WHERE is_current_season.
+      season_bonus_points, season_points, season_rank, total_members — they accrue within a
+      season and start again at 0 every season. season_end is the exclusive season boundary.
+      The current season is fleet-complete: every rec_active_devices device gets a row
+      (0-filled if it earned nothing), while past seasons stay earned-rows-only. The frontend
+      shows the row WHERE is_current_season.
       PRIVATE (never shown): alltime_base_points, alltime_bonus_points — lifetime cumulative
       since the anchor date, for analytics/audit only. Consumers MUST exclude them from any
       participant-facing payload.
@@ -195,6 +198,25 @@ models:
         data_tests:
           - not_null
       - name: season_start
+        data_tests:
+          - not_null
+      - name: season_end
+        description: >
+          Exclusive season end (start of the next season) = season_start + season_months.
+          The only materialized source of season length — consumers derive countdowns
+          from it.
+        data_tests:
+          - not_null
+      - name: season_rank
+        description: >
+          rank() of season_points desc within the season; ties share a rank, 0-point
+          fleet devices tie last.
+        data_tests:
+          - not_null
+      - name: total_members
+        description: >
+          Devices ranked in this season — active-fleet size for the current season,
+          earned-devices count for past seasons.
         data_tests:
           - not_null
       - name: season_points
@@ -356,9 +378,13 @@ models:
   - name: rec_device_baselines
     description: >
       View over Python-written _rec_device_baselines_raw. baseline_kwh is kWh per 15-min
-      bucket; baseline_type ∈ {'settlement','reference','grid_export_median'}. The
-      grid_export_median type exists only for M1-only devices and is the median export
-      reference the v2 consumption proxy subtracts against.
+      bucket; baseline_type ∈ {'settlement','reference','grid_export_median',
+      'shift_potential','import_spread'}. The grid_export_median type exists only for
+      M1-only devices and is the median export reference the v2 consumption proxy
+      subtracts against. shift_potential is the v3 upward-spread promise (present only
+      for devices with >= min_history_days of history — its PRESENCE is the marker for
+      rec_flexibility_windows' baseline path). import_spread is the M1-only cap
+      component (paired with grid_export_median to bound shift_potential).
     config:
       tags: ["rec_flexibility", "gamification"]
     columns:
@@ -370,7 +396,7 @@ models:
           - not_null
           - accepted_values:
               arguments:
-                values: ["settlement", "reference", "grid_export_median"]
+                values: ["settlement", "reference", "grid_export_median", "shift_potential", "import_spread"]
 
   - name: rec_device_streaks
     description: >

@@ -22,6 +22,8 @@ vars:
   # Displayed points reset every `season_months` calendar months from `season_anchor_date`.
   season_anchor_date: "2025-09-01"
   season_months: 2
+  # v3 window promise — keep in sync with flexibility_config.yaml `window_promise`.
+  calibration_lambda: 1.0
 
 models:
   rec_flexibility:

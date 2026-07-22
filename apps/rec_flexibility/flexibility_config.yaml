@@ -63,6 +63,22 @@ baseline:
     # Winsorization order: collect 90 days → trim extremes → apply High 4/7 on remainder
 
 
+# --- Section 1b: Window promise (v3 "Fair and Square" personal potential) ---
+# Suggestion-card promises are baseline-derived, not forecast-derived:
+#   estimated_kwh = expected (settlement baseline) + potential (upward spread),
+# with the M1-only potential capped by export_median + import_spread.
+# See docs/superpowers/specs/2026-07-06-flexibility-window-points-v3-design.md (demo3).
+# NOTE: dbt reads calibration_lambda via vars in dbt_project.yml — keep in sync.
+window_promise:
+  shift_q_hi: 0.75             # upper quantile of daily per-slot values
+  shift_q_lo: 0.5              # lower quantile (central tendency)
+  clear_top_days: 7            # PV devices: spread computed on top-N export days only
+  pv_export_threshold_kwh: 1.0 # device is "PV" if it exported more than this in the lookback
+  lookback_days: 35            # rolling history window for the spread
+  min_history_days: 14         # below this: no shift_potential rows -> forecast fallback
+  calibration_lambda: 1.0      # global promise scaling (single knob, never per-class)
+
+
 # --- Section 2: Points & Settlement ---
 
 settlement:

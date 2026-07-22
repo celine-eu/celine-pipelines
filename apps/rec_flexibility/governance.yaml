@@ -55,6 +55,15 @@ sources:
     dataspace:
       expose: true
 
+  datasets.ds_dev_gold.rec_points_leaderboard:
+    tags: [flexibility, gamification, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: true
+
   datasets.ds_dev_gold.rec_flexibility_windows:
     tags: [flexibility, gold]
     row_filters:

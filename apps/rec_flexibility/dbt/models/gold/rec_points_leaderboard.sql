@@ -13,12 +13,21 @@
 --
 -- DISPLAYED (resettable) — the points a participant sees. They accrue within a season and
 -- return to 0 at each season boundary, because each season is a separate row:
---   season_base_points, season_bonus_points, season_points
--- The frontend shows the row WHERE is_current_season is true.
+--   season_base_points, season_bonus_points, season_points, season_rank, total_members
+-- The frontend shows the row WHERE is_current_season is true. season_end is exclusive
+-- (start of the next season); it is the ONLY place season length is materialized —
+-- downstream consumers must derive countdowns from it, never hardcode the length.
+--
+-- Fleet-complete current season: the current season is built from the rec_active_devices
+-- seed LEFT JOINed to earned aggregates, so a device added to the fleet appears the same
+-- run with 0 points, ranked (tied) last. Past seasons stay earned-rows-only (no
+-- retroactive zero-rows); their total_members counts devices that actually earned.
 --
 -- PRIVATE (never shown to the participant) — lifetime cumulative since the anchor date,
 -- carried for analytics/audit only. Consumers MUST NOT expose these:
 --   alltime_base_points, alltime_bonus_points
+-- All-time totals are computed over EARNED rows only, so they are unaffected by the
+-- current-season zero-fill and survive a device's removal from the fleet.
 --
 -- Materialized as a full table (not incremental): the all-time cumulative columns are
 -- global sums and must be recomputed wholesale on every run to stay correct.
@@ -36,25 +45,60 @@ with per_season as (
     where season_start >= date_trunc('month', cast('{{ var("season_anchor_date") }}' as date))
     group by device_id, season_start
 ),
-with_alltime as (
+current_season_universe as (
     select
-        ps.*,
-        -- Lifetime totals per device (same value on every one of the device's rows).
-        sum(ps.season_base_points)  over (partition by ps.device_id) as alltime_base_points,
-        sum(ps.season_bonus_points) over (partition by ps.device_id) as alltime_bonus_points
-    from per_season ps
+        device_id,
+        {{ rec_season_start('current_date') }} as season_start
+    from {{ ref('rec_active_devices') }}
+),
+seasons_complete as (
+    -- past seasons: earned rows as-is
+    select
+        device_id,
+        season_start,
+        season_base_points,
+        season_bonus_points,
+        season_points
+    from per_season
+    where season_start <> {{ rec_season_start('current_date') }}
+    union all
+    -- current season: every fleet device, 0-filled
+    select
+        u.device_id,
+        u.season_start,
+        coalesce(ps.season_base_points, 0) as season_base_points,
+        coalesce(ps.season_bonus_points, 0) as season_bonus_points,
+        coalesce(ps.season_points, 0)       as season_points
+    from current_season_universe u
+    left join per_season ps
+      on ps.device_id = u.device_id
+     and ps.season_start = u.season_start
+),
+alltime as (
+    -- Earned rows only: independent of the fleet union above.
+    select
+        device_id,
+        sum(season_base_points)  as alltime_base_points,
+        sum(season_bonus_points) as alltime_bonus_points
+    from per_season
+    group by device_id
 )
 select
-    md5(device_id || season_start::text)              as _id,
-    device_id,
-    season_start,
+    md5(s.device_id || s.season_start::text)          as _id,
+    s.device_id,
+    s.season_start,
+    (s.season_start + interval '{{ var("season_months") }} months')::date as season_end,
     -- shown
-    season_base_points,
-    season_bonus_points,
-    season_points,
+    s.season_base_points,
+    s.season_bonus_points,
+    s.season_points,
+    rank() over (partition by s.season_start order by s.season_points desc) as season_rank,
+    count(*) over (partition by s.season_start)                             as total_members,
     -- private (lifetime, never reset)
-    alltime_base_points,
-    alltime_bonus_points,
+    coalesce(a.alltime_base_points, 0)  as alltime_base_points,
+    coalesce(a.alltime_bonus_points, 0) as alltime_bonus_points,
     -- the season containing "today" — the row the leaderboard displays
-    (season_start = {{ rec_season_start('current_date') }}) as is_current_season
-from with_alltime
+    (s.season_start = {{ rec_season_start('current_date') }}) as is_current_season
+from seasons_complete s
+left join alltime a
+  on a.device_id = s.device_id

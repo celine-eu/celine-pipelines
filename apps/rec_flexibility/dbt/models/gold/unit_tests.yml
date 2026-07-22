@@ -16,7 +16,11 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 3.0}
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 3.0, confidence: 0.75}
+      - input: ref('rec_device_baselines')
+        rows: []
+      - input: ref('rec_device_class')
+        rows: []
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
           - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
@@ -39,7 +43,11 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 2.0}
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 2.0, confidence: 0.75}
+      - input: ref('rec_device_baselines')
+        rows: []
+      - input: ref('rec_device_class')
+        rows: []
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
           - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
@@ -62,7 +70,11 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 4.0}
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 4.0, confidence: 0.75}
+      - input: ref('rec_device_baselines')
+        rows: []
+      - input: ref('rec_device_class')
+        rows: []
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
           - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
@@ -74,10 +86,12 @@ unit_tests:
         - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', reward_points_estimated: 9}
         - {device_id: 'dev-02', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', reward_points_estimated: 15}
 
-  - name: w8_device_with_zero_forecast_excluded_from_output
+  - name: w8_zero_forecast_device_without_baselines_excluded
     description: >
-      A device forecasting zero consumption during the window must not appear in output
-      (filtered by where estimated_kwh > 0). A device with positive forecast is still returned.
+      A cold-start device (no settlement/shift_potential baselines) forecasting zero
+      consumption during the window must not appear (fallback path, estimated_kwh=0
+      filtered). A device with positive forecast is still returned. Devices WITH
+      baselines are covered by w9-w12 and are never excluded for zero forecast.
     model: rec_flexibility_windows
     overrides:
       macros:
@@ -85,7 +99,11 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0}
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: 0.75}
+      - input: ref('rec_device_baselines')
+        rows: []
+      - input: ref('rec_device_class')
+        rows: []
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
           - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
@@ -96,6 +114,193 @@ unit_tests:
       rows:
         - {device_id: 'dev-01'}
       # dev-02 must not appear
+
+  - name: w9_baseline_path_expected_plus_spread
+    description: >
+      v3: a device with settlement + shift_potential baselines is promised
+      expected (0.1x8=0.8) + potential (0.05x8=0.4) = 1.2 kWh -> 11 pts,
+      regardless of its forecast (liveness rows carry 0 consumption).
+      2024-06-01 is a Saturday -> is_weekday=false.
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: 0.62}
+      - input: ref('rec_device_class')
+        rows:
+          - {device_id: 'dev-01', is_m1_only: false}
+      - input: ref('rec_device_baselines')
+        rows:
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.05}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-01', estimated_kwh: "1.20", reward_points_estimated: 11, confidence: 0.62}
+
+  - name: w10_m1_only_potential_capped_by_export_and_import_spread
+    description: >
+      v3 M1-only cap: potential (0.5x8=4.0) is capped by export_median+import_spread
+      ((0.05+0.05)x8=0.8) -> estimated = 0.8 + 0.8 = 1.6 kWh -> 15 pts.
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: null}
+      - input: ref('rec_device_class')
+        rows:
+          - {device_id: 'dev-m1', is_m1_only: true}
+      - input: ref('rec_device_baselines')
+        rows:
+          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.5}
+          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.5}
+          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.5}
+          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.5}
+          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.5}
+          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.5}
+          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.5}
+          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.5}
+          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 36, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 37, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 38, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 39, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 40, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 41, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 42, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 43, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 36, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 37, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 38, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 39, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 40, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 41, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 42, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 43, is_weekday: false, baseline_kwh: 0.05}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-m1', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: null, grid_import_kwh: 0.0, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-m1', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: null, grid_import_kwh: 0.0, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-m1', estimated_kwh: "1.60", reward_points_estimated: 15, confidence: null}
+
+  - name: w11_cold_start_device_falls_back_beside_baseline
+    description: >
+      Mixed window: dev-base (has baselines) gets the v3 estimate (1.2 kWh -> 11 pts);
+      dev-cold (no baselines) keeps the forecast estimate (0.5x2=1.0 kWh -> 9 pts).
+      Total 2.2 < community_kwh 4.0 -> no normalization.
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 4.0, confidence: 0.75}
+      - input: ref('rec_device_class')
+        rows:
+          - {device_id: 'dev-base', is_m1_only: false}
+      - input: ref('rec_device_baselines')
+        rows:
+          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.05}
+          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.05}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-base', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-base', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-cold', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-cold', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-base', estimated_kwh: "1.20", reward_points_estimated: 11}
+        - {device_id: 'dev-cold', estimated_kwh: "1.00", reward_points_estimated: 9}
+
+  - name: w12_zero_spread_device_still_gets_nonzero_promise
+    description: >
+      A device with settlement baselines but zero shift_potential (constant profile)
+      is promised its expected consumption only: 0.8 kWh -> 8 pts. Never zero -
+      this is the structural-exclusion fix for prosumers.
+    model: rec_flexibility_windows
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: 0.75}
+      - input: ref('rec_device_class')
+        rows:
+          - {device_id: 'dev-01', is_m1_only: false}
+      - input: ref('rec_device_baselines')
+        rows:
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.0}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.0}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.0}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.0}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.0}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.0}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.0}
+          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.0}
+      - input: source('meters_gold', 'meters_energy_forecast')
+        rows:
+          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+    expect:
+      rows:
+        - {device_id: 'dev-01', estimated_kwh: "0.80", reward_points_estimated: 8}
 
   # ─────────────────────────────────────────────────────────────────────────────
   # rec_flexibility_windows_community (event layer)
@@ -186,6 +391,100 @@ unit_tests:
           - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 0.5, period: 'forecast'}
     expect:
       rows: []
+
+  - name: cw6_confidence_is_realized_hit_rate_of_past_windows
+    description: >
+      Confidence = share of past predicted window hours (30-day lookback) where the
+      actual community net export exceeded the surplus threshold. One past 2-hour
+      window with 1 hit (1.0 kWh) and 1 miss (0.2 kWh) -> 0.50, stamped on the new
+      forecast window.
+    model: rec_flexibility_windows_community
+    overrides:
+      macros:
+        is_incremental: true
+    given:
+      - input: this
+        format: sql
+        rows: |
+          select
+            'past-1'::text                                            as _id,
+            (current_date - 1)::date                                  as ts_date,
+            (current_date - 1)::timestamp + interval '9 hours'        as window_start,
+            (current_date - 1)::timestamp + interval '11 hours'       as window_end,
+            2.0::numeric                                              as community_kwh,
+            null::numeric                                             as confidence,
+            'solar_overproduction'::text                              as flexibility_model
+      - input: source('meters_gold', 'total_meters_forecast')
+        format: sql
+        rows: |
+          select ((current_date - 1)::timestamp + interval '9 hours')::text  as timestamp, 'actual'::text   as period, 1.0::float as net_exchange_kwh, null::text as generated_at
+          union all
+          select ((current_date - 1)::timestamp + interval '10 hours')::text as timestamp, 'actual'::text   as period, 0.2::float as net_exchange_kwh, null::text as generated_at
+          union all
+          select (current_date::timestamp + interval '9 hours')::text        as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at
+          union all
+          select (current_date::timestamp + interval '10 hours')::text       as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at
+          union all
+          select (current_date::timestamp + interval '11 hours')::text       as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at
+    expect:
+      format: sql
+      rows: |
+        select
+          md5(
+            current_date::date::text
+            || (current_date::timestamp + interval '9 hours')::text
+            || (current_date::timestamp + interval '12 hours')::text
+          )                                                      as _id,
+          current_date::date                                    as ts_date,
+          current_date::timestamp + interval '9 hours'          as window_start,
+          current_date::timestamp + interval '12 hours'         as window_end,
+          '3.00'::numeric                                       as community_kwh,
+          '0.50'::numeric                                       as confidence,
+          'solar_overproduction'::text                          as flexibility_model
+
+  - name: cw7_confidence_null_when_no_scored_history
+    description: >
+      When no already-materialized window falls inside the 30-day scoring lookback
+      (only a window from 40 days ago exists), past_window_hours is empty and
+      raw_rate is null. The explicit NULL guard must propagate that NULL rather than
+      letting greatest(0.30, null) silently coerce it to the 0.30 floor.
+    model: rec_flexibility_windows_community
+    overrides:
+      macros:
+        is_incremental: true
+    given:
+      - input: this
+        format: sql
+        rows: |
+          select
+            'past-old'::text                                            as _id,
+            (current_date - 40)::date                                  as ts_date,
+            (current_date - 40)::timestamp + interval '9 hours'        as window_start,
+            (current_date - 40)::timestamp + interval '11 hours'       as window_end,
+            2.0::numeric                                                as community_kwh,
+            null::numeric                                               as confidence,
+            'solar_overproduction'::text                                as flexibility_model
+      - input: source('meters_gold', 'total_meters_forecast')
+        format: sql
+        rows: |
+          select (current_date::timestamp + interval '9 hours')::text        as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at
+          union all
+          select (current_date::timestamp + interval '10 hours')::text       as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at
+    expect:
+      format: sql
+      rows: |
+        select
+          md5(
+            current_date::date::text
+            || (current_date::timestamp + interval '9 hours')::text
+            || (current_date::timestamp + interval '11 hours')::text
+          )                                                      as _id,
+          current_date::date                                    as ts_date,
+          current_date::timestamp + interval '9 hours'          as window_start,
+          current_date::timestamp + interval '11 hours'         as window_end,
+          '2.00'::numeric                                       as community_kwh,
+          null::numeric                                         as confidence,
+          'solar_overproduction'::text                          as flexibility_model
 
   # ─────────────────────────────────────────────────────────────────────────────
   # rec_commitment_settlement
@@ -620,6 +919,8 @@ unit_tests:
           - {device_id: 'dev-01', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 40, daily_bonus_points: 0, daily_points: 40}
           # dev-02, single season
           - {device_id: 'dev-02', ts_date: '2025-09-20', season_start: '2025-09-01', daily_settlement_points: 5, daily_bonus_points: 1, daily_points: 6}
+      - input: ref('rec_active_devices')
+        rows: []
     expect:
       rows:
         - {device_id: 'dev-01', season_start: '2025-09-01', season_base_points: 30, season_bonus_points: 5, season_points: 35, alltime_base_points: 70, alltime_bonus_points: 5}
@@ -639,7 +940,83 @@ unit_tests:
           - {device_id: 'dev-01', ts_date: '2025-08-26', season_start: '2025-07-01', daily_settlement_points: 99, daily_bonus_points: 9, daily_points: 108}
           # in-program season
           - {device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 2, daily_points: 12}
+      - input: ref('rec_active_devices')
+        rows: []
     expect:
       rows:
         - {device_id: 'dev-01', season_start: '2025-09-01', season_base_points: 10, season_bonus_points: 2, season_points: 12, alltime_base_points: 10, alltime_bonus_points: 2}
+
+  - name: lb3_fleet_complete_current_season_ranked_ties_zero_fill
+    description: >
+      Current season is fleet-complete: every rec_active_devices device gets a row,
+      0-filled when it earned nothing, ranked (rank() ties share a rank, 0-point devices
+      tie last), total_members = fleet size, season_end = season_start + season_months.
+    model: rec_points_leaderboard
+    overrides:
+      macros:
+        rec_season_start: "cast('2025-11-01' as date)"
+    given:
+      - input: ref('rec_participant_points')
+        rows:
+          - {device_id: 'dev-01', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 25, daily_bonus_points: 5, daily_points: 30}
+          - {device_id: 'dev-02', ts_date: '2025-11-06', season_start: '2025-11-01', daily_settlement_points: 18, daily_bonus_points: 2, daily_points: 20}
+          - {device_id: 'dev-03', ts_date: '2025-11-07', season_start: '2025-11-01', daily_settlement_points: 15, daily_bonus_points: 5, daily_points: 20}
+      - input: ref('rec_active_devices')
+        rows:
+          - {device_id: 'dev-01'}
+          - {device_id: 'dev-02'}
+          - {device_id: 'dev-03'}
+          - {device_id: 'dev-04'}
+    expect:
+      rows:
+        - {device_id: 'dev-01', season_start: '2025-11-01', season_end: '2026-01-01', season_base_points: 25, season_bonus_points: 5, season_points: 30, season_rank: 1, total_members: 4, is_current_season: true}
+        - {device_id: 'dev-02', season_start: '2025-11-01', season_end: '2026-01-01', season_base_points: 18, season_bonus_points: 2, season_points: 20, season_rank: 2, total_members: 4, is_current_season: true}
+        - {device_id: 'dev-03', season_start: '2025-11-01', season_end: '2026-01-01', season_base_points: 15, season_bonus_points: 5, season_points: 20, season_rank: 2, total_members: 4, is_current_season: true}
+        - {device_id: 'dev-04', season_start: '2025-11-01', season_end: '2026-01-01', season_base_points: 0, season_bonus_points: 0, season_points: 0, season_rank: 4, total_members: 4, is_current_season: true}
+
+  - name: lb4_past_seasons_earned_only_removed_device_keeps_history
+    description: >
+      Past seasons are NOT retro-filled from the fleet: their rows and total_members count
+      only devices that actually earned. A device no longer in the fleet (dev-99) keeps its
+      past-season row but gets no current-season row.
+    model: rec_points_leaderboard
+    overrides:
+      macros:
+        rec_season_start: "cast('2025-11-01' as date)"
+    given:
+      - input: ref('rec_participant_points')
+        rows:
+          - {device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 0, daily_points: 10}
+          - {device_id: 'dev-99', ts_date: '2025-09-20', season_start: '2025-09-01', daily_settlement_points: 40, daily_bonus_points: 5, daily_points: 45}
+      - input: ref('rec_active_devices')
+        rows:
+          - {device_id: 'dev-01'}
+    expect:
+      rows:
+        - {device_id: 'dev-99', season_start: '2025-09-01', season_points: 45, season_rank: 1, total_members: 2, is_current_season: false}
+        - {device_id: 'dev-01', season_start: '2025-09-01', season_points: 10, season_rank: 2, total_members: 2, is_current_season: false}
+        - {device_id: 'dev-01', season_start: '2025-11-01', season_points: 0, season_rank: 1, total_members: 1, is_current_season: true}
+
+  - name: lb5_alltime_totals_unchanged_by_zero_fill
+    description: >
+      The private all-time columns are lifetime sums over EARNED rows only: a 0-filled
+      current-season row neither resets nor inflates them, and a fleet device with no
+      history has alltime = 0.
+    model: rec_points_leaderboard
+    overrides:
+      macros:
+        rec_season_start: "cast('2025-11-01' as date)"
+    given:
+      - input: ref('rec_participant_points')
+        rows:
+          - {device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 2, daily_points: 12}
+      - input: ref('rec_active_devices')
+        rows:
+          - {device_id: 'dev-01'}
+          - {device_id: 'dev-02'}
+    expect:
+      rows:
+        - {device_id: 'dev-01', season_start: '2025-09-01', season_points: 12, alltime_base_points: 10, alltime_bonus_points: 2, is_current_season: false}
+        - {device_id: 'dev-01', season_start: '2025-11-01', season_points: 0, alltime_base_points: 10, alltime_bonus_points: 2, is_current_season: true}
+        - {device_id: 'dev-02', season_start: '2025-11-01', season_points: 0, alltime_base_points: 0, alltime_bonus_points: 0, is_current_season: true}
 

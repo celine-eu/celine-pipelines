@@ -205,6 +205,51 @@ def compute_baselines_task(cfg: PipelineConfig) -> int:
             bl.baselines_to_dataframe(ge_dict, device_id, "grid_export_median", today_utc)
         )
 
+    # v3 window promise: upward spread of the settlement consumption basis
+    # (shift_potential) and, for M1-only devices, of grid import (import_spread).
+    # Devices with fewer than min_history_days distinct days get NO shift_potential
+    # rows — that absence is the cold-start marker rec_flexibility_windows keys its
+    # forecast fallback on. Settlement/reference writes above are NOT gated (they
+    # drive payments and must not change).
+    wp_cfg = yaml_cfg["window_promise"]
+    history_promise = _prepare_history(
+        engine, lookback_days=wp_cfg["lookback_days"], devices=active_devices
+    )
+    history_promise = _apply_consumption_basis(history_promise, m1_only, ge_med)
+    day_counts = history_promise.groupby("device_id")["date"].nunique()
+    total_exports = history_promise.groupby("device_id")["grid_export_kwh"].sum()
+
+    for device_id, df_dev in history_promise.groupby("device_id"):
+        if int(day_counts.get(device_id, 0)) < wp_cfg["min_history_days"]:
+            logger.info(
+                "Cold start: skipping shift_potential for %s (<%s days).",
+                device_id,
+                wp_cfg["min_history_days"],
+            )
+            continue
+        is_pv = float(total_exports.get(device_id, 0.0)) > wp_cfg["pv_export_threshold_kwh"]
+        spread = bl.compute_upward_spread(
+            df_dev,
+            value_col="consumption_kwh",
+            q_hi=wp_cfg["shift_q_hi"],
+            q_lo=wp_cfg["shift_q_lo"],
+            clear_top=wp_cfg["clear_top_days"] if is_pv else None,
+        )
+        frames.append(
+            bl.baselines_to_dataframe(spread, device_id, "shift_potential", today_utc)
+        )
+        if device_id in m1_only:
+            imp_spread = bl.compute_upward_spread(
+                df_dev,
+                value_col="grid_import_kwh",
+                q_hi=wp_cfg["shift_q_hi"],
+                q_lo=wp_cfg["shift_q_lo"],
+                clear_top=None,
+            )
+            frames.append(
+                bl.baselines_to_dataframe(imp_spread, device_id, "import_spread", today_utc)
+            )
+
     if not frames:
         logger.warning("No baseline rows computed.")
         return 0
