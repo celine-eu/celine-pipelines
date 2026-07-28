@@ -97,8 +97,9 @@ tasks:
 
   dashboard:
     desc: Launch the Streamlit dashboard
+    dir: "{{.APP_DIR}}/tools"
     cmds:
-      - streamlit run {{.APP_DIR}}/tools/dashboard.py
+      - uv run streamlit run dashboard.py
 
   # ---------- Prefect ----------
 
