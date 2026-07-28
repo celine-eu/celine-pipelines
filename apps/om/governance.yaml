@@ -15,7 +15,8 @@ defaults:
     contract_required: false
     consent_required: false
     odrl_action: use
-    purpose: []
+    # Weather observations and derived heat risk, consumed as forecasting input.
+    purpose: [EnergyForecasting]
   dcat: null
 
 sources:

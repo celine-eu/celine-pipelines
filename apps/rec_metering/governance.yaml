@@ -20,8 +20,9 @@ defaults:
     accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
   dataspace:
     odrl_action: use
+    # Metering readings underpinning the community's own operation.
     purpose:
-      - energy-monitoring
+      - EnergyCommunityOperation
 
 sources:
   # ---------------------------------------------------------------------------

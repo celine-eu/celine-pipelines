@@ -49,7 +49,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -83,7 +83,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -117,7 +117,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -151,7 +151,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -185,7 +185,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -218,7 +218,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -251,7 +251,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -284,7 +284,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -316,7 +316,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -348,7 +348,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -380,7 +380,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -412,7 +412,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:
@@ -444,7 +444,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [research, analytics]
+      purpose: [EnergyForecasting]
     dcat:
       publisher_uri: null
       themes:

@@ -83,7 +83,7 @@ sources:
       contract_required: false
       consent_required: false
       odrl_action: use
-      purpose: [energy_planning, pv_estimation, roi]
+      purpose: [PVPotentialAssessment]
     dcat:
       publisher_uri: null
       themes:

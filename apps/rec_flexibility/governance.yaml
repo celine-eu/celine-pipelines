@@ -20,8 +20,6 @@ defaults:
     accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
   dataspace:
     odrl_action: use
-    purpose:
-      - energy-monitoring
 
 sources:
   # ---------------------------------------------------------------------------
@@ -35,6 +33,7 @@ sources:
         args:
           column: device_id
     dataspace:
+      purpose: [IncentiveCalculation]
       expose: true
 
   datasets.ds_dev_gold.rec_settlement_1h:
@@ -44,6 +43,7 @@ sources:
         args:
           column: device_id
     dataspace:
+      purpose: [IncentiveCalculation]
       expose: true
 
   datasets.ds_dev_gold.rec_participant_points:
@@ -53,6 +53,7 @@ sources:
         args:
           column: device_id
     dataspace:
+      purpose: [EnergyCommunityOperation]
       expose: true
 
   datasets.ds_dev_gold.rec_points_leaderboard:
@@ -62,6 +63,7 @@ sources:
         args:
           column: device_id
     dataspace:
+      purpose: [EnergyCommunityOperation]
       expose: true
 
   datasets.ds_dev_gold.rec_flexibility_windows:
@@ -71,11 +73,13 @@ sources:
         args:
           column: device_id
     dataspace:
+      purpose: [FlexibilityResearch]
       expose: true
 
   datasets.ds_dev_gold.rec_flexibility_windows_community:
     tags: [flexibility, gold]
     dataspace:
+      purpose: [FlexibilityResearch]
       expose: true
 
   datasets.ds_dev_gold.rec_gamification_summary:
@@ -85,6 +89,7 @@ sources:
         args:
           column: device_id
     dataspace:
+      purpose: [EnergyCommunityOperation]
       expose: true
 
   datasets.ds_dev_gold.rec_co2_savings:
@@ -94,6 +99,7 @@ sources:
         args:
           column: device_id
     dataspace:
+      purpose: [EnergyCommunityOperation]
       expose: true
 
   datasets.ds_dev_gold.rec_commitment_settlement:
@@ -103,9 +109,11 @@ sources:
         args:
           column: device_id
     dataspace:
+      purpose: [IncentiveCalculation]
       expose: true
 
   datasets.ds_dev_gold.rec_co2_savings_community:
     tags: [co2, flexibility, gold]
     dataspace:
+      purpose: [EnergyCommunityOperation]
       expose: true

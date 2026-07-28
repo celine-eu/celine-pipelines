@@ -53,7 +53,7 @@ sources:
       medallion: gold
       contract_required: false
       consent_required: false
-      purpose: [energy_planning, pv_detection]
+      purpose: [PVPotentialAssessment]
     dcat:
       themes: [ENER, REGI]
       language: ENG
