@@ -40,8 +40,9 @@ sources:
     source_system: Deutscher Wetterdienst (DWD)
     documentation_url: https://www.dwd.de/EN/ourservices/opendata/opendata.html
     tags: [dwd, icon-d2, wind, gusts, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false

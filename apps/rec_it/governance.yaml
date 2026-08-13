@@ -32,38 +32,72 @@ sources:
       - name: gse
         type: DATA_OWNER
     access_level: open
-    access_requirements: none
+    # `none` was not in the enum and parsed to nothing; `all` states the grant.
+    access_requirements: all
     classification: green
     tags: [geo, primary-substation, gse, open-data, gold]
+    expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
-      expose: true
+      expose: false
 
   # ---------------------------------------------------------------------------
   # OUTPUTS: Italian CER virtual consumption (GSE rules)
   # ---------------------------------------------------------------------------
 
-  datasets.ds_dev_gold.rec_virtual_consumption_15m:
+  datasets.ds_dev_gold.rec_virtual_consumption_15m: &rec_community_15m
     tags: [rec, consumption, gold]
+    expose: true
     dataspace:
       purpose: [IncentiveCalculation]
-      expose: true
+      expose: false
+
+  # The same figures, one quantity per row, mapped onto SOSA.
+  #
+  # Shares the source's governance block by anchor so the two cannot diverge.
+  # Note what that inherits here: **no row filter**. The community models have
+  # never carried one — a latent cross-community leak the moment a second REC
+  # exists, recorded in celine-dev/.agents/celine-pipelines/FACTS.md. This view
+  # neither fixes nor widens it, and the anchor means adding a filter to the
+  # source covers the view in the same edit.
+  datasets.ds_dev_gold.rec_measurements_15m:
+    <<: *rec_community_15m
+    ontology:
+      spec: obs_energy_measurement
+    dcat:
+      conforms_to: http://www.w3.org/ns/sosa/
 
   datasets.ds_dev_gold.rec_virtual_consumption_hourly:
     tags: [rec, consumption, gold]
+    expose: true
     dataspace:
       purpose: [IncentiveCalculation]
-      expose: true
+      expose: false
 
-  datasets.ds_dev_gold.rec_virtual_consumption_per_device_15m:
+  datasets.ds_dev_gold.rec_virtual_consumption_per_device_15m: &rec_per_device_15m
     tags: [rec, consumption, gold]
     row_filters:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
       purpose: [IncentiveCalculation]
-      expose: true
+      expose: false
+
+  # Per-member allocations, one quantity per row, mapped onto SOSA.
+  #
+  # This is the binding where the anchor earns its keep. The source is filtered
+  # per device — a member sees only their own rows — and the view must be too.
+  # Written out separately, the two would be a copy-paste apart from a leak of
+  # every member's settlement figures to every other member. Shared by anchor,
+  # `row_filters` is one list in this file and the question cannot arise.
+  datasets.ds_dev_gold.rec_measurements_per_device_15m:
+    <<: *rec_per_device_15m
+    ontology:
+      spec: obs_energy_measurement
+    dcat:
+      conforms_to: http://www.w3.org/ns/sosa/
 
   datasets.ds_dev_gold.rec_virtual_consumption_per_device_hourly:
     tags: [rec, consumption, gold]
@@ -71,6 +105,7 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
       purpose: [IncentiveCalculation]
-      expose: true
+      expose: false

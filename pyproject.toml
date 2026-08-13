@@ -5,7 +5,17 @@ description = "CELINE pipelines toolkit"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "celine-utils>=1.17.0"
+    # 1.18.1, not 1.17.0. Governance files here now declare `ontology.spec`,
+    # which `governance.schema.json` only defines from 1.18.0, and they set
+    # `dcat.conforms_to` on its own — which before 1.18.1 replaced the file's
+    # whole `dcat` block and silently dropped the default themes, language and
+    # spatial coverage.
+    # [all] because celine-utils 2.0 moved the pipeline stack (dbt, Meltano,
+    # Prefect, sqlalchemy) behind an extra: its core is now just the
+    # celine.governance parser. Extras cannot be defaults in Python, so a bare
+    # "celine-utils" no longer delivers the runners this repo imports via
+    # celine.utils.pipelines.pipeline.
+    "celine-utils[all]>=2.0.0"
 ]
 
 [dependency-groups]

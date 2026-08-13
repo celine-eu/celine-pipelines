@@ -40,8 +40,9 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, weather, forecast, silver]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: silver
 
   # ---------------------------------------------------------------------------
@@ -262,8 +263,9 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, heat, risk, trentino, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
 
   # ---------------------------------------------------------------------------

@@ -43,8 +43,9 @@ sources:
     source_system: openweathermap-onecall-3.0
     documentation_url: https://openweathermap.org/api/one-call-3
     tags: [weather, alerts, gold, folgaria]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -77,8 +78,9 @@ sources:
         type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, current, gold, folgaria]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -111,8 +113,9 @@ sources:
         type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, daily, forecast, gold, folgaria]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -145,8 +148,9 @@ sources:
         type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, hourly, forecast, gold, folgaria]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -179,8 +183,9 @@ sources:
         type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, minutely, forecast, gold, folgaria]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -212,8 +217,9 @@ sources:
         type: consortium
     source_system: openweathermap-onecall-3.0
     tags: [weather, alerts, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -245,8 +251,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, foi, gold, derived]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -278,8 +285,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, observations, current, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -310,8 +318,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, observations, daily, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -342,8 +351,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, observations, hourly, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -374,8 +384,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, observations, minutely, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -406,8 +417,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, observations, gold, wide]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -438,8 +450,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, metadata, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false

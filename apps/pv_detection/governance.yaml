@@ -38,9 +38,17 @@ sources:
     dataspace:
       medallion: silver
     dcat:
-      themes: [ENER, REGI]
-      language: ENG
-      spatial: ITH2
+      # Bare codes were dropped on the floor here: the field names were wrong
+      # (`language`/`spatial`, not `language_uris`/`spatial_uris`) so the model
+      # ignored them, and DCAT wants IRIs rather than codes in any case.
+      # ITH2 is Provincia Autonoma di Trento — the URI 27 other datasets use.
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENER
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2
 
   datasets.ds_dev_gold.pv_detected_installations:
     title: "PV Detected Installations"
@@ -48,13 +56,18 @@ sources:
       Buildings with detected PV installations, enriched with Overture building
       geometry and metadata. Exposed for energy community planning.
     tags: [pv_detection, energy_planning]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
       purpose: [PVPotentialAssessment]
     dcat:
-      themes: [ENER, REGI]
-      language: ENG
-      spatial: ITH2
+      themes:
+        - http://publications.europa.eu/resource/authority/data-theme/ENER
+        - http://publications.europa.eu/resource/authority/data-theme/REGI
+      language_uris:
+        - http://publications.europa.eu/resource/authority/language/ENG
+      spatial_uris:
+        - http://data.europa.eu/nuts/code/ITH2

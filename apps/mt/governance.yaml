@@ -364,8 +364,9 @@ sources:
         type: consortium
     documentation_url: https://dati.meteotrentino.it
     tags: [meteotrentino, observations, current, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -399,8 +400,9 @@ sources:
         type: consortium
     documentation_url: https://dati.meteotrentino.it
     tags: [meteotrentino, stations, network, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -434,8 +436,9 @@ sources:
         type: consortium
     documentation_url: https://www.meteotrentino.it
     tags: [meteotrentino, alerts, active, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -470,8 +473,9 @@ sources:
         type: consortium
     documentation_url: https://meteo.report
     tags: [meteotrentino, forecast, hourly, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -506,8 +510,9 @@ sources:
         type: consortium
     documentation_url: https://meteo.report
     tags: [meteotrentino, forecast, daily, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false

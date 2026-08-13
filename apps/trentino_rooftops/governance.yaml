@@ -194,8 +194,9 @@ sources:
         type: project
     source_system: CELINE
     tags: [pv, gold, trentino, buildings, suitability]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false

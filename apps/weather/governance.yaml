@@ -40,8 +40,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, forecast, hourly, unified, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -72,8 +73,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, forecast, daily, unified, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -104,8 +106,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, alerts, unified, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -136,8 +139,9 @@ sources:
       - name: celine
         type: consortium
     tags: [weather, current, observations, unified, gold]
+    expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false

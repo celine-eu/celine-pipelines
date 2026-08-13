@@ -32,9 +32,10 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
       purpose: [IncentiveCalculation]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.rec_settlement_1h:
     tags: [flexibility, settlement, gold]
@@ -42,9 +43,10 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
       purpose: [IncentiveCalculation]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.rec_participant_points:
     tags: [flexibility, gamification, gold]
@@ -52,9 +54,10 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.rec_points_leaderboard:
     tags: [flexibility, gamification, gold]
@@ -62,9 +65,10 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.rec_flexibility_windows:
     tags: [flexibility, gold]
@@ -72,15 +76,17 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
       purpose: [FlexibilityResearch]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.rec_flexibility_windows_community:
     tags: [flexibility, gold]
+    expose: true
     dataspace:
       purpose: [FlexibilityResearch]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.rec_gamification_summary:
     tags: [gamification, gold]
@@ -88,9 +94,10 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.rec_co2_savings:
     tags: [co2, gold]
@@ -98,9 +105,10 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.rec_commitment_settlement:
     tags: [flexibility, settlement, gold]
@@ -108,12 +116,14 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
       purpose: [IncentiveCalculation]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.rec_co2_savings_community:
     tags: [co2, flexibility, gold]
+    expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
-      expose: true
+      expose: false

@@ -29,14 +29,40 @@ sources:
   # OUTPUTS
   # ---------------------------------------------------------------------------
 
-  datasets.ds_dev_gold.meters_data_15m:
+  datasets.ds_dev_gold.meters_data_15m: &meters_15m
     tags: [meters, gold, aggregated]
     row_filters:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
-      expose: true
+      expose: false
+
+  # The same readings, one quantity per row, mapped onto SOSA.
+  #
+  # `<<: *meters_15m` is load-bearing rather than tidiness. This view is a
+  # projection of meters_data_15m and must be no more readable than it is: same
+  # access level, same owners, same `rec_registry` filter on the same column.
+  # Sharing the block by anchor makes the two one object in this file, so they
+  # cannot drift apart — a semantic sibling that quietly lost its row filter
+  # would serve every device's readings to every caller, and nothing downstream
+  # would catch it. dataset-api applies whatever filters a dataset's own entry
+  # declares; it never compares two datasets to each other.
+  #
+  # `device_id` survives into the view verbatim for the same reason: a filter
+  # names a column, and nothing validates that the column exists on the table.
+  # A view that dropped it would be served **unfiltered** rather than failing.
+  datasets.ds_dev_gold.meters_measurements_15m:
+    <<: *meters_15m
+    ontology:
+      spec: obs_energy_measurement
+    dcat:
+      # The model's identity, which is SOSA's — not a CELINE IRI, and not this
+      # deployment's /vocabulary locator. Every dataset bound to
+      # obs_energy_measurement declares this same value; that is what lets a
+      # consumer recognise two producers' feeds as one shape.
+      conforms_to: http://www.w3.org/ns/sosa/
 
   datasets.ds_dev_gold.meters_data_1h:
     tags: [meters, gold, aggregated]
@@ -44,8 +70,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.meters_data_15m_missing_intervals:
     tags: [meters, quality, gold]
@@ -53,5 +80,6 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+    expose: true
     dataspace:
-      expose: true
+      expose: false

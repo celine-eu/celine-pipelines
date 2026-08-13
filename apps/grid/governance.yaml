@@ -41,45 +41,69 @@ sources:
 
   datasets.ds_dev_gold.grid_substations:
     tags: [ grid, geo, substations, gold ]
+    # One entity per row, so this table needed no reshaping — the mapping spec
+    # was already written and simply had nothing pointing at it.
+    #
+    # CIM, answering CEEDS INT-34, and the second vocabulary in this platform
+    # after SOSA. The silver layer is already CIM-shaped
+    # (`silver_grid_ac_line_segment` is a cim:ACLineSegment), so this states in
+    # the catalogue what the modelling already assumed.
+    #
+    # `conforms_to` is IEC's namespace. Unlike SOSA's and SAREF's it cannot be
+    # dereferenced to check — every CIM IRI answers HTTP 403, CIM being a paid
+    # standard — so the terms in the spec are checked against the CIM100 class
+    # documentation instead. That is a weaker guarantee, stated rather than
+    # hidden: see celine-dev/.agents/ontologies/cim-namespace.md.
+    ontology:
+      spec: grid_substation
+    dcat:
+      conforms_to: http://iec.ch/TC57/CIM100#
+    expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.grid_network_topology:
     tags: [ grid, topology, filter, gold ]
+    expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.grid_shapes:
     tags: [ grid, geo, topology, gold ]
+    expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.grid_tiles:
     tags: [ grid, geo, tiles, gold, intermediary ]
+    expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.grid_tile_index:
     tags: [ grid, geo, tiles, gold ]
+    expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.grid_risks:
     tags: [ grid, risk, gold ]
+    expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.grid_risks_trendline:
     tags: [ grid, risk, trendline, gold ]
+    expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: true
+      expose: false
 
   # ---------------------------------------------------------------------------
   # NOWCASTING — Observation-based risk overlays (real-time counterpart)
@@ -98,9 +122,10 @@ sources:
 
   datasets.ds_dev_gold.grid_risks_now:
     tags: [ grid, risk, nowcast, gold ]
+    expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: true
+      expose: false
 
   datasets.ds_dev_gold.v_superset_grid:
     tags: [ grid, superset, gold ]

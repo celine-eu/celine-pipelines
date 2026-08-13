@@ -12,10 +12,11 @@ defaults:
   documentation_url: null
   source_system: celine-flexibility-api
   attribution: null
-  access_requirements: >
-    Access requires membership in a CELINE Renewable Energy Community.
-    Data is derived from the CELINE Flexibility API and is subject to
-    platform access controls.
+  # Was a prose paragraph, which is not in the enum and so parsed to nothing —
+  # the access requirement was declared and simultaneously not declared. The
+  # wording moved onto the dataset's own description, which is what reaches
+  # the catalogue; `defaults.description` would have been shadowed by it.
+  access_requirements: contract
   dataspace:
     expose: false
     medallion: null
@@ -40,6 +41,9 @@ sources:
       transitions (committed → settled) are reflected without data loss.
       Intended as a raw source for dbt pipelines computing settlement analytics,
       gamification, and acceptance rate metrics.
+      Access requires membership in a CELINE Renewable Energy Community;
+      the data derives from the CELINE Flexibility API and is subject to platform
+      access controls.
     access_level: internal
     classification: yellow
     tags: [flexibility, commitments, raw, mirror]

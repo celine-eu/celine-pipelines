@@ -308,7 +308,7 @@ name = "celine-pipelines"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
-    { name = "celine-utils" },
+    { name = "celine-utils", extra = ["all"] },
 ]
 
 [package.dev-dependencies]
@@ -317,7 +317,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "celine-utils", specifier = ">=1.17.0" }]
+requires-dist = [{ name = "celine-utils", extras = ["all"], specifier = ">=2.0.0" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "semver", specifier = ">=3.0.4" }]
@@ -334,7 +334,7 @@ wheels = [
 
 [[package]]
 name = "celine-sdk"
-version = "1.12.1"
+version = "1.15.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiomqtt" },
@@ -349,16 +349,27 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f1/ed/23809df42a0085efd66d2633147cb63510fcb5e5cf779b61668d5ff3cecb/celine_sdk-1.12.1.tar.gz", hash = "sha256:cf28497a9abec3dde6473e4ee6fd452ea8081663237da56c292217557e6b433a", size = 178750, upload-time = "2026-04-27T18:47:32.106Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/3d/e5/5d6911a07e1376b29ee487b25f935e1c4c2844a30fef9d488349fa8c8e77/celine_sdk-1.15.0.tar.gz", hash = "sha256:34d7ed9b0b548c9e98b12312bbb652b542eece4ed5a20a795f3919ef26946cb7", size = 196112, upload-time = "2026-08-13T05:26:47.811Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d4/5c/9859d64184fb5c96ba4410b068b78d8adcbc164c4ef290d30870cf2b663c/celine_sdk-1.12.1-py3-none-any.whl", hash = "sha256:c70e56a06d6162a0473046595adf12130e7cfccce3c594949541d509324ac6ea", size = 482749, upload-time = "2026-04-27T18:47:30.188Z" },
+    { url = "https://files.pythonhosted.org/packages/68/b0/24472786f53630fd86bd1db90a90d4ee7cf2d75ebe873c06ff0e8ad66fc0/celine_sdk-1.15.0-py3-none-any.whl", hash = "sha256:2fec8f78a4b1a2dc002c195daac164719871422470131881f2bdce47314e8b6d", size = 524668, upload-time = "2026-08-13T05:26:46.368Z" },
 ]
 
 [[package]]
 name = "celine-utils"
-version = "1.17.0"
+version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "jsonschema" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/8e/1e/71d74a994b0f8bb00a8ba5ab31fe13c5637c4b0afb7d81941108ce466fa3/celine_utils-2.1.0.tar.gz", hash = "sha256:c65ac30b1bf23c42f83b8c5bdcfc8d98890af829f64516c00f974519dc271e58", size = 81412, upload-time = "2026-08-13T05:31:18.891Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fe/ec/77a372da85fcd5afc98c02c5a9540773bf8942cf2282ed7193ff8137480c/celine_utils-2.1.0-py3-none-any.whl", hash = "sha256:00d6aeb2d24228cad2afbc39f5abbac3cca20067bf22273e3d8a349653c8f44e", size = 89087, upload-time = "2026-08-13T05:31:17.601Z" },
+]
+
+[package.optional-dependencies]
+all = [
     { name = "bcrypt" },
     { name = "celine-sdk" },
     { name = "dbt-core" },
@@ -369,17 +380,12 @@ dependencies = [
     { name = "prefect" },
     { name = "prefect-dbt" },
     { name = "psycopg2-binary" },
-    { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
     { name = "python-keycloak" },
     { name = "requests" },
     { name = "sqlalchemy" },
     { name = "typer" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/ee/d5/4b04f75bb260e1cf0158505c629ee4622be19deb42682fce64af28215e36/celine_utils-1.17.0.tar.gz", hash = "sha256:fcd16efaefcda775bbd14a23659b6e55cb7954cf1d3190887dad00f6bc187583", size = 53109, upload-time = "2026-06-11T10:15:57.798Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/48/1a/bbd0b45e81a256d867799333e4e54b3b1907a9afbe47d91b1de67c64ae03/celine_utils-1.17.0-py3-none-any.whl", hash = "sha256:3f759eed2910a823e14c7964d345bbcf870e0b06c9606467a6ddd336d377aa3c", size = 67749, upload-time = "2026-06-11T10:15:56.458Z" },
 ]
 
 [[package]]
