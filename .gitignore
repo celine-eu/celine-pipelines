@@ -20,3 +20,6 @@ temp*
 .claude
 .meltano
 *.grib2*
+
+# Execution state: transient, and the plan is what survives
+.agents/work/
