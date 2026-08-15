@@ -37,7 +37,8 @@
 -- history) fall back to the legacy forecast-based estimate. A device must have at
 -- least one usable forecast row inside the window (liveness gate) — an offline
 -- meter must not carry a promise.
--- Spec: demo3/docs/superpowers/specs/2026-07-06-flexibility-window-points-v3-design.md
+-- Spec: "flexibility window points v3 design", 2026-07-06, held in the private
+-- deployment repository — not resolvable from this open-source checkout.
 
 with windows as (
     select

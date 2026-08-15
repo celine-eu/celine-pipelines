@@ -7,7 +7,7 @@ Italian CER-specific settlement pipeline. Computes virtual self-consumption allo
 | Table | Schema | Origin | Description |
 |-------|--------|--------|-------------|
 | `meters_data_15m` | `ds_dev_gold` | rec_metering pipeline | 15-min metered readings |
-| `rec_registry_mirror` | `raw` | private ingestion | REC participant registry: `user_id`, `rec_id`, `role`, `sensor_ids[]`, `topology_ids[]` |
+| `rec_registry_mirror` | `raw` | **`rec_registry` pipeline, in this repository** | REC participant registry: `user_id`, `rec_id`, `role`, `sensor_ids[]`, `topology_ids[]` |
 | `gse_cabine_primarie` | `raw` | meltano (self-contained) | GSE primary substation open dataset |
 
 **Schema resolution:** `ds_dev_gold` is read from the `CELINE_GOLD_SCHEMA` env var. Set this in `.env` to match your deployment. The `raw` schema is fixed.
@@ -15,7 +15,7 @@ Italian CER-specific settlement pipeline. Computes virtual self-consumption allo
 **Providing private upstream tables:**
 
 - **`meters_data_15m`** — produced by the `rec_metering` pipeline in this repository. Run rec_metering first.
-- **`rec_registry_mirror`** — a raw table mirroring the REC registry (`rec-registry` service). This is loaded by a private ingestion pipeline that periodically syncs the registry API into `raw.rec_registry_mirror`. For local development, create the table manually with columns `user_id`, `rec_id`, `role`, `sensor_ids` (text[]), `topology_ids` (text[]) and load sample data.
+- **`rec_registry_mirror`** — a raw mirror of the REC registry (`rec-registry` service), produced by the **`rec_registry` app in this repository**, which syncs the registry API into `raw.rec_registry_mirror` every 5 minutes. Run that app first; it creates its own table. Only if you cannot reach the registry API, create the table manually with columns `user_id`, `rec_id`, `role`, `sensor_ids` (text[]), `topology_ids` (text[]) and load sample data.
 - **`gse_cabine_primarie`** — self-contained: loaded via the included meltano extractor (`tap-copertura-cabine-primarie-gse`). Run `meltano run import` inside the `meltano/` directory.
 
 The full source contracts are declared in `dbt/models/silver/sources.yml` and `dbt/models/gold/sources.yml`.

@@ -9,7 +9,7 @@ Computes flexibility opportunity windows, per-commitment settlement with proport
 | `meters_data_15m` | `ds_dev_gold` | rec_metering pipeline | Sanctioned 15-min meter interface, one row per `(device, ts)`. `consumption_kwh` (grid import), `production_kwh` (grid export), `self_consumed_kwh` (unclipped, can be negative) — all **kWh per 15-min bucket**, used as-is with no unit conversion. |
 | `meters_energy_forecast` | `ds_dev_gold` | meter_forecasting pipeline | Per-device 48h energy forecast |
 | `total_meters_forecast` | `ds_dev_gold` | meter_forecasting pipeline | Community-level hourly net-exchange forecast |
-| `flexibility_commitments_mirror` | `raw` | private ingestion | 90-day sliding mirror from the Flexibility API, refreshed every 15 min |
+| `flexibility_commitments_mirror` | `raw` | **`rec_flexibility_commitments` pipeline, in this repository** | 90-day sliding mirror from the Flexibility API, refreshed every 15 min |
 
 **Schema resolution:** `ds_dev_silver` and `ds_dev_gold` are read from the `CELINE_SILVER_SCHEMA` and `CELINE_GOLD_SCHEMA` env vars. Set these in `.env` to match your deployment. The `raw` schema is fixed.
 
@@ -17,7 +17,7 @@ Computes flexibility opportunity windows, per-commitment settlement with proport
 
 - **`meters_data_15m`** — gold-layer 15-min meter table produced by the `rec_metering` pipeline app (exposed via dataset-api governance). Must expose `device_id`, `ts`, `consumption_kwh`, `production_kwh`, `self_consumed_kwh` (kWh per bucket, self_consumed unclipped). For local development, run the rec_metering app or load sample data.
 - **`meters_energy_forecast` / `total_meters_forecast`** — produced by the meter_forecasting pipeline (not in this repository). If unavailable, the flexibility windows model will produce no output (no surplus windows detected). For local development, populate with synthetic forecast rows.
-- **`flexibility_commitments_mirror`** — raw mirror of the Flexibility API (`flexibility-api` service). Loaded by a private pipeline that periodically syncs the API into `raw.flexibility_commitments_mirror`. Must expose `commitment_id`, `device_id`, `status`, `period_start`, `period_end`, `last_updated`. For local development, create the table manually.
+- **`flexibility_commitments_mirror`** — raw mirror of the Flexibility API (`flexibility-api` service), produced by the **`rec_flexibility_commitments` app in this repository**, which syncs the API into `raw.flexibility_commitments_mirror` every 15 minutes. Run that app first; it creates its own table. Must expose `commitment_id`, `device_id`, `status`, `period_start`, `period_end`, `last_updated`. Only if you cannot reach the API, create the table manually.
 
 The full source contracts are declared in `dbt/models/silver/sources.yml` and `dbt/models/gold/sources.yml`.
 

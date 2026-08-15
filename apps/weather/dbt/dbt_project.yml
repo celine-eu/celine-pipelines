@@ -23,3 +23,12 @@ models:
 seeds:
   energy_community:
     +schema: staging
+    weather_locations:
+      # Typed explicitly rather than inferred. `elevation_m` is optional — a
+      # location that does not declare one still matches, it just cannot break a
+      # coordinate tie — so most rows may be blank, and dbt-postgres infers an
+      # all-blank column as `integer` in some cases and `text` in others. A text
+      # column would make `abs(src.elevation_m - loc.elevation_m)` fail at run
+      # time rather than at parse time.
+      +column_types:
+        elevation_m: integer

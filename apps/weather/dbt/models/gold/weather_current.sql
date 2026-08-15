@@ -1,5 +1,14 @@
 {{ config(materialized='table') }}
 
+{#
+    Ranking is lexicographic: horizontal distance first, then elevation
+    difference to break ties between candidates sharing a coordinate, then
+    location_id so the result is stable. See weather_forecast_hourly for the
+    full reasoning — providers publish mountain massifs as a vertical profile at
+    one representative lat/lon, and without the elevation term the winner among
+    those bands was whichever row Postgres returned first.
+#}
+
 with locations as (
     select * from {{ ref('weather_locations') }}
 ),
@@ -11,6 +20,7 @@ ranked as (
         src.station_id,
         src.station_name,
         src.observed_at,
+        src.elevation_m,
         src.temperature_c,
         src.humidity_pct,
         src.wind_speed_ms,
@@ -22,7 +32,10 @@ ranked as (
         src.pressure_hpa,
         row_number() over (
             partition by loc.location_id
-            order by (abs(src.lat - loc.lat) + abs(src.lon - loc.lon))
+            order by
+                (abs(src.lat - loc.lat) + abs(src.lon - loc.lon)),
+                abs(src.elevation_m - loc.elevation_m) nulls last,
+                src.station_id
         ) as rn
     from {{ ref('stg_weather_current') }} src
     cross join locations loc
@@ -36,6 +49,7 @@ select
     station_id,
     station_name,
     observed_at,
+    elevation_m,
     temperature_c,
     humidity_pct,
     wind_speed_ms,

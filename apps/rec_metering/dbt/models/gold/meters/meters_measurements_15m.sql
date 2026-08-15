@@ -94,10 +94,10 @@ unpivoted as (
 
     {#
         Behind-the-meter self-use, distinct from the community's shared energy.
-        Known to be negative on ~12% of rows upstream (demo3's
-        meters_data_normalized computes it without a max(...,0) clamp), which is
-        a data defect this view neither introduces nor hides — it publishes the
-        column as it stands.
+        Known to be negative on ~12% of rows upstream: the private ingestion
+        pipeline that produces meters_data_normalized computes it without a
+        max(...,0) clamp. That is a data defect this view neither introduces nor
+        hides — it publishes the column as it stands.
     #}
     select
         md5(_id || '|SelfConsumedEnergy'),

@@ -7,12 +7,22 @@ sources:
     description: >
       Provider-neutral weather contract tables. Produced by provider
       pipelines (mt, owm, etc.) using generic aliases.
+
+      Every forecast and observation table must expose `lat`, `lon` and
+      `elevation_m`. This pipeline resolves a seed location to a provider row by
+      horizontal distance and then by elevation, so a provider that omits
+      `elevation_m` cannot have ties between its own rows broken meaningfully —
+      it falls back to an arbitrary-but-stable ordering. A coordinate is not a
+      unique forecast point: providers publish mountain massifs as a vertical
+      profile at one representative lat/lon.
     tables:
       - name: weather__forecast_hourly
-        description: "Sub-daily forecasts, all providers merged."
+        description: "Sub-daily forecasts, all providers merged. Requires lat, lon, elevation_m."
       - name: weather__forecast_daily
-        description: "Daily forecast summaries, all providers merged."
+        description: "Daily forecast summaries, all providers merged. Requires lat, lon, elevation_m."
       - name: weather__alerts
-        description: "Active weather alerts, all providers merged."
+        description: >
+          Active weather alerts, all providers merged. No elevation — alerts are
+          area-based and are assigned to locations by provider, not by distance.
       - name: weather__current
-        description: "Current observations, all providers merged."
+        description: "Current observations, all providers merged. Requires lat, lon, elevation_m."

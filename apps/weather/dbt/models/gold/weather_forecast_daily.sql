@@ -1,8 +1,18 @@
 {{ config(
     materialized         = 'incremental',
     unique_key           = ['location_id', 'forecast_date'],
-    incremental_strategy = 'merge'
+    incremental_strategy = 'merge',
+    on_schema_change     = 'append_new_columns'
 ) }}
+
+{#
+    Ranking is lexicographic: horizontal distance first, then elevation
+    difference to break ties between candidates sharing a coordinate, then
+    location_id so the result is stable. See weather_forecast_hourly for the
+    full reasoning — providers publish mountain massifs as a vertical profile at
+    one representative lat/lon, and without the elevation term the winner among
+    those bands was whichever row Postgres returned first.
+#}
 
 with locations as (
     select * from {{ ref('weather_locations') }}
@@ -13,6 +23,7 @@ ranked as (
         loc.location_id,
         src.provider,
         src.forecast_date,
+        src.elevation_m,
         src.temperature_c,
         src.temperature_min_c,
         src.temperature_max_c,
@@ -28,7 +39,10 @@ ranked as (
         src.sunset,
         row_number() over (
             partition by loc.location_id, src.forecast_date
-            order by (abs(src.lat - loc.lat) + abs(src.lon - loc.lon))
+            order by
+                (abs(src.lat - loc.lat) + abs(src.lon - loc.lon)),
+                abs(src.elevation_m - loc.elevation_m) nulls last,
+                src.location_id
         ) as rn
     from {{ ref('stg_weather_forecast_daily') }} src
     join locations loc
@@ -40,6 +54,7 @@ select
     location_id,
     provider,
     forecast_date,
+    elevation_m,
     temperature_c,
     temperature_min_c,
     temperature_max_c,

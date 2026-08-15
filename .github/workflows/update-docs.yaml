@@ -4,8 +4,14 @@ on:
     push:
         branches: [main]
         paths:
+            # Must match the `paths:` block for this repo in
+            # celine-eu.github.io/repos.yaml — those are the files the site
+            # fetches, and anything it fetches has to be able to trigger a
+            # rebuild. `docs/**` was missing here, so documentation-only
+            # changes were published to a site that never rebuilt.
             - "README.md"
             - "apps/*/README.md"
+            - "docs/**"
 
 jobs:
     notify:

@@ -1,0 +1,9 @@
+# Local reference values — TEMPLATE
+
+Copy to `references.local.md` and fill in the values for this machine. That file is
+gitignored and must stay that way.
+
+One `- NAME: value` per line. Names are declared in `references.md`; a value here whose
+name is not declared there is a value nobody reviewed.
+
+- UPSTREAM_PIPELINES_ROOT: <absolute path to the private deployment repository's pipeline apps directory>

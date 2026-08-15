@@ -18,9 +18,11 @@ Open-source tools & docs: https://celine-eu.github.io/
 
 | Document | Description |
 |---|---|
-| [Pipeline Overview](https://celine-eu.github.io/projects/celine-pipelines/docs/pipeline-overview) | Standard pipeline anatomy, data layers, governance.yaml |
-| [Pipelines Reference](https://celine-eu.github.io/projects/celine-pipelines/docs/pipelines-reference) | Per-pipeline reference: om, mt, dwd, owm, copernicus, osm, rec_registry, rec_flexibility_commitments |
-| [Development](https://celine-eu.github.io/projects/celine-pipelines/docs/development) | Prerequisites, task setup, running pipelines, releasing |
+| [Pipeline Overview](https://celine-eu.github.io/projects/celine-pipelines/docs/pipeline-overview) | Pipeline anatomy, data layers, cross-pipeline contracts, `governance.yaml` |
+| [Pipelines Reference](https://celine-eu.github.io/projects/celine-pipelines/docs/pipelines-reference) | Every pipeline: what it consumes, what it publishes, when it runs |
+| [Local Runtime](https://celine-eu.github.io/projects/celine-pipelines/docs/local-runtime) | Running a pipeline in your terminal with the `celine-utils` CLI |
+| [Testing](https://celine-eu.github.io/projects/celine-pipelines/docs/testing) | The test layers, the cross-pipeline cascade, current coverage |
+| [Development](https://celine-eu.github.io/projects/celine-pipelines/docs/development) | Prerequisites, setup, Docker, releasing, adding a pipeline |
 
 ---
 
@@ -34,11 +36,21 @@ This repository hosts **end-to-end data pipelines** based on **open and public d
   - OpenWeatherMap (OWM)
   - Deutscher Wetterdienst (DWD — ICON-D2)
   - Copernicus Climate & Atmosphere Services (ERA5, CAMS)
+  - Weather facade — one provider-neutral interface over all of the above
 - **Geospatial open data**
   - OpenStreetMap (OSM)
-- **REC data mirrors**
-  - REC Registry — community/member/asset data mirror
-  - Flexibility commitments — commitment data mirror from flexibility-api
+  - Overture Maps — building footprints
+  - Regional PV siting constraints
+- **Photovoltaic analysis**
+  - PV estimation — rooftop return on investment and installation planning
+  - PV detection — existing installations identified from aerial imagery
+- **Grid**
+  - Wind and heat resilience overlays for the distribution network
+- **REC and community data**
+  - Metering interface — 15-minute and hourly readings, and the gap report over them
+  - Italian CER virtual self-consumption settlement
+  - Flexibility windows, settlement, gamification and CO2 impact
+  - REC Registry and flexibility commitment mirrors
 
 Each pipeline follows the same **canonical CELINE structure**:
 - ingestion (Meltano / Singer taps)
@@ -47,6 +59,11 @@ Each pipeline follows the same **canonical CELINE structure**:
 - governance metadata (`governance.yaml`)
 - containerized execution (Docker / Skaffold)
 
+Several pipelines read tables produced by **private ingestion pipelines that are not part
+of this repository**. In each case the app's `sources.yml` is the published contract and
+its `README.md` states the expected columns, so the pipeline can be run against
+locally-created or synthetic data.
+
 ---
 
 ## Repository structure
@@ -54,16 +71,29 @@ Each pipeline follows the same **canonical CELINE structure**:
 ```text
 celine-pipelines/
 ├── apps/
-│   ├── copernicus/                  # Copernicus Climate & Atmosphere pipelines
-│   ├── dwd/                         # DWD ICON-D2 weather model
-│   ├── mt/                          # MeteoTrentino regional weather
 │   ├── om/                          # Open-Meteo (weather, wind, heat, observations)
+│   ├── mt/                          # MeteoTrentino regional weather
+│   ├── owm/                         # OpenWeatherMap
+│   ├── copernicus/                  # Copernicus Climate & Atmosphere (ERA5, CAMS)
+│   ├── dwd/                         # DWD ICON-D2 weather model (paused)
+│   ├── weather/                     # Provider-neutral weather facade
 │   ├── osm/                         # OpenStreetMap ingestion & curation
-│   ├── owm/                         # OpenWeatherMap pipelines
-│   ├── rec_flexibility_commitments/ # Flexibility commitments mirror
-│   └── rec_registry/                # REC Registry data mirror
+│   ├── overture/                    # Overture Maps building footprints
+│   ├── trentino_rooftops/           # PV siting constraints (regional open data)
+│   ├── pv_estimation/               # Rooftop PV return-on-investment
+│   ├── pv_detection/                # Existing PV detected from aerial imagery
+│   ├── grid/                        # Grid wind & heat resilience overlays
+│   ├── rec_metering/                # 15-min / hourly metering interface
+│   ├── rec_it/                      # Italian CER virtual self-consumption
+│   ├── rec_flexibility/             # Flexibility windows, settlement, gamification
+│   ├── rec_registry/                # REC Registry data mirror
+│   └── rec_flexibility_commitments/ # Flexibility commitments mirror
 │
+├── docs/               # Published documentation (celine-eu.github.io)
+├── .agents/            # Agent knowledge, playbooks and plans
 ├── scripts/            # Release & utility scripts
+├── docker-compose.yaml # Local stack: database, lineage, Prefect, one service per pipeline
+├── Dockerfile.base     # Shared pipeline base image
 ├── skaffold.yaml       # Container build configuration
 ├── taskfile.yaml       # Developer & CI tasks
 ├── pyproject.toml
@@ -129,21 +159,34 @@ task setup
 
 ### Run a pipeline
 
-Example (OpenWeatherMap):
+Start the database, then run from inside the pipeline's own directory:
 
 ```bash
-task pipeline:owm:run
+docker compose up datasets-db -d
+
+cd apps/owm
+source <(uv run celine-utils pipeline run envs)
+uv run celine-utils pipeline run prefect
 ```
+
+`pipeline run envs` prints the execution context as `export` lines — source it and bare
+`dbt` and `meltano` commands work with no wrapper. See
+[Local Runtime](https://celine-eu.github.io/projects/celine-pipelines/docs/local-runtime)
+for the full command set, and
+[Testing](https://celine-eu.github.io/projects/celine-pipelines/docs/testing) for how to
+verify a change across the pipelines that depend on it.
 
 ---
 
 ## Versioning & releases
 
-Each pipeline is **versioned independently**.
+Each pipeline is **versioned independently** in `apps/<name>/version.txt`. CI watches
+those files and publishes the matching image on change.
 
-Example:
 ```bash
-task pipeline:osm:release
+task pipeline:release:app -- osm --commit   # bump one pipeline
+task pipeline:release:all                   # bump every pipeline
+task pipeline:release:base                  # bump the shared base image
 ```
 
 ---
@@ -202,16 +245,28 @@ This work is part of the **CELINE project**, funded under the European Union fra
 
 ## Pipeline Summary
 
-| Pipeline | Source | Schedule | Key Outputs |
+Full detail — sources, layers, outputs, upstream contracts — in the
+[Pipelines Reference](https://celine-eu.github.io/projects/celine-pipelines/docs/pipelines-reference).
+
+| Pipeline | Source | Schedule | Key outputs |
 |---|---|---|---|
-| **om** (weather) | Open-Meteo | 2x daily | Weather features for energy forecasting |
-| **om** (wind) | Open-Meteo | Daily | Wind risk assessments per grid node |
-| **om** (heat) | Open-Meteo | Daily | Heat risk assessments (P90 altitude-band) |
+| **om** (weather) | Open-Meteo | Daily 06:00 | 29 engineered weather features for energy forecasting |
+| **om** (wind) | Open-Meteo | Every 4h | Wind speed/gust/direction on a 4.4 km Trentino grid |
+| **om** (heat) | Open-Meteo | Daily 07:30 | Heat risk by altitude band (P90) |
 | **om** (obs) | Open-Meteo | Every 2h | 15-min weather observations |
-| **mt** | MeteoTrentino | Hourly | Regional weather stations, forecasts, alerts |
-| **owm** | OpenWeatherMap | Scheduled | Weather data for specific locations |
-| **dwd** | DWD | Scheduled | ICON-D2 weather model data |
-| **copernicus** | Copernicus | Scheduled | ERA5/CAMS climate data |
-| **osm** | OpenStreetMap | On-demand | Geospatial layers for REC areas |
+| **mt** | MeteoTrentino | Hourly | Regional stations, forecasts, alerts; weather contract tables |
+| **owm** | OpenWeatherMap | Hourly | Per-location weather, plus a semantic observation view |
+| **copernicus** | Copernicus | 4x daily | ERA5 reanalysis and CAMS atmospheric composition |
+| **dwd** | DWD | paused | ICON-D2 model output (superseded by `om` wind) |
+| **weather** | provider contract tables | Hourly | Deduplicated forecasts, alerts and observations per location |
+| **osm** | OpenStreetMap | 4x daily | Thematic geospatial layers per covered area |
+| **overture** | Overture Maps | Daily | Building footprints with stable identifiers |
+| **trentino_rooftops** | Regional open data | Daily | Per-building PV siting eligibility |
+| **pv_estimation** | Buildings + `celine-roi` | Weekly | Rooftop PV ROI, installation plans and rankings |
+| **pv_detection** | Aerial imagery + vision model | Weekly | Buildings with PV already installed |
+| **grid** | Grid topology + `om` forecasts | Daily, 15-min nowcast | Wind and heat risk overlays per line segment |
+| **rec_metering** | Normalised meter readings | Every 10 min | 15-min and hourly metering interface, gap report |
+| **rec_it** | `rec_metering` + registry + GSE | Every 15 min | Virtual self-consumption per device and community |
+| **rec_flexibility** | `rec_metering` + forecasts | Daily 06:00 | Flexibility windows, settlement, gamification, CO2 |
 | **rec_registry** | REC Registry API | Every 5 min | Community/member/asset mirror |
-| **rec_flexibility_commitments** | Flexibility API | Every 15 min | Commitment data mirror (90-day window) |
+| **rec_flexibility_commitments** | Flexibility API | Every 15 min | Commitment mirror (90-day sliding window) |

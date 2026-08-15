@@ -2,13 +2,129 @@ version: 2
 
 models:
   - name: meters_data_15m
+    description: >
+      The sanctioned 15-minute meter interface. Deduplicated and summed per
+      (device_id, ts) over the upstream normalized silver table. Energy is kWh
+      per 15-minute bucket — there is no kW/kWh conversion anywhere downstream.
+      Every other REC pipeline reads this table, so a column change here is a
+      change to rec_it and rec_flexibility as well.
     config:
       tags: ["rec_metering"]
+    columns:
+      - name: _id
+        description: md5(device_id || ts). The merge key.
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        description: Device identifier; matches sensor_id in the REC registry.
+        data_tests:
+          - not_null
+      - name: ts
+        description: Start of the 15-minute slot.
+        data_tests:
+          - not_null
+      - name: consumption_kwh
+        description: Grid import over the slot, kWh.
+      - name: production_kwh
+        description: Grid export over the slot, kWh.
+      - name: self_consumed_kwh
+        description: >
+          Behind-the-meter self-use over the slot, kWh. Published unclipped and
+          known to be negative on a minority of rows, because the upstream
+          computes it without a max(...,0) clamp. That is an upstream data
+          defect this model neither introduces nor hides — do not add a
+          non-negative test here, and do not clamp it, or the defect becomes
+          invisible instead of fixed.
 
   - name: meters_data_1h
+    description: >
+      Hourly rollup of meters_data_15m. Consistency with the 15-minute table is
+      asserted by the meters_data_1h_matches_15m_rollup singular test.
     config:
       tags: ["rec_metering"]
+    columns:
+      - name: _id
+        description: md5(device_id || date_trunc('hour', ts)). The merge key.
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: ts
+        description: Start of the hour.
+        data_tests:
+          - not_null
 
   - name: meters_data_15m_missing_intervals
+    description: >
+      Quality model. The complete expected 15-minute grid per device over the
+      last 7 days, left-joined against actuals, so each row is a gap in the
+      readings. Rows here are the expected output of a working pipeline over
+      imperfect data — an empty table means no gaps, not a broken model.
     config:
       tags: ["rec_metering"]
+    columns:
+      - name: event_id
+        description: md5(device_id || expected_ts). The merge key.
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        data_tests:
+          - not_null
+      - name: ts
+        description: The missing interval.
+        data_tests:
+          - not_null
+      - name: hour
+        description: Hour of day in Europe/Rome, for reporting.
+
+  - name: meters_measurements_15m
+    description: >
+      meters_data_15m unpivoted to one quantity per row, the shape a semantic
+      vocabulary can describe (sosa:Observation carries exactly one
+      sosa:observedProperty). A view, not a table. device_id is carried
+      verbatim because it is the column the rec_registry row filter matches on;
+      see the model header and the governance.yaml anchor.
+    config:
+      tags: ["rec_metering"]
+    columns:
+      - name: observation_id
+        description: md5(_id || '|' || property). Unique per (reading, quantity).
+        data_tests:
+          - unique
+          - not_null
+      - name: device_id
+        description: >
+          Load-bearing for access control, not just for joins. The rec_registry
+          row filter declared in governance.yaml names this column, and nothing
+          validates that the column exists — a view that dropped or renamed it
+          would be served unfiltered rather than failing.
+        data_tests:
+          - not_null
+      - name: result_time
+        data_tests:
+          - not_null
+      - name: observed_property
+        description: Full CELINE property IRI — absolute, never a CURIE.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values:
+                  - "https://w3id.org/celine-eu#GridImportEnergy"
+                  - "https://w3id.org/celine-eu#GridExportEnergy"
+                  - "https://w3id.org/celine-eu#SelfConsumedEnergy"
+      - name: unit
+        description: Full QUDT unit IRI.
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["http://qudt.org/vocab/unit/KiloW-HR"]
+      - name: value
+        description: The quantity. Never null — the unpivot filters nulls out.
+        data_tests:
+          - not_null

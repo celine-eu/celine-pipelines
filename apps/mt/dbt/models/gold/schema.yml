@@ -1,0 +1,173 @@
+version: 2
+
+models:
+  - name: mt_stations
+    description: Active stations only — decommissioned ones are filtered here, not in silver.
+    columns:
+      - name: code
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('mt_meteo_stations')
+                field: code
+
+  - name: mt_observations_current
+    description: >
+      Latest observation per active station within the last hour. Rebuilt every
+      run, so it is empty whenever ingestion has not run in the past hour —
+      that is expected, not a failure.
+    columns:
+      - name: station_code
+        description: One row per station; uniqueness is this model's contract.
+        data_tests:
+          - unique
+          - not_null
+      - name: observed_at
+        data_tests:
+          - not_null
+
+  - name: mt_alerts_active
+    description: >
+      Unexpired alerts, deduplicated to the most recently sent version per
+      identifier via `distinct on`.
+    columns:
+      - name: identifier
+        description: Unique here, unlike in mt_alerts, because of the distinct on.
+        data_tests:
+          - unique
+          - not_null
+
+  - name: mt_forecast_hourly
+    description: Sub-daily forecasts from now onward, enriched with location metadata.
+    columns:
+      - name: location_id
+        data_tests:
+          - not_null
+      - name: forecast_at
+        data_tests:
+          - not_null
+
+  - name: mt_forecast_daily
+    description: Daily forecasts from today onward, enriched with location metadata.
+    columns:
+      - name: location_id
+        data_tests:
+          - not_null
+
+  # ---------------------------------------------------------------------------
+  # Weather contract tables.
+  #
+  # These four are published under generic aliases (weather__*) and are read by
+  # the `weather` facade, which knows nothing about MeteoTrentino. They are this
+  # pipeline's cross-repository interface: renaming or retyping a column here
+  # breaks `weather`, and through it digital-twin and celine-webapp. Test them
+  # as the contract they are, not as ordinary gold models.
+  # ---------------------------------------------------------------------------
+
+  - name: mt_weather_current
+    description: "Contract table, alias `weather__current`. One row per station."
+    columns:
+      - name: provider
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["mt"]
+      - name: station_id
+        data_tests:
+          - unique
+          - not_null
+      - name: observed_at
+        data_tests:
+          - not_null
+      - name: lat
+        description: Required — the facade matches provider rows to seed locations by distance.
+        data_tests:
+          - not_null
+      - name: lon
+        data_tests:
+          - not_null
+      - name: elevation_m
+        description: >
+          Station elevation, from the MT registry. The facade breaks
+          coordinate ties on this; without it, rows at one coordinate are
+          indistinguishable to the consumer.
+        data_tests:
+          - not_null
+
+  - name: mt_weather_forecast_hourly
+    description: >
+      Contract table, alias `weather__forecast_hourly`. One row per
+      (location_id, forecast_at) — **not** per (lat, lon, forecast_at). A
+      coordinate is not a unique forecast point here; `elevation_m` is what
+      separates rows that share one.
+    columns:
+      - name: provider
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["mt"]
+      - name: location_id
+        data_tests:
+          - not_null
+      - name: forecast_at
+        data_tests:
+          - not_null
+      - name: lat
+        data_tests:
+          - not_null
+      - name: lon
+        data_tests:
+          - not_null
+      - name: elevation_m
+        description: >
+          Altitude band of this forecast point. Load-bearing: massif forecasts
+          share one lat/lon across four bands, and this is the only column that
+          separates them.
+        data_tests:
+          - not_null
+
+  - name: mt_weather_forecast_daily
+    description: "Contract table, alias `weather__forecast_daily`."
+    columns:
+      - name: provider
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["mt"]
+      - name: location_id
+        data_tests:
+          - not_null
+      - name: forecast_date
+        data_tests:
+          - not_null
+      - name: lat
+        data_tests:
+          - not_null
+      - name: lon
+        data_tests:
+          - not_null
+      - name: elevation_m
+        description: Altitude band. See mt_weather_forecast_hourly.
+        data_tests:
+          - not_null
+
+  - name: mt_weather_alerts
+    description: >
+      Contract table, alias `weather__alerts`. `location_id` is deliberately
+      null — MT alerts are area-based, and the facade fans them out across that
+      provider's locations. Do not "fix" the null.
+    columns:
+      - name: provider
+        data_tests:
+          - not_null
+          - accepted_values:
+              arguments:
+                values: ["mt"]
+      - name: alert_id
+        data_tests:
+          - not_null

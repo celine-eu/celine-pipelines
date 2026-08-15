@@ -1,0 +1,110 @@
+version: 2
+
+models:
+  - name: mt_meteo_stations
+    description: >
+      Station registry, type-normalized from the raw ASMX payload. Includes
+      decommissioned stations — `active_until` in the past marks those, and
+      every gold model filters them out rather than this one doing it.
+    columns:
+      - name: code
+        description: Station identifier. The join key for every observation.
+        data_tests:
+          - unique
+          - not_null
+      - name: name
+        data_tests:
+          - not_null
+      - name: latitude
+        description: WGS84. Not null — gold models join on the station to get coordinates.
+        data_tests:
+          - not_null
+      - name: longitude
+        data_tests:
+          - not_null
+
+  - name: mt_forecast_locations
+    description: >
+      Forecast location registry. **Coordinates are not unique**: several named
+      locations share one lat/lon pair, because MeteoTrentino publishes distinct
+      forecast points under a shared published coordinate. `location_id` is the
+      only safe key — see the weather-facade knowledge note before writing
+      anything that joins these on coordinates.
+    columns:
+      - name: location_id
+        data_tests:
+          - unique
+          - not_null
+      - name: latitude
+        data_tests:
+          - not_null
+      - name: longitude
+        data_tests:
+          - not_null
+
+  - name: mt_station_observations
+    description: >
+      Station observations, one row per (station, instant). Incremental merge;
+      timestamps are converted from Europe/Rome wall-clock to timestamptz at
+      this layer, so everything downstream is absolute.
+    columns:
+      - name: station_code
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('mt_meteo_stations')
+                field: code
+      - name: observed_at
+        data_tests:
+          - not_null
+
+  - name: mt_forecasts_hourly
+    description: >
+      Sub-daily (3-hour interval) forecasts, one row per (location, instant).
+      Incremental merge with a 3-day lookback.
+    columns:
+      - name: location_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('mt_forecast_locations')
+                field: location_id
+      - name: forecast_at
+        data_tests:
+          - not_null
+
+  - name: mt_forecasts_daily
+    description: >
+      Daily forecast summaries, one row per (location, day). Incremental merge
+      with a 7-day lookback.
+    columns:
+      - name: location_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('mt_forecast_locations')
+                field: location_id
+      - name: forecast_at
+        data_tests:
+          - not_null
+
+  - name: mt_alerts
+    description: >
+      Civil-protection alerts, full replace each run. May contain several
+      versions of one alert; `mt_alerts_active` collapses them.
+    columns:
+      - name: identifier
+        description: Alert id. Not unique here — one row per issued version.
+        data_tests:
+          - not_null
+
+  - name: mt_sky_conditions
+    description: Sky-condition code lookup, used to resolve codes to English names.
+    columns:
+      - name: id
+        data_tests:
+          - unique
+          - not_null
