@@ -22,7 +22,7 @@ different places, none of which is authoritative**:
 | Where | Example | Visible to |
 |---|---|---|
 | `dbt/models/**/sources.yml` | `weather` declares `weather__forecast_hourly` | dbt, within one app |
-| `flows/config.yaml` | `pv_estimation` names `pv_building_suitability` as a table | that app's Python only |
+| `apps/<name>/flows/config.yaml` | `pv_estimation` names `pv_building_suitability` as a table | that app's Python only |
 | The cron offset | `mt` at `:05`, `weather` at `:15` | nothing |
 
 A dbt `source()` is the closest thing to a declaration, but dbt's DAG stops at the project
@@ -77,7 +77,7 @@ makes the graph derivable from files that exist.
 Cheapest, and it fits the existing shape. But `governance.yaml` is consumed by
 `dataset-api` for cataloguing and dataspace exposure, so widening its meaning to
 "orchestration input" needs agreement from that side, and the schema in
-`celine-utils/schema/governance.schema.json` is versioned and shared.
+the `governance.schema.json` published by `celine-utils` is versioned and shared.
 
 ### B. A dedicated declaration, resolved by `celine-utils`
 

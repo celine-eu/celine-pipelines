@@ -83,16 +83,16 @@ PGPASSWORD=$POSTGRES_PASSWORD psql -h "$POSTGRES_HOST" -p "$POSTGRES_PORT" \
 missing column or an empty result almost always means a producer has not run or has moved
 on. Find out who produces the table *before* concluding anything — often it is another app
 in this repository, and sometimes it is a private one. Producer map and triage steps:
-[`knowledge/upstream-tables-have-external-producers.md`](../knowledge/upstream-tables-have-external-producers.md);
+[`../knowledge/upstream-tables-have-external-producers.md`](../knowledge/upstream-tables-have-external-producers.md);
 worked example:
-[`knowledge/grid-strike-tree-columns-are-upstream.md`](../knowledge/grid-strike-tree-columns-are-upstream.md).
+[`../knowledge/grid-strike-tree-columns-are-upstream.md`](../knowledge/grid-strike-tree-columns-are-upstream.md).
 
 **A slow local run is usually lineage, not the query.** See
-[`knowledge/lineage-retries-stall-local-runs.md`](../knowledge/lineage-retries-stall-local-runs.md).
+[`../knowledge/lineage-retries-stall-local-runs.md`](../knowledge/lineage-retries-stall-local-runs.md).
 
 **`rec_flexibility` does not even parse on a fresh checkout.** Its fleet seed is generated
 at flow start and is not in the repository. See
-[`knowledge/rec-flexibility-needs-its-fleet-seed.md`](../knowledge/rec-flexibility-needs-its-fleet-seed.md)
+[`../knowledge/rec-flexibility-needs-its-fleet-seed.md`](../knowledge/rec-flexibility-needs-its-fleet-seed.md)
 — it also covers why dbt unit tests need the tables to exist.
 
 **A dbt selector with a comma is an intersection, not a union.** `-s gold,tag:wind` is

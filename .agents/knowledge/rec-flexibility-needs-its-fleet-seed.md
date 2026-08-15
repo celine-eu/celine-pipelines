@@ -2,9 +2,10 @@
 
 Verified 2026-08-15.
 
-`apps/rec_flexibility/dbt/seeds/rec_active_devices.csv` is **not in the repository and
-never will be** — it holds the private device fleet, and this repository is open source.
-`flows/pipeline.py` writes it at flow start from `REC_ACTIVE_DEVICES` (or the empty
+The dbt seed `rec_active_devices.csv`, which dbt expects under
+`apps/rec_flexibility/dbt/seeds/`, is **not in the repository and never will be** — it
+holds the private device fleet, and this repository is open source.
+`apps/rec_flexibility/flows/pipeline.py` writes it at flow start from `REC_ACTIVE_DEVICES` (or the empty
 `fleet.active_devices` fallback in `flexibility_config.yaml`) before any dbt task runs.
 
 So on a fresh checkout, every bare dbt command in this app fails at parse time:

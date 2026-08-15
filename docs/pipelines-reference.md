@@ -199,7 +199,7 @@ and REC managers at province and primary-substation level.
 | gold | `pv_rooftop_opportunities`, `pv_installation_ranking`, `pv_installation_plan`, `pv_installation_plan_summary`, `rec_building_cabina`, `rec_cabina_opportunities`, `rec_cabina_plan`, `rec_cabina_summary` |
 
 Sources: `pv_overture_buildings` (overture, silver) and `gse_cabine_primarie` (rec_it,
-gold). The ROI computation is a Python task, not dbt — `flows/roi_estimator.py`, run
+gold). The ROI computation is a Python task, not dbt — `apps/pv_estimation/flows/roi_estimator.py`, run
 incrementally with a `--full-refresh` escape hatch.
 
 ## `pv_detection` — existing PV from imagery
@@ -244,7 +244,7 @@ topology with Open-Meteo forecasts. Requires PostGIS. dbt-only; no ingestion of 
 **Upstream (private):** two CIM-normalised silver tables produced by a DSO-specific
 ingestion pipeline that is not part of this repository —
 `silver_grid_ac_line_segment` and the substation table. The expected columns are declared
-in `dbt/models/sources.yml`, which is the contract; `README.md` states the DDL so the
+in `apps/grid/dbt/models/sources.yml`, which is the contract; `README.md` states the DDL so the
 pipeline can be run against locally-created tables.
 
 > A `column "strike_tree_*" does not exist` error means the local silver table predates an

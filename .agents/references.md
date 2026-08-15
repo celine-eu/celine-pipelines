@@ -17,6 +17,16 @@ value (REQ-0010). The values live in `references.local.md`, which is gitignored
 
 ## Declared names
 
+The list below is what the conformance checker reads (`- NAME: kind — meaning`); the
+prose under each heading is for people. **Keep both in step** — a name that appears only
+as a heading is undeclared as far as REQ-0010 is concerned, and the local value beside it
+is then reported as undeclared.
+
+- `UPSTREAM_PIPELINES_ROOT`: restricted — the checkout path of the private deployment
+  repository that produces this repository's upstream `raw` and `silver` tables. It is
+  *also* machine-bound, so `local` applies too; **the stronger kind is the one declared**,
+  because committing it would be a disclosure rather than merely noise.
+
 ### `{{UPSTREAM_PIPELINES_ROOT}}` — **local** and **restricted**
 
 The checkout path of the private deployment repository whose pipelines produce the

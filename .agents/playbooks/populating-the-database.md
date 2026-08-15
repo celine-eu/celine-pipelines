@@ -12,7 +12,7 @@ moved. Most "the pipeline is broken" reports start here.
 ## Recognising drift
 
 Four symptoms, four different causes. Identify which one before touching anything —
-[`knowledge/upstream-tables-have-external-producers.md`](../knowledge/upstream-tables-have-external-producers.md)
+[`../knowledge/upstream-tables-have-external-producers.md`](../knowledge/upstream-tables-have-external-producers.md)
 has the full triage.
 
 | Symptom | Cause | Fix |
@@ -110,7 +110,7 @@ where  l.location_id::text = w.location_id;
 
 `rec_flexibility` writes its fleet seed at flow start and it is not in the repository, so
 bare `dbt` commands fail at parse time on a fresh checkout. See
-[`knowledge/rec-flexibility-needs-its-fleet-seed.md`](../knowledge/rec-flexibility-needs-its-fleet-seed.md).
+[`../knowledge/rec-flexibility-needs-its-fleet-seed.md`](../knowledge/rec-flexibility-needs-its-fleet-seed.md).
 An empty seed parses and then fails at run time on a column type — that note has the
 generation command.
 
@@ -126,7 +126,7 @@ generation command.
 - **`dbt unit tests need the tables to exist**, even though they read no rows: dbt infers
   fixture column types from the relation. Build before unit-testing.
 - **Lineage retries make a build look hung.** See
-  [`knowledge/lineage-retries-stall-local-runs.md`](../knowledge/lineage-retries-stall-local-runs.md).
+  [`../knowledge/lineage-retries-stall-local-runs.md`](../knowledge/lineage-retries-stall-local-runs.md).
 
 ## Reporting
 

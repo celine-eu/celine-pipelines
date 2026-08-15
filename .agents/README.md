@@ -1,4 +1,4 @@
-<!-- harness-standard v2 — issued by the agent harness. Do not edit; replace it with `python -m harness upgrade <target>`. -->
+<!-- harness-standard v3 — issued by the agent harness. Do not edit; replace it with `python -m harness upgrade <target>`. -->
 
 # The knowledge contract
 
@@ -235,3 +235,22 @@ in the plan, the progress stays in `work/`.
 - A number a command can produce is never written down by hand.
 - A change is done when its tests pass, its documentation matches it, and what was
   skipped is stated.
+
+---
+
+## Maintaining this document
+
+**Read only.** Do not edit it, and do not edit `AGENTS.md` beside it. Neither is this
+repository's document: both are issued by the agent harness and are byte-identical in
+every repository carrying it, which is the only reason an agent can read them once and
+skip them everywhere else.
+
+A change lands by changing the harness that issues them, after which every repository
+receives the same text — `python -m harness upgrade <target>`. Editing one copy creates
+the drift the standard exists to remove, and the next reader cannot tell an improvement
+from an accident. REQ-0012 reports a copy that has been altered.
+
+Anything you were about to add here has a home, and this document is the rule for which:
+a trap goes to `.agents/knowledge/`, a procedure to `.agents/playbooks/`, an intended
+change to `.agents/plans/`, a rationale to `docs/decisions/`, a description of the system
+to `docs/`, and a defect to the issue tracker.

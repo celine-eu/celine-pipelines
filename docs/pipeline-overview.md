@@ -238,7 +238,7 @@ Two rules are load-bearing:
   that dropped the column would be served **unfiltered** rather than failing.
 
 The full schema is published at
-[`celine-utils/schema/governance.schema.json`](https://celine-eu.github.io/schema/) and
+[the `governance.schema.json` published by `celine-utils`](https://celine-eu.github.io/schema/) and
 the field reference in the
 [governance documentation](https://celine-eu.github.io/projects/celine-utils/docs/governance).
 The `ownership` values map to entries in `dataset-api`'s `owners.yaml`.

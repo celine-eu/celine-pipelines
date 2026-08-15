@@ -26,6 +26,12 @@ getent hosts host.docker.internal
 PGPASSWORD=securepassword123 psql -h host.docker.internal -p 15432 -U postgres -d datasets -c '\dn'
 ```
 
+> **Operate read-only against this database, and ask before writing to it.** It is shared
+> local state rather than a scratch instance: other pipelines' tables live in it, and a
+> dropped or rewritten table costs someone else a full repopulation. A pipeline creates
+> the tables it needs **at run time** — if you find yourself hand-creating one to make a
+> run work, the pipeline is not self-contained, and that is the defect to fix.
+
 If `host.docker.internal` does not resolve on the host, either map it to the Docker bridge
 address in `/etc/hosts` or set `POSTGRES_HOST=localhost` in `.env`. A
 `could not translate host name` error is this, and nothing else.
@@ -40,7 +46,7 @@ docker compose up marquez-api marquez-web -d     # keep it, UI on :5002
 export OPENLINEAGE_ENABLED=false                 # skip it
 ```
 
-See [`knowledge/lineage-retries-stall-local-runs.md`](../knowledge/lineage-retries-stall-local-runs.md)
+See [`../knowledge/lineage-retries-stall-local-runs.md`](../knowledge/lineage-retries-stall-local-runs.md)
 for why the middle option — Marquez down, lineage on — is the one to avoid.
 
 ## Running something
@@ -104,7 +110,7 @@ machine, or when more than one app is failing.
 produces the table.** A missing table, a missing column or an empty result almost always
 means a producer has not run or has moved on — not that the model in front of you is
 wrong. The producer map and the five-step triage are in
-[`knowledge/upstream-tables-have-external-producers.md`](../knowledge/upstream-tables-have-external-producers.md).
+[`../knowledge/upstream-tables-have-external-producers.md`](../knowledge/upstream-tables-have-external-producers.md).
 
 The short version:
 

@@ -11,12 +11,12 @@ green while it happens, so nothing tells you.
 
 ## What the site does with this repository
 
-`scripts/build.py` in `celine-eu.github.io` clones this repository **from GitHub `main`**,
+The build script in `celine-eu.github.io` clones this repository **from GitHub `main`**,
 copies the files matching the `paths:` block, and generates the MkDocs nav from the `nav:`
 block. Two conversions matter:
 
 - **`README.md` always becomes `index.md`** — in every directory, not just the root. So
-  `apps/grid/README.md` is referenced in the nav as `apps/grid/index.md`.
+  `apps/grid/README.md` is referenced in the nav with its filename rewritten to `index.md`.
 - Nav entries are relative to this repository's root and are prefixed with
   `projects/celine-pipelines/` by the builder. The bare string `README` is special-cased
   to the project's landing page and titled "Overview".
@@ -39,7 +39,7 @@ filter and `repos.yaml`'s `paths:` block are two halves of one statement — a f
 fetches but the workflow ignores is published only when something else happens to trigger
 a build.
 
-### 3. Add the nav entry in `celine-eu.github.io/repos.yaml`
+### 3. Add the nav entry in the `repos.yaml` in `celine-eu.github.io`
 
 Under the `celine-pipelines` entry:
 
