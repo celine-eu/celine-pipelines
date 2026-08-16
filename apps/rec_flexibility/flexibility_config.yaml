@@ -67,7 +67,8 @@ baseline:
 # Suggestion-card promises are baseline-derived, not forecast-derived:
 #   estimated_kwh = expected (settlement baseline) + potential (upward spread),
 # with the M1-only potential capped by export_median + import_spread.
-# See docs/superpowers/specs/2026-07-06-flexibility-window-points-v3-design.md (demo3).
+# Spec: "flexibility window points v3 design", 2026-07-06, held in the private
+# deployment repository — not resolvable from this open-source checkout.
 # NOTE: dbt reads calibration_lambda via vars in dbt_project.yml — keep in sync.
 window_promise:
   shift_q_hi: 0.75             # upper quantile of daily per-slot values

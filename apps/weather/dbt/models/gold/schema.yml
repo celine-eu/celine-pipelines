@@ -1,0 +1,102 @@
+version: 2
+
+models:
+  - name: weather_forecast_hourly
+    description: >
+      Sub-daily forecast per configured location, deduplicated to the nearest
+      provider location within 0.1 degrees. Consumed by digital-twin and
+      celine-webapp, so a column change here is a change to both.
+    columns:
+      - name: location_id
+        description: Key of the weather_locations seed entry, not the provider's own id.
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('weather_locations')
+                field: location_id
+      - name: forecast_at
+        data_tests:
+          - not_null
+      - name: provider
+        description: Which provider won the nearest-location ranking for this row.
+        data_tests:
+          - not_null
+      - name: elevation_m
+        description: >
+          Elevation of the provider point that won the match — not the seed's
+          requested elevation. Consumers need it to know which altitude the
+          forecast is actually for, since a coordinate can carry several.
+
+  - name: weather_forecast_daily
+    description: >
+      Daily forecast summary per configured location, deduplicated to the
+      nearest provider location within 0.1 degrees.
+    columns:
+      - name: location_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('weather_locations')
+                field: location_id
+      - name: forecast_date
+        data_tests:
+          - not_null
+      - name: provider
+        data_tests:
+          - not_null
+      - name: elevation_m
+        description: >
+          Elevation of the provider point that won the match — not the seed's
+          requested elevation. Consumers need it to know which altitude the
+          forecast is actually for, since a coordinate can carry several.
+
+  - name: weather_current
+    description: >
+      Latest observation per configured location, from the nearest reporting
+      station within 0.15 degrees. Exactly one row per location — the wider
+      radius than the forecast models is deliberate, because stations are
+      sparser than forecast grid points.
+    columns:
+      - name: location_id
+        description: One row per location; uniqueness is the model's contract.
+        data_tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('weather_locations')
+                field: location_id
+      - name: observed_at
+        data_tests:
+          - not_null
+      - name: provider
+        data_tests:
+          - not_null
+      - name: elevation_m
+        description: >
+          Elevation of the provider point that won the match — not the seed's
+          requested elevation. Consumers need it to know which altitude the
+          forecast is actually for, since a coordinate can carry several.
+
+  - name: weather_alerts_active
+    description: >
+      Active alerts per configured location. Providers that issue area-based
+      rather than point-based alerts (MT) leave location_id null in the
+      contract table; staging fans those out across that provider's locations,
+      so one upstream alert becomes several rows here.
+    columns:
+      - name: location_id
+        data_tests:
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('weather_locations')
+                field: location_id
+      - name: alert_id
+        data_tests:
+          - not_null
+      - name: provider
+        data_tests:
+          - not_null

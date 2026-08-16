@@ -2,6 +2,7 @@
     materialized         = 'incremental',
     unique_key           = ['location_id', 'forecast_date'],
     incremental_strategy = 'merge',
+    on_schema_change     = 'append_new_columns',
     alias                = 'weather__forecast_daily'
 ) }}
 
@@ -18,6 +19,8 @@ select
     l.name_en                           as location_name,
     l.latitude                          as lat,
     l.longitude                         as lon,
+    -- Part of the contract. See mt_weather_forecast_hourly for why.
+    l.elevation_m,
     f.forecast_at::date                 as forecast_date,
     f.temperature_c,
     f.temperature_min_c,

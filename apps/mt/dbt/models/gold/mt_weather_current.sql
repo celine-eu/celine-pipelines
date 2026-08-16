@@ -35,6 +35,9 @@ select
     s.name                              as station_name,
     s.latitude                          as lat,
     s.longitude                         as lon,
+    -- Part of the contract: the facade breaks coordinate ties on elevation.
+    -- Station elevation is authoritative here, straight from the MT registry.
+    s.elevation_m,
     l.observed_at,
     l.air_temperature_c                 as temperature_c,
     l.relative_humidity_pct             as humidity_pct,

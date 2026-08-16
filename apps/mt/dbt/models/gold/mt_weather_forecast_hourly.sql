@@ -2,6 +2,7 @@
     materialized         = 'incremental',
     unique_key           = ['location_id', 'forecast_at'],
     incremental_strategy = 'merge',
+    on_schema_change     = 'append_new_columns',
     alias                = 'weather__forecast_hourly'
 ) }}
 
@@ -18,6 +19,14 @@ select
     l.name_en                           as location_name,
     l.latitude                          as lat,
     l.longitude                         as lon,
+    -- Part of the contract, not decoration. MeteoTrentino publishes mountain
+    -- massifs as a vertical profile: one representative lat/lon per massif and
+    -- a separate location per altitude band (1500/2000/2500/3000 m). Without
+    -- this column those bands are indistinguishable to the weather facade,
+    -- which matches by coordinate — it would tie at distance zero and pick one
+    -- at random, a ~10 °C swing between runs. See
+    -- .agents/knowledge/mt-shares-coordinates-across-locations.md
+    l.elevation_m,
     f.forecast_at,
     f.temperature_c,
     null::float                         as humidity_pct,

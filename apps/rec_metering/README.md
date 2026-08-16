@@ -15,10 +15,13 @@ Reads from a single silver table produced by a metering ingestion pipeline (not 
 | Column | Type | Description |
 |--------|------|-------------|
 | `device_id` | text | Device identifier (matches `sensor_id` in the REC registry) |
-| `ts` | timestamp | 15-minute interval start |
-| `consumption_kw` | numeric | Instantaneous consumption reading (kW) |
-| `production_kw` | numeric | Instantaneous production reading (kW) |
-| `self_consumed_kw` | numeric | Self-consumed energy (kW) |
+| `ts` | timestamptz | 15-minute interval start, aligned to a quarter-hour boundary |
+| `consumption_kwh` | numeric | Grid import over the interval (**kWh per 15-min bucket**) |
+| `production_kwh` | numeric | Grid export over the interval (kWh per 15-min bucket) |
+| `self_consumed_kwh` | numeric | Behind-the-meter self-use (kWh per bucket), **unclipped** — negative on a minority of rows upstream |
+
+These are energy quantities per bucket, not instantaneous power. There is no kW→kWh
+conversion anywhere in this pipeline or downstream of it.
 
 ## dbt models
 
@@ -33,9 +36,9 @@ Deduplicates and aggregates normalized 15-min readings per `(device_id, ts)`. Gr
 | `_id` | `md5(device_id \|\| ts)` |
 | `device_id` | |
 | `ts` | 15-min slot start |
-| `consumption_kw` | Summed across source rows for the slot |
-| `production_kw` | Summed across source rows for the slot |
-| `self_consumed_kw` | Summed across source rows for the slot |
+| `consumption_kwh` | Summed across source rows for the slot |
+| `production_kwh` | Summed across source rows for the slot |
+| `self_consumed_kwh` | Summed across source rows for the slot |
 
 ### `meters_data_1h`
 
@@ -48,8 +51,8 @@ Hourly rollup of `meters_data_15m` via `date_trunc('hour', ts)`. Incremental mer
 | `_id` | `md5(device_id \|\| ts_hour)` |
 | `device_id` | |
 | `ts` | Hour start |
-| `consumption_kw` | Sum of 15-min readings in the hour |
-| `production_kw` | Sum of 15-min readings in the hour |
+| `consumption_kwh` | Sum of 15-min readings in the hour |
+| `production_kwh` | Sum of 15-min readings in the hour |
 
 ### `meters_data_15m_missing_intervals`
 
