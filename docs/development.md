@@ -139,6 +139,6 @@ A push to `main` touching those paths triggers the site rebuild via
 | running things locally | [Local Runtime](local-runtime.md) |
 | how to verify a change | [Testing](testing.md) |
 | why a technical choice was made | [`docs/decisions/`](decisions/index.md) |
-| a trap that is true of the code and not obvious from it | [`.agents/knowledge/`](https://github.com/celine-eu/celine-pipelines/tree/main/.agents/knowledge) |
-| a repeatable procedure | [`.agents/playbooks/`](https://github.com/celine-eu/celine-pipelines/tree/main/.agents/playbooks) |
+| a trap that is true of the code and not obvious from it | [the companion's knowledge](https://github.com/celine-eu/celine-pipelines/tree/main/.agents/knowledge) |
+| a repeatable procedure | [the companion's playbooks](https://github.com/celine-eu/celine-pipelines/tree/main/.agents/playbooks) |
 | something that is broken | `gh issue list` |

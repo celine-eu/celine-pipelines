@@ -183,8 +183,8 @@ A consumer should not paper over a missing upstream column with a defensive `coa
 pipeline that tolerates a broken contract loses the ability to report that it is broken.
 
 The triage sequence and the full producer map are in
-[`.agents/knowledge/upstream-tables-have-external-producers.md`](https://github.com/celine-eu/celine-pipelines/blob/main/.agents/knowledge/upstream-tables-have-external-producers.md);
-[`.agents/knowledge/grid-strike-tree-columns-are-upstream.md`](https://github.com/celine-eu/celine-pipelines/blob/main/.agents/knowledge/grid-strike-tree-columns-are-upstream.md)
+the companion's knowledge;
+the companion's knowledge
 is one case written up in full.
 
 ### Contract tables (provider-neutral aliases)

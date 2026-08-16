@@ -255,8 +255,7 @@ dbt build
 ```
 
 Requires PostGIS and the private silver topology tables. A missing-column error on
-`strike_tree_*` is an upstream staleness, not a grid regression — see
-[`.agents/knowledge/grid-strike-tree-columns-are-upstream.md`](https://github.com/celine-eu/celine-pipelines/blob/main/.agents/knowledge/grid-strike-tree-columns-are-upstream.md).
+`strike_tree_*` is an upstream staleness, not a grid regression.
 
 ### Chain 4 — photovoltaic
 

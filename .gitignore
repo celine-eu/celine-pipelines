@@ -21,8 +21,6 @@ temp*
 .meltano
 *.grib2*
 
-# Execution state: transient, and the plan is what survives
-.agents/work/
 
 # Local and restricted reference values. `references.md` declares the names and is
 # committed; this holds what they resolve to on one machine and is not.
@@ -37,5 +35,10 @@ temp*
 # line that makes that true.
 apps/rec_flexibility/dbt/seeds/rec_active_devices.csv
 
-# Agent material is not published from this repository.
-.agents/
+# Agent material is not published from this repository. What stays is the
+# checker's own configuration; the knowledge, playbooks, plans and work live in
+# the companion named by AGENTS_COMPANION.
+.agents/*
+!.agents/README.md
+!.agents/harness.toml
+!.agents/references.md
