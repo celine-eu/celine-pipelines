@@ -21,10 +21,7 @@ temp*
 .meltano
 *.grib2*
 
-
 # Local and restricted reference values. `references.md` declares the names and is
-# committed; this holds what they resolve to on one machine and is not.
-.agents/references.local.md
 
 # Generated at flow start from REC_ACTIVE_DEVICES so dbt can resolve
 # ref('rec_active_devices'). It holds the private device fleet, and this
@@ -35,10 +32,4 @@ temp*
 # line that makes that true.
 apps/rec_flexibility/dbt/seeds/rec_active_devices.csv
 
-# Agent material is not published from this repository. What stays is the
-# checker's own configuration; the knowledge, playbooks, plans and work live in
-# the companion named by AGENTS_COMPANION.
-.agents/*
-!.agents/README.md
-!.agents/harness.toml
-!.agents/references.md
+.agents/
