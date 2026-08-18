@@ -275,36 +275,52 @@ not telling you the pipeline is broken. See
 ## Populating the database from scratch
 
 There is no single command that builds everything. Pipelines depend on each other's gold
-tables, and **nothing in the repository declares that order** — it is reconstructed below
-from each app's `sources.yml`. Run the tiers in sequence; within a tier, order does not
-matter.
+tables, and the order comes from what each app declares: `depends_on:` in its
+`governance.yaml` names the datasets it reads, `sources:` names what it produces, and
+`celine-utils` resolves one against the other.
 
-### Tier 0 — no dependency on another app here
+**Ask for the order rather than reading it here** — it is generated from the files, so it
+cannot go stale the way a table in a document does:
 
-| App | Populate with |
+```bash
+uv run celine-utils governance graph 'apps/*'            # tiers, and anything inconsistent
+uv run celine-utils governance graph 'apps/*' -f order   # the same, flattened to a sequence
+```
+
+Everything in one tier may run in any order, or in parallel; a tier needs the one before
+it. `--strict` exits non-zero if any pipeline declares an input nothing here produces,
+which is the form to run in CI. Requires `celine-utils` 2.4 or later; on an older
+install, the tiers below are the same graph as of 2026-08-18.
+
+<details>
+<summary>The tiers, as the command prints them today</summary>
+
+```text
+tier 0   copernicus  dwd  mt  om  osm  overture  owm
+         rec_flexibility_commitments  rec_metering  rec_registry
+tier 1   grid  pv_detection  rec_flexibility  rec_it  trentino_rooftops  weather
+tier 2   pv_estimation
+```
+
+Seven declare `active: false`, meaning they are on no schedule anywhere and the tiers
+above include them only for completeness:
+
+| | |
 |---|---|
-| `om`, `mt`, `owm`, `copernicus`, `osm`, `overture` | `pipeline run meltano`, then `pipeline run dbt staging` / `silver` / `gold` |
-| `rec_registry`, `rec_flexibility_commitments` | `pipeline run prefect` — API mirrors, no dbt |
-| `rec_metering` | dbt only, but needs the private `meters_data_normalized` |
+| retired | `copernicus`, `dwd`, `owm` — each superseded by another pipeline |
+| local only | `overture`, `trentino_rooftops`, `pv_detection`, `pv_estimation` — run on demand against a local database |
 
-`dwd` is paused; skip it unless you specifically need raw GRIB fields.
+The four local-only ones form a connected subtree, so building any of them means building
+the ones above it. Skip all seven unless you specifically need what they produce.
 
-### Tier 1 — one hop
+</details>
 
-| App | Needs |
-|---|---|
-| `weather` | `mt` (the `weather__*` contract tables) |
-| `trentino_rooftops` | `overture` (`pv_overture_buildings`) |
-| `pv_detection` | `overture`, plus a vision-model endpoint for the raw layer |
-| `rec_it` | `rec_metering`, `rec_registry` |
-| `rec_flexibility` | `rec_metering`, `rec_flexibility_commitments`, and private meter forecasts |
-| `grid` | `om`, `mt`, and the private CIM silver tables. Needs PostGIS |
-
-### Tier 2
-
-| App | Needs |
-|---|---|
-| `pv_estimation` | `overture`, `rec_it` (`gse_cabine_primarie`), `trentino_rooftops` (`pv_building_suitability`), and optionally `pv_detection` |
+**Five tables come from outside this repository**, so the pipelines that read them cannot
+be built from here alone: `rec_metering` needs `meters_data_normalized`, `grid` needs
+`silver_grid_ac_line_segment` and `silver_grid_substation`, and `rec_flexibility` needs
+`meters_energy_forecast` and `total_meters_forecast`. Each is declared `external: true`
+in the consuming app's `depends_on:`, and the graph lists them under *satisfied outside
+this scan*. See the companion's knowledge for how to obtain them.
 
 ### The shape of one app's build
 

@@ -21,6 +21,15 @@ defaults:
     purpose: []
   dcat: null
 
+depends_on:
+  - dataset: datasets.*_gold.weather__forecast_hourly
+    description: >
+      Provider-neutral contract table. Any provider pipeline publishing this
+      alias satisfies it — today `mt`, and adding a provider needs no change here.
+  - dataset: datasets.*_gold.weather__forecast_daily
+  - dataset: datasets.*_gold.weather__alerts
+  - dataset: datasets.*_gold.weather__current
+
 sources:
   # ---------------------------------------------------------------------------
   # GOLD - unified weather interface

@@ -18,6 +18,11 @@ defaults:
     purpose: []
   dcat: null
 
+depends_on:
+  # Nothing in this repository feeds it: the inputs are its own extractors.
+  # Declared empty rather than omitted — omitted would mean "has not said".
+  []
+
 sources:
   # ---------------------------------------------------------------------------
   # RAW - verbatim OpenStreetMap extracts

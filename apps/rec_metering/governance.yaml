@@ -24,6 +24,14 @@ defaults:
     purpose:
       - EnergyCommunityOperation
 
+depends_on:
+  - dataset: datasets.*_silver.meters_data_normalized
+    external: true
+    description: >
+      Normalised meter readings. Produced by a deployment's own metering
+      ingestion, which is not part of this repository; `dbt/models/gold/sources.yml`
+      is the contract it must satisfy.
+
 sources:
   # ---------------------------------------------------------------------------
   # OUTPUTS

@@ -1,3 +1,7 @@
+# Local only — run on demand against a local database, not deployed on a schedule.
+# Its datasets stay catalogued; nothing new arrives unless someone runs it.
+active: false
+
 defaults:
   license: null
   ownership: []
@@ -17,6 +21,11 @@ defaults:
     odrl_action: use
     purpose: []
   dcat: null
+
+depends_on:
+  # Nothing in this repository feeds it: the inputs are its own extractors.
+  # Declared empty rather than omitted — omitted would mean "has not said".
+  []
 
 sources:
   # ---------------------------------------------------------------------------

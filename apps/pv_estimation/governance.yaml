@@ -1,3 +1,7 @@
+# Local only — run on demand against a local database, not deployed on a schedule.
+# Its datasets stay catalogued; nothing new arrives unless someone runs it.
+active: false
+
 defaults:
   license: null
   ownership: []
@@ -17,6 +21,20 @@ defaults:
     odrl_action: use
     purpose: []
   dcat: null
+
+depends_on:
+  - dataset: datasets.*_silver.pv_overture_buildings
+    description: Building footprints.
+  - dataset: datasets.*_gold.pv_building_suitability
+    description: Rooftop suitability scores.
+  - dataset: datasets.*_gold.gse_cabine_primarie
+    description: Primary substation geometry, for assigning buildings to a cabina.
+  - dataset: datasets.*_gold.pv_detected_installations
+    optional: true
+    description: >
+      Existing installations, to exclude roofs already covered. Optional:
+      `flows/config.yaml` sets `require_detection: false`, and the pipeline
+      estimates every suitable building when detection has not run.
 
 sources:
   # ---------------------------------------------------------------------------

@@ -19,6 +19,11 @@ defaults:
     purpose: [EnergyForecasting]
   dcat: null
 
+depends_on:
+  # Nothing in this repository feeds it: the inputs are its own extractors.
+  # Declared empty rather than omitted — omitted would mean "has not said".
+  []
+
 sources:
   # ---------------------------------------------------------------------------
   # SILVER - enriched internal datasets

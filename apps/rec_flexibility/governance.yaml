@@ -21,6 +21,20 @@ defaults:
   dataspace:
     odrl_action: use
 
+depends_on:
+  - dataset: datasets.*_gold.meters_data_15m
+    description: Quarter-hourly meter readings, per device.
+  - dataset: datasets.raw.flexibility_commitments_mirror
+    description: >
+      Commitments. Mirrored into `raw` by a pipeline in this repository —
+      it mirrors a private service, which is what makes it look external.
+  - dataset: datasets.*_gold.meters_energy_forecast
+    external: true
+    description: Per-device forecasts, produced by a deployment's forecasting app.
+  - dataset: datasets.*_gold.total_meters_forecast
+    external: true
+    description: Community-level forecast, produced by a deployment's forecasting app.
+
 sources:
   # ---------------------------------------------------------------------------
   # OUTPUTS: Flexibility, gamification and CO2 analytics

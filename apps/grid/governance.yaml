@@ -21,6 +21,26 @@ defaults:
   dataspace:
     odrl_action: use
 
+depends_on:
+  - dataset: datasets.*_gold.om_wind_gusts
+    description: Wind gust forecasts behind the wind risk models.
+  - dataset: datasets.*_gold.om_heat_risk
+    description: Heat risk forecasts.
+  - dataset: datasets.*_silver.om_obs_15min
+    description: Sub-hourly observations behind the nowcasting flow.
+  - dataset: datasets.*_gold.heat_daily_obs
+    description: >
+      Daily heat observations. Published under this alias by `mt`, so a search
+      for the filename finds nothing — grep the alias, not the model name.
+  - dataset: datasets.*_silver.silver_grid_ac_line_segment
+    external: true
+    description: >
+      CIM line segments, including the `strike_tree_*` columns. Produced by a
+      deployment's own CIM ingestion; `dbt/models/sources.yml` is the contract.
+  - dataset: datasets.*_silver.silver_grid_substation
+    external: true
+    description: CIM substations, from the same deployment ingestion.
+
 sources:
 
   # ---------------------------------------------------------------------------

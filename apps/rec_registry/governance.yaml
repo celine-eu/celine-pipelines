@@ -26,6 +26,10 @@ defaults:
     purpose: []
   dcat: null
 
+depends_on:
+  # Mirrors a private service into `raw`; no pipeline feeds it.
+  []
+
 sources:
   # ---------------------------------------------------------------------------
   # RAW - verbatim mirror of the REC Registry API

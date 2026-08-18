@@ -1,3 +1,7 @@
+# Local only — run on demand against a local database, not deployed on a schedule.
+# Its datasets stay catalogued; nothing new arrives unless someone runs it.
+active: false
+
 defaults:
   license: null
   ownership: []
@@ -17,6 +21,10 @@ defaults:
     odrl_action: use
     purpose: []
   dcat: null
+
+depends_on:
+  - dataset: datasets.*_silver.pv_overture_buildings
+    description: Building footprints the vision model is run over.
 
 sources:
   datasets.raw.pv_predictions:

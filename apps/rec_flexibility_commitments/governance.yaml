@@ -26,6 +26,10 @@ defaults:
     purpose: []
   dcat: null
 
+depends_on:
+  # Mirrors a private service into `raw`; no pipeline feeds it.
+  []
+
 sources:
   # ---------------------------------------------------------------------------
   # RAW - 90-day sliding window mirror of flexibility_commitments

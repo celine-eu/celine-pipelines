@@ -21,6 +21,14 @@ defaults:
   dataspace:
     odrl_action: use
 
+depends_on:
+  - dataset: datasets.*_gold.meters_data_15m
+    description: Quarter-hourly meter readings, aggregated per REC member.
+  - dataset: datasets.raw.rec_registry_mirror
+    description: >
+      REC membership. Mirrored into `raw` by a pipeline in this repository —
+      it mirrors a private service, which is what makes it look external.
+
 sources:
   # ---------------------------------------------------------------------------
   # OUTPUTS: GSE public open data (Italian national regulatory authority)
