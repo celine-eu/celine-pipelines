@@ -20,7 +20,10 @@ defaults:
     consent_required: false
     odrl_action: use
     purpose: []
-  dcat: null
+  dcat:
+    spatial_uris:
+      - http://data.europa.eu/nuts/code/ITH2
+    accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
 
 depends_on:
   - dataset: datasets.*_silver.pv_overture_buildings

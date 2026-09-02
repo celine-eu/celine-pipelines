@@ -16,7 +16,12 @@ defaults:
     consent_required: false
     odrl_action: use
     purpose: []
-  dcat: null
+  dcat:
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/REGI
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
 
 depends_on:
   # Nothing in this repository feeds it: the inputs are its own extractors.

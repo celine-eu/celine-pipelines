@@ -19,7 +19,14 @@ defaults:
     consent_required: false
     odrl_action: use
     purpose: []
-  dcat: null
+  dcat:
+    publisher_uri: https://celine-eu.github.io
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENVI
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://data.europa.eu/nuts/code/ITH2
 
 depends_on:
   - dataset: datasets.*_gold.weather__forecast_hourly
@@ -51,14 +58,13 @@ sources:
     tags: [weather, forecast, hourly, unified, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
       contract_required: false
       consent_required: false
       odrl_action: use
       purpose: [EnergyForecasting]
     dcat:
-      publisher_uri: null
       themes:
         - http://publications.europa.eu/resource/authority/data-theme/ENVI
       language_uris:
@@ -84,14 +90,13 @@ sources:
     tags: [weather, forecast, daily, unified, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
       contract_required: false
       consent_required: false
       odrl_action: use
       purpose: [EnergyForecasting]
     dcat:
-      publisher_uri: null
       themes:
         - http://publications.europa.eu/resource/authority/data-theme/ENVI
       language_uris:
@@ -117,14 +122,13 @@ sources:
     tags: [weather, alerts, unified, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
       contract_required: false
       consent_required: false
       odrl_action: use
       purpose: [EnergyForecasting]
     dcat:
-      publisher_uri: null
       themes:
         - http://publications.europa.eu/resource/authority/data-theme/ENVI
       language_uris:
@@ -150,14 +154,13 @@ sources:
     tags: [weather, current, observations, unified, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
       contract_required: false
       consent_required: false
       odrl_action: use
       purpose: [EnergyForecasting]
     dcat:
-      publisher_uri: null
       themes:
         - http://publications.europa.eu/resource/authority/data-theme/ENVI
       language_uris:

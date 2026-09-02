@@ -17,7 +17,17 @@ defaults:
     odrl_action: use
     # Weather observations and derived heat risk, consumed as forecasting input.
     purpose: [EnergyForecasting]
-  dcat: null
+  dcat:
+    # Environment, English, Trentino (NUTS ITH2) — the same three every other
+    # weather app here declares. Open-Meteo's global feed is clipped to the
+    # Trentino grid before it reaches silver, so the spatial scope is the
+    # region and not the source's coverage.
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENVI
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://data.europa.eu/nuts/code/ITH2
 
 depends_on:
   # Nothing in this repository feeds it: the inputs are its own extractors.
@@ -74,6 +84,8 @@ sources:
     dataspace:
       expose: false
       medallion: gold
+    dcat:
+      publisher_uri: https://celine-eu.github.io
 
   # ---------------------------------------------------------------------------
   # STAGING - technical preparation layer
@@ -121,6 +133,8 @@ sources:
     dataspace:
       expose: false
       medallion: gold
+    dcat:
+      publisher_uri: https://celine-eu.github.io
 
   # ---------------------------------------------------------------------------
   # STAGING - technical preparation layer
@@ -270,8 +284,12 @@ sources:
     tags: [open-meteo, heat, risk, trentino, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
+      contract_required: false
+      consent_required: false
+    dcat:
+      publisher_uri: https://celine-eu.github.io
 
   # ---------------------------------------------------------------------------
   # OBSERVATIONS — 15-minute nowcasting pipeline
@@ -351,6 +369,8 @@ sources:
     dataspace:
       expose: false
       medallion: gold
+    dcat:
+      publisher_uri: https://celine-eu.github.io
 
   datasets.ds_dev_gold.om_weather_hourly_view:
     title: "Open-Meteo Hourly Weather View (Gold)"
@@ -369,3 +389,5 @@ sources:
     dataspace:
       expose: false
       medallion: gold
+    dcat:
+      publisher_uri: https://celine-eu.github.io

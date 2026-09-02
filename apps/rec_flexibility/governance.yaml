@@ -41,6 +41,7 @@ sources:
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_gold.rec_settlement_15m:
+    classification: pii
     tags: [flexibility, settlement, gold]
     row_filters:
       - handler: rec_registry
@@ -50,8 +51,11 @@ sources:
     dataspace:
       purpose: [IncentiveCalculation]
       expose: false
+      medallion: gold
+      consent_required: true
 
   datasets.ds_dev_gold.rec_settlement_1h:
+    classification: pii
     tags: [flexibility, settlement, gold]
     row_filters:
       - handler: rec_registry
@@ -61,8 +65,11 @@ sources:
     dataspace:
       purpose: [IncentiveCalculation]
       expose: false
+      medallion: gold
+      consent_required: true
 
   datasets.ds_dev_gold.rec_participant_points:
+    classification: pii
     tags: [flexibility, gamification, gold]
     row_filters:
       - handler: rec_registry
@@ -72,8 +79,11 @@ sources:
     dataspace:
       purpose: [EnergyCommunityOperation]
       expose: false
+      medallion: gold
+      consent_required: true
 
   datasets.ds_dev_gold.rec_points_leaderboard:
+    classification: pii
     tags: [flexibility, gamification, gold]
     row_filters:
       - handler: rec_registry
@@ -83,8 +93,11 @@ sources:
     dataspace:
       purpose: [EnergyCommunityOperation]
       expose: false
+      medallion: gold
+      consent_required: true
 
   datasets.ds_dev_gold.rec_flexibility_windows:
+    classification: pii
     tags: [flexibility, gold]
     row_filters:
       - handler: rec_registry
@@ -94,15 +107,27 @@ sources:
     dataspace:
       purpose: [FlexibilityResearch]
       expose: false
+      medallion: gold
+      consent_required: true
 
   datasets.ds_dev_gold.rec_flexibility_windows_community:
+    title: "Community Flexibility Windows (Gold)"
+    description: >
+      One row per community surplus window — the community-level event layer, where a row
+      existing means the opportunity is visible to every member of the community. Per-device
+      estimates are not part of this dataset. Accumulate-only: it derives from the latest
+      forecast generation, so its history exists through daily incremental runs.
     tags: [flexibility, gold]
     expose: true
     dataspace:
       purpose: [FlexibilityResearch]
-      expose: false
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
 
   datasets.ds_dev_gold.rec_gamification_summary:
+    classification: pii
     tags: [gamification, gold]
     row_filters:
       - handler: rec_registry
@@ -112,8 +137,11 @@ sources:
     dataspace:
       purpose: [EnergyCommunityOperation]
       expose: false
+      medallion: gold
+      consent_required: true
 
   datasets.ds_dev_gold.rec_co2_savings:
+    classification: pii
     tags: [co2, gold]
     row_filters:
       - handler: rec_registry
@@ -123,8 +151,11 @@ sources:
     dataspace:
       purpose: [EnergyCommunityOperation]
       expose: false
+      medallion: gold
+      consent_required: true
 
   datasets.ds_dev_gold.rec_commitment_settlement:
+    classification: pii
     tags: [flexibility, settlement, gold]
     row_filters:
       - handler: rec_registry
@@ -134,6 +165,8 @@ sources:
     dataspace:
       purpose: [IncentiveCalculation]
       expose: false
+      medallion: gold
+      consent_required: true
 
   datasets.ds_dev_gold.rec_co2_savings_community:
     tags: [co2, flexibility, gold]

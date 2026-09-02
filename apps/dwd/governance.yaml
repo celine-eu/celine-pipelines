@@ -20,7 +20,14 @@ defaults:
     consent_required: false
     odrl_action: use
     purpose: []
-  dcat: null
+  dcat:
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENVI
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://publications.europa.eu/resource/authority/country/DEU
+    accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
 
 depends_on:
   # Nothing in this repository feeds it: the inputs are its own extractors.
@@ -51,7 +58,7 @@ sources:
     tags: [dwd, icon-d2, wind, gusts, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
       contract_required: false
       consent_required: false

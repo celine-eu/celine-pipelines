@@ -20,7 +20,17 @@ defaults:
     consent_required: false
     odrl_action: use
     purpose: []
-  dcat: null
+  dcat:
+    publisher_uri: https://celine-eu.github.io
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENER
+      - http://publications.europa.eu/resource/authority/data-theme/REGI
+      - http://publications.europa.eu/resource/authority/data-theme/ECON
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://data.europa.eu/nuts/code/ITH2
+    accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
 
 depends_on:
   - dataset: datasets.*_silver.pv_overture_buildings
@@ -104,7 +114,6 @@ sources:
       odrl_action: use
       purpose: [PVPotentialAssessment]
     dcat:
-      publisher_uri: null
       themes:
         - http://publications.europa.eu/resource/authority/data-theme/ENER
         - http://publications.europa.eu/resource/authority/data-theme/REGI

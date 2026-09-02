@@ -18,6 +18,7 @@ defaults:
     spatial_uris:
       - http://publications.europa.eu/resource/authority/country/ITA
     accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+    conforms_to: http://www.w3.org/ns/sosa/
   dataspace:
     odrl_action: use
     # Metering readings underpinning the community's own operation.
@@ -38,6 +39,7 @@ sources:
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_gold.meters_data_15m: &meters_15m
+    classification: pii
     tags: [meters, gold, aggregated]
     row_filters:
       - handler: rec_registry
@@ -46,6 +48,8 @@ sources:
     expose: true
     dataspace:
       expose: false
+      medallion: gold
+      consent_required: true
 
   # The same readings, one quantity per row, mapped onto SOSA.
   #
@@ -62,6 +66,7 @@ sources:
   # names a column, and nothing validates that the column exists on the table.
   # A view that dropped it would be served **unfiltered** rather than failing.
   datasets.ds_dev_gold.meters_measurements_15m:
+    classification: pii
     <<: *meters_15m
     ontology:
       spec: obs_energy_measurement
@@ -73,6 +78,7 @@ sources:
       conforms_to: http://www.w3.org/ns/sosa/
 
   datasets.ds_dev_gold.meters_data_1h:
+    classification: pii
     tags: [meters, gold, aggregated]
     row_filters:
       - handler: rec_registry
@@ -81,8 +87,11 @@ sources:
     expose: true
     dataspace:
       expose: false
+      medallion: gold
+      consent_required: true
 
   datasets.ds_dev_gold.meters_data_15m_missing_intervals:
+    classification: pii
     tags: [meters, quality, gold]
     row_filters:
       - handler: rec_registry
@@ -91,3 +100,5 @@ sources:
     expose: true
     dataspace:
       expose: false
+      medallion: gold
+      consent_required: true

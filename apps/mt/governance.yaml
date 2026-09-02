@@ -19,7 +19,13 @@ defaults:
     consent_required: false
     odrl_action: use
     purpose: []
-  dcat: null
+  dcat:
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENVI
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://data.europa.eu/nuts/code/ITH2
 
 depends_on:
   # Nothing in this repository feeds it: the inputs are its own extractors.
@@ -371,7 +377,7 @@ sources:
     tags: [meteotrentino, observations, current, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
       contract_required: false
       consent_required: false
@@ -407,7 +413,7 @@ sources:
     tags: [meteotrentino, stations, network, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
       contract_required: false
       consent_required: false
@@ -443,7 +449,7 @@ sources:
     tags: [meteotrentino, alerts, active, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
       contract_required: false
       consent_required: false
@@ -480,7 +486,7 @@ sources:
     tags: [meteotrentino, forecast, hourly, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
       contract_required: false
       consent_required: false
@@ -517,7 +523,7 @@ sources:
     tags: [meteotrentino, forecast, daily, gold]
     expose: true
     dataspace:
-      expose: false
+      expose: true
       medallion: gold
       contract_required: false
       consent_required: false

@@ -20,7 +20,14 @@ defaults:
     consent_required: false
     odrl_action: use
     purpose: []
-  dcat: null
+  dcat:
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENER
+      - http://publications.europa.eu/resource/authority/data-theme/REGI
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://data.europa.eu/nuts/code/ITH2
 
 depends_on:
   - dataset: datasets.*_silver.pv_overture_buildings

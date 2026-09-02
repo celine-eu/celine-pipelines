@@ -18,6 +18,7 @@ defaults:
     spatial_uris:
       - http://publications.europa.eu/resource/authority/country/ITA
     accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
+    conforms_to: http://iec.ch/TC57/CIM100#
   dataspace:
     odrl_action: use
 
@@ -60,6 +61,11 @@ sources:
       expose: false
 
   datasets.ds_dev_gold.grid_substations:
+    title: "Secondary Substations — Map Layer (Gold)"
+    description: >
+      Map-ready GeoJSON for secondary substations (CIM `Substation`), derived from the
+      CIM-normalised silver layer. A static infrastructure layer with no weather join,
+      carrying `dso_id` so a deployment can scope access per distribution operator.
     tags: [ grid, geo, substations, gold ]
     # One entity per row, so this table needed no reshaping — the mapping spec
     # was already written and simply had nothing pointing at it.
@@ -81,49 +87,107 @@ sources:
     expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: false
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
 
   datasets.ds_dev_gold.grid_network_topology:
+    title: "Grid Topology Reference Values (Gold)"
+    description: >
+      The distinct substations, lines, operational units and municipalities present in the
+      CIM `ACLineSegment` interface, on the monthly topology cadence. Read from the silver
+      source rather than the daily risk tables so the set stays complete: a line with no
+      nearby weather station still appears here, it simply carries no risk rows.
     tags: [ grid, topology, filter, gold ]
     expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: false
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
 
   datasets.ds_dev_gold.grid_shapes:
+    title: "Grid Asset Geometry — Lines and Substations (Gold)"
+    description: >
+      A unified CIM asset registry carrying geometry only, combining `ACLineSegment` and
+      `Substation` so a consumer loads network topology once and caches it independently of
+      daily risk updates. Line segments are keyed by (line, conductor type, municipality)
+      because the silver layer splits lines at administrative boundaries; sub-fragments are
+      merged with `ST_Union`, lengths summed, and a segment is flagged as vegetated when any
+      fragment intersects forest.
     tags: [ grid, geo, topology, gold ]
     expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: false
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
 
   datasets.ds_dev_gold.grid_tiles:
+    title: "Grid Shape Tile Assignment (Gold)"
+    description: >
+      A 5 km x 5 km UTM tiling (EPSG:32632) over the extent of the grid shapes, assigning
+      every segment to each tile it intersects, for progressive map loading. Segments spanning
+      a boundary appear in more than one tile and are deduplicated by segment id downstream.
+      Tile coordinates are zero-based from the south-west corner.
     tags: [ grid, geo, tiles, gold, intermediary ]
     expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: false
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
 
   datasets.ds_dev_gold.grid_tile_index:
+    title: "Grid Tile Index (Gold)"
+    description: >
+      One row per tile of the 5 km x 5 km grid, with its bounding box and the number of grid
+      segments it contains. The index a consumer reads first, to decide which tiles of the
+      asset geometry to fetch.
     tags: [ grid, geo, tiles, gold ]
     expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: false
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
 
   datasets.ds_dev_gold.grid_risks:
+    title: "Grid Wind and Heat Risk by Segment (Gold)"
+    description: >
+      Wind and heat risk levels per grid segment and day, merged into one table and restricted
+      to WARNING and ALERT — NORMAL is excluded at pipeline level. Geometry is deliberately
+      absent: join the asset geometry by segment id for it. Where a municipality holds
+      sub-fragments at different levels the worst is kept, and vector-specific metrics are
+      carried as JSON so a consumer can render them without a per-vector endpoint.
     tags: [ grid, risk, gold ]
     expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: false
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
 
   datasets.ds_dev_gold.grid_risks_trendline:
+    title: "Daily Grid Risk Ratio by Vector (Gold)"
+    description: >
+      The share of the relevant network at risk per day and risk vector, as (alert + warning)
+      over total segments, with a conductor-type-aware denominator — overhead conductors for
+      wind, underground cable for heat. Above 0.65 the day is ALERT, above 0.35 WARNING.
     tags: [ grid, risk, trendline, gold ]
     expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: false
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
 
   # ---------------------------------------------------------------------------
   # NOWCASTING — Observation-based risk overlays (real-time counterpart)
@@ -141,11 +205,18 @@ sources:
       expose: false
 
   datasets.ds_dev_gold.grid_risks_now:
+    title: "Grid Wind and Heat Risk — Nowcast (Gold)"
+    description: >
+      The observation-based counterpart of the daily risk table: the same segment, vector,
+      level and metrics, plus the observation timestamp. WARNING and ALERT only.
     tags: [ grid, risk, nowcast, gold ]
     expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: false
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
 
   datasets.ds_dev_gold.v_superset_grid:
     tags: [ grid, superset, gold ]

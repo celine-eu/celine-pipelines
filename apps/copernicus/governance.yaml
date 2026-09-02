@@ -20,7 +20,14 @@ defaults:
     consent_required: false
     odrl_action: use
     purpose: []
-  dcat: null
+  dcat:
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENVI
+      - http://publications.europa.eu/resource/authority/data-theme/TECH
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://publications.europa.eu/resource/authority/continent/EUROPE
 
 depends_on:
   # Nothing in this repository feeds it: the inputs are its own extractors.

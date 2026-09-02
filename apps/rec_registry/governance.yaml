@@ -24,7 +24,8 @@ defaults:
     consent_required: false
     odrl_action: use
     purpose: []
-  dcat: null
+  dcat:
+    publisher_uri: https://celine-eu.github.io
 
 depends_on:
   # Mirrors a private service into `raw`; no pipeline feeds it.

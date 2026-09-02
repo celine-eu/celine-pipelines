@@ -18,6 +18,7 @@ defaults:
     spatial_uris:
       - http://publications.europa.eu/resource/authority/country/ITA
     accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/IRREG
+    conforms_to: http://www.w3.org/ns/sosa/
   dataspace:
     odrl_action: use
 
@@ -54,11 +55,22 @@ sources:
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_gold.rec_virtual_consumption_15m: &rec_community_15m
+    title: "Community Virtual Consumption, 15-minute (Gold)"
+    description: >
+      Fifteen-minute energy accounting for an energy community, at the grain of (timestamp,
+      community, primary substation) — netting is per primary substation because sharing cannot
+      cross an unconnected cabina primaria, and a community-wide net would invent energy that
+      cannot physically flow. Note the column names: total consumption is community grid import
+      (prelievo), total production is grid export (immissione), and self-consumption is energy
+      collectively shared, not anyone's own self-use.
     tags: [rec, consumption, gold]
     expose: true
     dataspace:
       purpose: [IncentiveCalculation]
-      expose: false
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
 
   # The same figures, one quantity per row, mapped onto SOSA.
   #
@@ -69,6 +81,13 @@ sources:
   # neither fixes nor widens it, and the anchor means adding a filter to the
   # source covers the view in the same edit.
   datasets.ds_dev_gold.rec_measurements_15m:
+    title: "Community Energy Measurements, 15-minute — Observations (Gold)"
+    description: >
+      The community virtual-consumption figures expressed as one observation per row, the shape
+      an observation vocabulary can describe: SOSA, SAREF and CIM each carry one observed
+      property per node, so a wide row of four quantities is four observations. The feature of
+      interest is the sharing group — a community partition accounted within one regulatory
+      zone — rather than the community as a whole.
     <<: *rec_community_15m
     ontology:
       spec: obs_energy_measurement
@@ -83,6 +102,7 @@ sources:
       expose: false
 
   datasets.ds_dev_gold.rec_virtual_consumption_per_device_15m: &rec_per_device_15m
+    classification: pii
     tags: [rec, consumption, gold]
     row_filters:
       - handler: rec_registry
@@ -92,6 +112,8 @@ sources:
     dataspace:
       purpose: [IncentiveCalculation]
       expose: false
+      medallion: gold
+      consent_required: true
 
   # Per-member allocations, one quantity per row, mapped onto SOSA.
   #
@@ -101,6 +123,7 @@ sources:
   # every member's settlement figures to every other member. Shared by anchor,
   # `row_filters` is one list in this file and the question cannot arise.
   datasets.ds_dev_gold.rec_measurements_per_device_15m:
+    classification: pii
     <<: *rec_per_device_15m
     ontology:
       spec: obs_energy_measurement
@@ -108,6 +131,7 @@ sources:
       conforms_to: http://www.w3.org/ns/sosa/
 
   datasets.ds_dev_gold.rec_virtual_consumption_per_device_hourly:
+    classification: pii
     tags: [rec, consumption, gold]
     row_filters:
       - handler: rec_registry
@@ -117,3 +141,5 @@ sources:
     dataspace:
       purpose: [IncentiveCalculation]
       expose: false
+      medallion: gold
+      consent_required: true
