@@ -18,7 +18,6 @@ defaults:
     spatial_uris:
       - http://publications.europa.eu/resource/authority/country/ITA
     accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
-    conforms_to: http://iec.ch/TC57/CIM100#
   dataspace:
     odrl_action: use
 
