@@ -19,6 +19,16 @@
     so `access_level`, `ownership` and `row_filters` are one object in the file
     and cannot drift apart.
 
+    ── The entity IRIs are relative, deliberately ──────────────────────────────
+    `feature_iri` and `sensor_iri` are emitted as `connection-point/<device_id>`
+    and `device/<device_id>`, with no base. They identify things *this
+    deployment's data is about*, so the base is the serving deployment's —
+    `dataset-api`'s `entity_base_uri`, which `MappingEngine._absolutize`
+    prepends to any value not already starting `http`. This view hardcoded
+    `https://w3id.org/celine-eu/id` until 2026-09-04 (issue #5).
+    `observed_property` and `unit` stay absolute: they name a CELINE term and a
+    QUDT unit, published by someone else and not a deployment's to rename.
+
     ── `ratio` is not an observation ───────────────────────────────────────────
     It is this row's share of the community denominator — a weight used to
     compute virtual_consumption_kwh, not a property of anything observed. There
@@ -28,7 +38,6 @@
     allocation would look.
 #}
 
-{% set celine_id = 'https://w3id.org/celine-eu/id' %}
 {% set celine_ns = 'https://w3id.org/celine-eu#' %}
 {% set unit_kwh  = 'http://qudt.org/vocab/unit/KiloW-HR' %}
 
@@ -47,7 +56,7 @@ with base as (
 keyed as (
     select
         *,
-        '{{ celine_id }}/connection-point/' || device_id as feature_iri
+        'connection-point/' || device_id as feature_iri
     from base
 ),
 
@@ -63,7 +72,7 @@ unpivoted as (
         rec_id,
         substation_id,
         feature_iri,
-        '{{ celine_id }}/device/' || device_id  as sensor_iri,
+        'device/' || device_id                  as sensor_iri,
         '{{ celine_ns }}GridImportEnergy'       as observed_property,
         consumption_kwh                         as value,
         '{{ unit_kwh }}'                        as unit

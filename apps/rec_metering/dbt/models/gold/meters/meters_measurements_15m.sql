@@ -23,21 +23,30 @@
     governance.yaml entry, which shares this table's block by YAML anchor for
     exactly that reason.
 
-    ── Absolute IRIs, deliberately ─────────────────────────────────────────────
-    `observed_property`, `feature_iri`, `sensor_iri` and `unit` hold **full
-    IRIs** rather than bare keys or CURIEs. A derived JSON-LD context can only
-    say `"@type": "@id"` — it cannot carry a template, and it declares only the
-    prefixes its targets use — so a column holding `unit:KiloW-HR` or a bare
-    `CF1` would expand to a *relative* IRI against whatever URL the consumer
-    fetched the context from. Emitting the full IRI here is what makes the
-    served context correct.
+    ── Vocabulary IRIs absolute, entity IRIs relative ──────────────────────────
+    `observed_property` and `unit` hold **full IRIs** rather than bare keys or
+    CURIEs. A derived JSON-LD context can only say `"@type": "@id"` — it cannot
+    carry a template, and it declares only the prefixes its targets use — so a
+    column holding `unit:KiloW-HR` would expand against whatever URL the
+    consumer fetched the context from. They name a CELINE term and a QUDT unit,
+    which belong to whoever publishes those vocabularies and are not a
+    deployment's to rename, so the full IRI is emitted here.
+
+    `feature_iri` and `sensor_iri` are the opposite case and are emitted
+    **relative** — `connection-point/CF1`, not `https://…/connection-point/CF1`.
+    They identify the things *this deployment's data is about*, so the base
+    belongs to whoever serves them: `dataset-api`'s `entity_base_uri`, and
+    `MappingEngine._absolutize` prepends it to any value not already starting
+    `http`. Hardcoding a base here — this view carried
+    `https://w3id.org/celine-eu/id` until 2026-09-04 — produced graphs whose
+    subjects sat under the deployment's base and whose object references sat
+    under w3id, and no deployment could name its own entities (issue #5).
 
     Property IRIs are CELINE's (ontology v0.10) because no standard names them:
     quantitykind:Energy does not distinguish grid import from grid export, and
     saref:Energy is deprecated as of SAREF core v3.2.1. Units are QUDT's.
 #}
 
-{% set celine_id = 'https://w3id.org/celine-eu/id' %}
 {% set celine_ns = 'https://w3id.org/celine-eu#' %}
 {% set unit_kwh  = 'http://qudt.org/vocab/unit/KiloW-HR' %}
 
@@ -66,8 +75,8 @@ unpivoted as (
         device_id,
         cast(null as text)                                as rec_id,
         cast(null as text)                                as substation_id,
-        '{{ celine_id }}/connection-point/' || device_id  as feature_iri,
-        '{{ celine_id }}/device/' || device_id            as sensor_iri,
+        'connection-point/' || device_id                  as feature_iri,
+        'device/' || device_id                            as sensor_iri,
         '{{ celine_ns }}GridImportEnergy'                 as observed_property,
         consumption_kwh                                   as value,
         '{{ unit_kwh }}'                                  as unit
@@ -82,8 +91,8 @@ unpivoted as (
         device_id,
         cast(null as text),
         cast(null as text),
-        '{{ celine_id }}/connection-point/' || device_id,
-        '{{ celine_id }}/device/' || device_id,
+        'connection-point/' || device_id,
+        'device/' || device_id,
         '{{ celine_ns }}GridExportEnergy',
         production_kwh,
         '{{ unit_kwh }}'
@@ -105,8 +114,8 @@ unpivoted as (
         device_id,
         cast(null as text),
         cast(null as text),
-        '{{ celine_id }}/connection-point/' || device_id,
-        '{{ celine_id }}/device/' || device_id,
+        'connection-point/' || device_id,
+        'device/' || device_id,
         '{{ celine_ns }}SelfConsumedEnergy',
         self_consumed_kwh,
         '{{ unit_kwh }}'

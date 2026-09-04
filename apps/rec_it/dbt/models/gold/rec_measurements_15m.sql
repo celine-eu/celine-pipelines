@@ -31,6 +31,16 @@
     observable property's rdfs:comment in ontology v0.10 states the denominator
     so a consumer does not have to guess.
 
+    ── The feature IRI is relative, deliberately ───────────────────────────────
+    `feature_iri` is emitted as `sharing-group/<rec_id>/<substation_id>`, with no
+    base. It identifies something *this deployment's data is about*, so the base
+    is the serving deployment's — `dataset-api`'s `entity_base_uri`, which
+    `MappingEngine._absolutize` prepends to any value not already starting
+    `http`. This view hardcoded `https://w3id.org/celine-eu/id` until 2026-09-04
+    and so named its sharing groups under a namespace no deployment controls
+    (issue #5). `observed_property` and `unit` stay absolute for the opposite
+    reason: they name a CELINE term and a QUDT unit, published by someone else.
+
     ── Governance ──────────────────────────────────────────────────────────────
     The source model carries **no row filter** — a known gap, latent until a
     second REC exists, recorded in celine-dev/.agents/celine-pipelines/FACTS.md.
@@ -39,7 +49,6 @@
     shares the source's block by YAML anchor.
 #}
 
-{% set celine_id = 'https://w3id.org/celine-eu/id' %}
 {% set celine_ns = 'https://w3id.org/celine-eu#' %}
 {% set unit_kwh  = 'http://qudt.org/vocab/unit/KiloW-HR' %}
 {% set unitless  = 'http://qudt.org/vocab/unit/UNITLESS' %}
@@ -65,8 +74,7 @@ keyed as (
     select
         *,
         rec_id || '|' || substation_id || '|' || ts::text        as grain,
-        '{{ celine_id }}/sharing-group/' || rec_id || '/' || substation_id
-                                                                 as feature_iri
+        'sharing-group/' || rec_id || '/' || substation_id       as feature_iri
     from base
 ),
 
