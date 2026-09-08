@@ -1,0 +1,41 @@
+version: 2
+
+unit_tests:
+  - name: s1_m2_only_slot_without_grid_meter_row_is_dropped
+    description: >
+      A 15-min slot with a PV (M2) reading but no grid-meter (M1) row arrives from
+      meters_data_15m as consumption = production = 0 with self_consumed = the whole
+      PV output. Booking that as self-consumption credited one prosumer up to
+      117 kWh/day in August 2026 (81% of his settlement points) on days his M1 was
+      silent. Such a slot is missing data, not consumption: it is dropped here so
+      every downstream model (baselines, settlement points, leaderboard) inherits
+      the rule. Real M1 rows — including zero and negative unclipped
+      self_consumed — are kept.
+    model: rec_meters_15m
+    given:
+      - input: source('rec_metering_gold', 'meters_data_15m')
+        rows:
+          - {_id: 'both-meters', device_id: 'dev-01', ts: '2026-08-10 12:00:00',
+             consumption_kwh: 0.2, production_kwh: 0.5, self_consumed_kwh: 0.3}
+          - {_id: 'm2-only', device_id: 'dev-01', ts: '2026-08-10 12:15:00',
+             consumption_kwh: 0.0, production_kwh: 0.0, self_consumed_kwh: 0.8}
+          - {_id: 'm1-zero', device_id: 'dev-01', ts: '2026-08-10 12:30:00',
+             consumption_kwh: 0.0, production_kwh: 0.0, self_consumed_kwh: 0.0}
+          - {_id: 'm1-negative', device_id: 'dev-01', ts: '2026-08-11 01:00:00',
+             consumption_kwh: 0.0, production_kwh: 0.0, self_consumed_kwh: -0.1}
+          - {_id: 'not-active', device_id: 'dev-99', ts: '2026-08-10 12:00:00',
+             consumption_kwh: 0.2, production_kwh: 0.5, self_consumed_kwh: 0.3}
+      - input: ref('rec_active_devices')
+        rows:
+          - {device_id: 'dev-01'}
+    expect:
+      rows:
+        - {_id: 'both-meters', device_id: 'dev-01', consumption_kwh: 0.2,
+           production_kwh: 0.5, pv_production_kwh: 0.8, self_consumed_kwh: 0.3,
+           total_consumption_kwh: 0.5}
+        - {_id: 'm1-zero', device_id: 'dev-01', consumption_kwh: 0.0,
+           production_kwh: 0.0, pv_production_kwh: 0.0, self_consumed_kwh: 0.0,
+           total_consumption_kwh: 0.0}
+        - {_id: 'm1-negative', device_id: 'dev-01', consumption_kwh: 0.0,
+           production_kwh: 0.0, pv_production_kwh: -0.1, self_consumed_kwh: 0.0,
+           total_consumption_kwh: 0.0}

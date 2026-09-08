@@ -8,7 +8,9 @@ models:
       are kWh per 15-min bucket. pv_production_kwh and the clipped
       self_consumed_kwh are reconstructed from the unclipped upstream
       self_consumed_kwh (matches gamification/data_loader.py::load_meters).
-      Includes M2-only slots (PV reading with no M1 row, consumption = 0).
+      DROPS M2-only slots (PV reading with no M1 row: consumption = production = 0,
+      self_consumed > 0) — an M1 gap is missing data, not consumption
+      (2026-09-07; see unit test s1_m2_only_slot_without_grid_meter_row_is_dropped).
     config:
       tags: ["rec_flexibility"]
     columns:

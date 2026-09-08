@@ -8,10 +8,17 @@
       'actual_kwh',
       'allocated_kwh',
       'reward_points_actual',
-      'adherence_ratio'
+      'adherence_ratio',
+      'committed_at',
+      'settled_at',
+      'last_updated'
     ]
   )
 }}
+
+-- committed_at / settled_at / last_updated are in merge_update_columns (2026-09-07):
+-- they change with status (committed → settled) but were only written on insert, so
+-- gold settled_at froze at 2026-05-17 while silver had settlements up to 2026-09-06.
 
 -- Three-layer scoring (2026-04-17): reward_points_actual is no longer
 -- round(allocated_kwh * 10). It is the sum of the device's Layer-1 settlement points
@@ -48,9 +55,13 @@ with commitments as (
     from {{ ref('silver_flexibility_commitments') }}
 
     {% if is_incremental() %}
-    -- Re-process commitments updated in the last 2 days to catch status transitions
-    -- (committed → settled) and new commitments in the sliding window.
-    where last_updated >= date_trunc('day', now() - interval '2 days')
+    -- Re-process commitments updated in the last N days (default 2) to catch status
+    -- transitions (committed → settled) and new commitments in the sliding window.
+    -- Override once with `--vars '{settlement_lookback_days: 120}'` to re-merge every
+    -- commitment still present in silver WITHOUT a full refresh: gold keeps rows
+    -- (May–June 2026) whose source rows are no longer in the mirror, and a full
+    -- refresh would drop them.
+    where last_updated >= date_trunc('day', now() - interval '{{ var("settlement_lookback_days", 2) }} days')
     {% endif %}
 ),
 
