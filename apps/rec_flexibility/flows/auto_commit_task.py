@@ -81,7 +81,7 @@ def auto_commit_task(cfg: PipelineConfig) -> int:
                 "user_id": f"auto-user-{device_id}",
                 "suggestion_id": f"auto-sug-{ws.strftime('%Y%m%d%H%M')}-{we.strftime('%H%M')}",
                 "suggestion_type": "solar_overproduction",
-                "community_id": "gr-renewable-community",
+                "community_id": "greenland",
                 "device_id": device_id,
                 "period_start": ws,
                 "period_end": we,
