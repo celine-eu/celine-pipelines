@@ -24,6 +24,7 @@ from celine.utils.pipelines.pipeline import PipelineConfig
 logger = logging.getLogger(__name__)
 
 AUTO_COMMIT_ENV = "AUTO_COMMIT_ENABLED"
+AUTO_COMMIT_COMMUNITY_ENV = "AUTO_COMMIT_COMMUNITY_ID"
 _SILVER_SCHEMA = os.environ.get("CELINE_SILVER_SCHEMA", "ds_dev_silver")
 _GOLD_SCHEMA = os.environ.get("CELINE_GOLD_SCHEMA", "ds_dev_gold")
 
@@ -40,12 +41,20 @@ def auto_commit_task(cfg: PipelineConfig) -> int:
     """Insert commitments for all devices × today's+tomorrow's windows.
 
     Returns the number of commitments upserted. Skipped entirely when
-    AUTO_COMMIT_ENABLED is not set to "true"/"1".
+    AUTO_COMMIT_ENABLED is not set to "true"/"1". When enabled, the commitments
+    are attributed to the community named by AUTO_COMMIT_COMMUNITY_ID.
     """
     enabled = os.environ.get(AUTO_COMMIT_ENV, "").lower() in ("true", "1")
     if not enabled:
         logger.info("Auto-commit disabled (%s not set). Skipping.", AUTO_COMMIT_ENV)
         return 0
+
+    community_id = os.environ.get(AUTO_COMMIT_COMMUNITY_ENV, "").strip()
+    if not community_id:
+        raise RuntimeError(
+            f"{AUTO_COMMIT_ENV} is set but {AUTO_COMMIT_COMMUNITY_ENV} is not: "
+            "the synthetic commitments need the community they belong to."
+        )
 
     engine = create_engine(_build_db_url(cfg.model_dump()))
     now = datetime.now(timezone.utc)
@@ -81,7 +90,7 @@ def auto_commit_task(cfg: PipelineConfig) -> int:
                 "user_id": f"auto-user-{device_id}",
                 "suggestion_id": f"auto-sug-{ws.strftime('%Y%m%d%H%M')}-{we.strftime('%H%M')}",
                 "suggestion_type": "solar_overproduction",
-                "community_id": "greenland",
+                "community_id": community_id,
                 "device_id": device_id,
                 "period_start": ws,
                 "period_end": we,
