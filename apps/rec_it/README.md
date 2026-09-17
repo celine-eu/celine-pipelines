@@ -7,7 +7,7 @@ Italian CER-specific settlement pipeline. Computes virtual self-consumption allo
 | Table | Schema | Origin | Description |
 |-------|--------|--------|-------------|
 | `meters_data_15m` | `ds_dev_gold` | rec_metering pipeline | 15-min metered readings |
-| `rec_registry_mirror` | `raw` | **`rec_registry` pipeline, in this repository** | REC participant registry: `user_id`, `rec_id`, `role`, `sensor_ids[]`, `topology_ids[]` |
+| `rec_registry_mirror` | `raw` | **`rec_registry` pipeline, in this repository** | REC participant registry: `user_id`, `rec_id`, `role`, `sensor_ids[]`, `topology_ids[]`, `delivery_point_ids[]` |
 | `gse_cabine_primarie` | `raw` | meltano (self-contained) | GSE primary substation open dataset |
 
 **Schema resolution:** `ds_dev_gold` is read from the `CELINE_GOLD_SCHEMA` env var. Set this in `.env` to match your deployment. The `raw` schema is fixed.
@@ -63,6 +63,12 @@ Joins `meters_data_15m` with `silver_rec_registry` and `rec_virtual_consumption_
 #### `rec_virtual_consumption_per_device_hourly`
 
 Hourly rollup of `rec_virtual_consumption_per_device_15m`. Incremental merge on `md5(device_id || ts_hour || rec_id || substation_id)`.
+
+#### `rec_member_supply_points`
+
+One row per `(user_id, rec_id, pod_code)` — every active member's supply points, unnested from `rec_registry_mirror.delivery_point_ids`. A view, like `silver_rec_registry`, so it always reflects the current mirror.
+
+**Consent-gated per member, and not filtered here.** Governance declares `consent_required: true` with a `direct_user_match` row filter on `user_id`: read through a dataspace, the data plane narrows it to the members who consented to the sharing offer the query runs under — the list a community hands the party that offer names. No purpose is declared in this repository; the deployment binds the offer and its purpose.
 
 #### `gse_cabine_primarie`
 
