@@ -1,0 +1,42 @@
+version: 2
+
+models:
+  - name: dso_meter_readings_15m
+    description: >
+      A grid operator's quarter-hour meter readings, one row per supply point
+      and interval. The dataset a release under consent is served from: the
+      supply point is the only identifier it carries, and which supply points
+      may be served is decided by the consent, not by this table.
+    config:
+      tags: ["dso_metering"]
+    columns:
+      - name: _id
+        description: md5(pod_code || ts). The merge key.
+        data_tests:
+          - unique
+          - not_null
+      - name: pod_code
+        description: >
+          The supply point (POD). The column the row filter matches the
+          consent's `pod:` keys against, so its value space and the consent's
+          must be the same one — a table keyed by anything else (a gateway id, a
+          meter serial) serves zero rows, silently and correctly.
+        data_tests:
+          - not_null
+      - name: ts
+        description: Start of the 15-minute interval, UTC.
+        data_tests:
+          - not_null
+      - name: consumption_kwh
+        description: Energy drawn from the grid over the interval, kWh.
+      - name: production_kwh
+        description: Energy fed into the grid over the interval, kWh.
+      - name: reading_quality
+        description: >
+          How the operator obtained the reading. Null where it says nothing —
+          which is not the same claim as 'measured'.
+        data_tests:
+          - accepted_values:
+              values: ["measured", "estimated", "substituted"]
+              config:
+                where: "reading_quality is not null"

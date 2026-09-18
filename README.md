@@ -83,6 +83,7 @@ celine-pipelines/
 │   ├── pv_estimation/               # Rooftop PV return-on-investment
 │   ├── pv_detection/                # Existing PV detected from aerial imagery
 │   ├── grid/                        # Grid wind & heat resilience overlays
+│   ├── dso_metering/                # Grid operator meter readings, released on consent
 │   ├── rec_metering/                # 15-min / hourly metering interface
 │   ├── rec_it/                      # Italian CER virtual self-consumption
 │   ├── rec_flexibility/             # Flexibility windows, settlement, gamification
@@ -265,6 +266,7 @@ Full detail — sources, layers, outputs, upstream contracts — in the
 | **pv_estimation** | Buildings + `celine-roi` | Weekly | Rooftop PV ROI, installation plans and rankings |
 | **pv_detection** | Aerial imagery + vision model | Weekly | Buildings with PV already installed |
 | **grid** | Grid topology + `om` forecasts | Daily, 15-min nowcast | Wind and heat risk overlays per line segment |
+| **dso_metering** | A grid operator's own export | Daily | 15-min readings per supply point, released under consent |
 | **rec_metering** | Normalised meter readings | Every 10 min | 15-min and hourly metering interface, gap report |
 | **rec_it** | `rec_metering` + registry + GSE | Every 15 min | Virtual self-consumption per device and community |
 | **rec_flexibility** | `rec_metering` + forecasts | Daily 06:00 | Flexibility windows, settlement, gamification, CO2 |

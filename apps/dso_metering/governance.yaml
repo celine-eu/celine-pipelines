@@ -1,0 +1,146 @@
+# dso_metering — a grid operator's own quarter-hour meter readings.
+#
+# The distribution operator holds the readings because it operates the meter.
+# This app is the **generic** model for releasing them: one row per supply point
+# per quarter hour, keyed by the supply point and nothing else.
+#
+# ── No member, no community, anywhere in this model ──────────────────────────
+#
+# The only identifier here is `pod_code`, the supply point. **Who holds a supply
+# point is the community's fact, not the operator's**, and it travels with the
+# consent (ds carries typed data keys `pod:<value>` on the decision, and the row
+# filter matches the column against them) rather than in the data. So this file
+# carries no member id, no household, no contract or fiscal reference, and the
+# operator's export must carry none either.
+#
+# That is also why the filter handler is `subject_key_match` and not
+# `rec_registry`: the keys arrive already in the column's own vocabulary, so the
+# data plane resolves nothing and calls nobody at query time.
+#
+# ── Shape ────────────────────────────────────────────────────────────────────
+#
+# Wide — both directions of flow on one row — because that is what every
+# operational consumer in this repository reads: `meters_data_15m` has the same
+# grain and the same two measures, and celine-forecasting's meter contract is
+# `(entity, ts, consumption_kwh, production_kwh)` on a 15-minute grid. The
+# long, one-quantity-per-row projection that SOSA and CIM's `IntervalBlock`
+# want is a **view** over this table, exactly as `meters_measurements_15m` is a
+# view over `meters_data_15m`; it is not built here yet.
+#
+# ── CIM correspondences live here and in the mapping spec, never in a column
+#    name ──────────────────────────────────────────────────────────────────────
+#
+# `grid_substations` is this repository's precedent: a CIM-modelled table whose
+# columns are plain snake_case, with the CIM terms in its mapping spec and its
+# description. The same applies here:
+#
+#   pod_code         the supply point — CIM's `UsagePoint`, which the CELINE
+#                    ontology already relates to `celine:ConnectionPoint`
+#   ts               the **start** of the interval — CIM's
+#                    `IntervalReading.timePeriod.start`
+#   consumption_kwh  energy drawn from the grid over the interval
+#   production_kwh   energy fed into the grid over the interval
+#   reading_quality  measured / estimated / substituted — CIM keeps this on the
+#                    reading, not in metadata about the file, and it is right to
+#
+# **No `dcat.conforms_to` pointing at CIM**, deliberately. Every IEC CIM IRI
+# answers HTTP 403 and the standard is paid, so a `conforms_to` a consumer
+# cannot dereference is a claim they cannot check. `grid_substations` does
+# declare one, on documentary authority; this dataset states the
+# correspondences in prose instead and claims conformance to nothing. The
+# correspondences above are the author's reading of IEC 61968-9 from model
+# knowledge — no copy of the standard exists in this repository — so treat them
+# as a description to check, never as a normative mapping.
+#
+# **No `meter_id` column.** The metering device is the operator's internal
+# affair; a release is about the supply point, and an operator that identifies
+# its own devices differently should not have to say so to release readings.
+#
+# ── Time ─────────────────────────────────────────────────────────────────────
+#
+# `ts` is `timestamptz`, UTC, and that is not a preference. A naive local
+# column silently loses the repeated hour at the autumn transition and holds 92
+# rows instead of 96 on the spring-forward day, and nothing downstream can
+# detect either. Stating the zone does not recover the lost hour; it stops the
+# ambiguity reaching a dataspace consumer, who has no way to know which wall
+# clock was meant.
+
+defaults:
+  license: null
+  ownership:
+    - name: dso
+      type: DATA_OWNER
+  access_level: internal
+  access_requirements: partner
+  classification: green
+  tags: []
+  # Two years of quarter-hour readings. A deployment whose operator retains a
+  # different period says so in its overlay.
+  retention_days: 730
+  documentation_url: null
+  source_system: dso-metering
+  dcat:
+    themes:
+      - http://publications.europa.eu/resource/authority/data-theme/ENER
+    language_uris:
+      - http://publications.europa.eu/resource/authority/language/ENG
+    spatial_uris:
+      - http://publications.europa.eu/resource/authority/country/ITA
+    accrual_periodicity: http://publications.europa.eu/resource/authority/frequency/DAILY
+  dataspace:
+    odrl_action: use
+
+depends_on:
+  - dataset: datasets.*_silver.silver_dso_meter_readings
+    external: true
+    description: >
+      A grid operator's quarter-hour readings per supply point, as that
+      operator's own export produces them. Produced by a deployment's private
+      ingestion, which is not part of this repository;
+      `dbt/models/gold/sources.yml` is the contract it must satisfy — including
+      the fact that the export has to carry the supply point, which is the
+      column the release is keyed and filtered on.
+
+sources:
+  datasets.ds_dev_gold.dso_meter_readings_15m:
+    title: "Grid Operator Meter Readings, 15 min (Gold)"
+    description: >
+      Quarter-hour energy readings held by a distribution system operator, one
+      row per supply point (POD) and interval, with the energy drawn from and
+      fed into the grid over the interval and the operator's quality flag for
+      the reading. `ts` is the start of the interval, in UTC. The supply point
+      corresponds to CIM's UsagePoint and the timestamp to an IntervalReading's
+      period start; the two measures are the forward and reverse flow
+      directions of a quarter-hour energy reading. Personal data: the readings
+      of a supply point describe the household behind it, so the dataset is
+      released only per supply point and only to the extent a consent names
+      that supply point.
+    classification: pii
+    tags: [dso, metering, readings, gold]
+    # **The keys arrive with the consent, in this column's own vocabulary.**
+    # `subject_key_match` selects the `pod:` keys the decision carries and
+    # matches them against `pod_code`. It resolves nothing and ignores
+    # `principals`: the operator does not know whose supply point this is, and a
+    # username matched against a supply point would either return nothing or
+    # return something by coincidence.
+    #
+    # **An empty intersection is a deny, not "no filter".** A deployment whose
+    # export does not yet carry the supply point therefore serves zero rows —
+    # correctly, and silently. Zero rows is never evidence that the filter
+    # works.
+    row_filters:
+      - handler: subject_key_match
+        args:
+          column: pod_code
+          key_type: pod
+    expose: true
+    dataspace:
+      expose: false
+      medallion: gold
+      consent_required: true
+      # `EnergyForecasting` is the one purpose this dataset carries generically:
+      # a party a subject names may forecast from the subject's own readings.
+      # The act of the operator *releasing* them is a purpose of its own, and it
+      # belongs to whichever deployment defines it — it is not declared here.
+      purpose:
+        - EnergyForecasting

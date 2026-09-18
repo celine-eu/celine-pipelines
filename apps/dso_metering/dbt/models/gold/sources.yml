@@ -1,0 +1,45 @@
+version: 2
+
+sources:
+  - name: dso_metering_silver
+    schema: "{{ env_var('CELINE_SILVER_SCHEMA', 'ds_dev_silver') }}"
+    description: >
+      The grid operator's own quarter-hour export, normalised by a deployment's
+      private ingestion. Not produced by this repository — this block is the
+      contract that ingestion must satisfy.
+    tables:
+      - name: silver_dso_meter_readings
+        description: >
+          One row per supply point and quarter-hour interval. The grain is
+          (pod_code, ts); the gold model asserts it rather than collapsing it,
+          so a duplicated interval fails a test instead of being summed away.
+        freshness:
+          warn_after: {count: 36, period: hour}
+          error_after: {count: 7, period: day}
+        loaded_at_field: ts
+        columns:
+          - name: pod_code
+            description: >
+              The supply point the readings are measured at, as the operator
+              identifies it. **The export must carry this.** It is the column
+              the release is keyed and filtered on, and no join in this
+              repository can supply it: which supply point belongs to whom is
+              known to whoever collected the consent, not to the operator.
+          - name: ts
+            description: >
+              Start of the 15-minute interval, timestamptz, UTC. A naive local
+              timestamp is not acceptable here: it loses the repeated hour at
+              the autumn transition and holds 92 intervals instead of 96 on the
+              spring-forward day, and nothing downstream can detect either.
+          - name: consumption_kwh
+            description: Energy drawn from the grid over the interval, kWh (not kW).
+          - name: production_kwh
+            description: >
+              Energy fed into the grid over the interval, kWh. Null or zero for
+              a supply point with no generation behind it.
+          - name: reading_quality
+            description: >
+              measured / estimated / substituted, or null where the operator
+              states nothing. An operator whose export carries only a boolean
+              "estimated" flag maps true to 'estimated' and false to null —
+              "not flagged" is a weaker statement than "measured".
