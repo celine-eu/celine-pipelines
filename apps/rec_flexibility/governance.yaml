@@ -41,6 +41,16 @@ sources:
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_gold.rec_settlement_15m:
+    title: "Member Settlement Intervals, 15-minute (Gold)"
+    description: >
+      One row per member device and fifteen-minute interval, carrying the three energy bases a
+      reward can be computed from — grid import, grid export and the behind-the-meter total —
+      each already kWh over the interval, annotated with the flexibility window the interval
+      falls inside if there is one. Every metered interval is present, not only the committed
+      ones: `window_start` is null outside a window, which is what makes the same table serve
+      both baseline behaviour and settlement. The population is the metered devices of the
+      community. Personal data: a quarter-hour consumption series describes the household
+      behind the meter, so a caller sees only the devices the registry entitles them to.
     classification: pii
     tags: [flexibility, settlement, gold]
     row_filters:
@@ -55,6 +65,14 @@ sources:
       consent_required: true
 
   datasets.ds_dev_gold.rec_settlement_1h:
+    title: "Member Settlement Intervals, Hourly (Gold)"
+    description: >
+      The quarter-hour settlement intervals summed to the hour, one row per member device and
+      hour, with the window context carried forward: `window_start` is non-null when any
+      interval in the hour fell inside a flexibility window, and at most one window exists per
+      device per hour. This is the grain a settlement reads — how much a device consumed over
+      the period it committed to. Same population and same per-device restriction as the
+      quarter-hour table it rolls up.
     classification: pii
     tags: [flexibility, settlement, gold]
     row_filters:
@@ -97,6 +115,17 @@ sources:
       consent_required: true
 
   datasets.ds_dev_gold.rec_flexibility_windows:
+    title: "Member Flexibility Window Estimates (Gold)"
+    description: >
+      One row per member device and community surplus window — the per-device enrichment of the
+      community event layer, stating the energy that device could plausibly shift into the
+      window and the reward points that would be worth. Estimates are scaled down
+      proportionally so the devices sharing a window never together promise more than the
+      community surplus available in it, and a device appears only where it has a usable
+      forecast inside the window, so an offline meter carries no promise. The population is
+      therefore narrower than the fleet. Personal data, restricted per device. Accumulate-only:
+      rows derive from the latest forecast generation, so the history is the one the daily runs
+      wrote and is not recoverable from source.
     classification: pii
     tags: [flexibility, gold]
     row_filters:
@@ -155,6 +184,17 @@ sources:
       consent_required: true
 
   datasets.ds_dev_gold.rec_commitment_settlement:
+    title: "Flexibility Commitment Settlement (Gold)"
+    description: >
+      One row per flexibility commitment a member made: the period committed to, the energy
+      their meter actually recorded over it, the share of the window's community budget they
+      are credited with, the reward points awarded, and the ratio of delivered to promised —
+      null until the commitment settles. The allocated share falls back to the raw actual when
+      the window has no budget row, and is scaled proportionally when the devices committed to
+      one window collectively exceed it. Rejected and cancelled commitments are kept with a
+      zero allocation, so acceptance rate and no-shows read from the same table as delivery.
+      Personal data: a commitment names a member's device, so a caller sees only the devices
+      the registry entitles them to.
     classification: pii
     tags: [flexibility, settlement, gold]
     row_filters:

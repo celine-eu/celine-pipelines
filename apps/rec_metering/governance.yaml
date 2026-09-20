@@ -38,6 +38,17 @@ sources:
   # ---------------------------------------------------------------------------
 
   datasets.ds_dev_gold.meters_data_15m: &meters_15m
+    title: "Member Meter Readings, 15-minute (Gold)"
+    description: >
+      The community's sanctioned quarter-hour metering interface, and the table every other REC
+      pipeline reads. One row per member device and fifteen-minute interval, deduplicated and
+      summed from the normalised readings, holding the energy drawn from the grid, fed into the
+      grid, and self-used behind the meter — all as kWh over the interval, with no kW
+      conversion anywhere downstream. Self-use is published as the upstream computes it and is
+      negative on a minority of rows; that is an upstream defect this dataset neither hides nor
+      corrects. The population is the metered devices of the community. Personal data: a
+      quarter-hour series describes the household behind the meter, so a caller sees only the
+      devices the registry entitles them to.
     classification: pii
     tags: [meters, gold, aggregated]
     row_filters:
@@ -65,6 +76,15 @@ sources:
   # names a column, and nothing validates that the column exists on the table.
   # A view that dropped it would be served **unfiltered** rather than failing.
   datasets.ds_dev_gold.meters_measurements_15m:
+    title: "Member Meter Readings, 15-minute — Observations (Gold)"
+    description: >
+      The quarter-hour meter readings expressed as one observation per row, the shape an
+      observation vocabulary can describe: an observation carries exactly one observed
+      property, so a reading holding three quantities side by side is up to three observations
+      — grid import, grid export and behind-the-meter self-use, each with its own full property
+      and unit IRI. The feature of interest is the device's connection point and the sensor is
+      the meter that produced the reading. Same population, same interval and same per-device
+      restriction as the readings it projects, and no aggregation: it adds shape, not figures.
     classification: pii
     <<: *meters_15m
     ontology:
@@ -77,6 +97,14 @@ sources:
       conforms_to: http://www.w3.org/ns/sosa/
 
   datasets.ds_dev_gold.meters_data_1h:
+    title: "Member Meter Readings, Hourly (Gold)"
+    description: >
+      The quarter-hour meter readings summed to the hour, one row per member device and hour,
+      carrying energy drawn from and fed into the grid only — behind-the-meter self-use is not
+      rolled up and stays at the quarter-hour grain. A test asserts these hourly figures match
+      the quarter-hour readings they derive from, so a disagreement between the two is a
+      failure rather than a rounding allowance. Same population and same per-device restriction
+      as the quarter-hour readings.
     classification: pii
     tags: [meters, gold, aggregated]
     row_filters:

@@ -125,6 +125,16 @@ sources:
       consent_required: true
 
   datasets.ds_dev_gold.rec_virtual_consumption_per_device_15m: &rec_per_device_15m
+    title: "Member Virtual Consumption, 15-minute (Gold)"
+    description: >
+      One row per registered member device and fifteen-minute interval: the device's metered
+      grid import, its share of the grid import of every device netted with it (`ratio`), and
+      the shared energy that share entitles it to (`virtual_consumption_kwh`). The population
+      is the devices listed in the REC registry, netted within one primary substation, because
+      the community figure this allocation divides is itself per substation. The allocation is
+      pro-rata on the fifteen-minute pool, so a member's shares sum to the community total only
+      at that grain. Personal data: a device's quarter-hour consumption describes the household
+      behind it, so a caller sees only the devices the registry entitles them to.
     classification: pii
     tags: [rec, consumption, gold]
     row_filters:
@@ -146,6 +156,15 @@ sources:
   # every member's settlement figures to every other member. Shared by anchor,
   # `row_filters` is one list in this file and the question cannot arise.
   datasets.ds_dev_gold.rec_measurements_per_device_15m:
+    title: "Member Virtual Consumption, 15-minute — Observations (Gold)"
+    description: >
+      The per-member allocation expressed as one observation per row, the shape an observation
+      vocabulary can describe. Each source row yields two: the member's metered grid import,
+      which carries the meter that measured it, and their share of the community's shared
+      energy, which carries no sensor because no instrument measured it — it was computed. The
+      feature of interest is the member's connection point. `ratio` is deliberately absent: it
+      is a weight inside the allocation, not a property of anything observed. Same population,
+      same interval and same per-device restriction as the table it projects.
     classification: pii
     <<: *rec_per_device_15m
     ontology:
@@ -154,6 +173,14 @@ sources:
       conforms_to: http://www.w3.org/ns/sosa/
 
   datasets.ds_dev_gold.rec_virtual_consumption_per_device_hourly:
+    title: "Member Virtual Consumption, Hourly (Gold)"
+    description: >
+      The per-member allocation rolled up to the hour: one row per registered member device and
+      hour, with metered grid import and allocated shared energy summed over the four
+      quarter-hour intervals, and `ratio` recomputed as the device's share of the hourly import
+      of the devices netted with it — the hourly ratio is not an average of the quarter-hour
+      ones. The population is the devices listed in the REC registry. Personal data, restricted
+      per device exactly as the quarter-hour table it derives from.
     classification: pii
     tags: [rec, consumption, gold]
     row_filters:
