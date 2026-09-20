@@ -55,7 +55,20 @@ sources:
     source_system: Open-Meteo
     documentation_url: https://open-meteo.com/en/docs
     tags: [open-meteo, weather, forecast, silver]
-    expose: true
+    # `expose: true` here was a rename artefact, not a decision. Before
+    # `chore: update expose defaults` there was one flag and it lived at
+    # `dataspace.expose`; that commit split it in two and promoted the old
+    # value — a statement about the *dataspace* — into the catalogue field, on
+    # this dataset and 53 others. The following pass re-decided om's gold entry
+    # (`om_heat_risk`) and never revisited this one, so a silver table has been
+    # claiming a catalogue surface it has never had in any running instance.
+    #
+    # The gold pass-through of exactly this data is
+    # `datasets.ds_dev_gold.om_weather_hourly_view`, which exists for the
+    # dashboards. That is where a catalogue consumer of hourly weather belongs,
+    # and it is why this stays false rather than moving to the view: nothing
+    # asked for the view to be published either.
+    expose: false
     dataspace:
       expose: false
       medallion: silver
