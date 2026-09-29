@@ -10,6 +10,14 @@ One row per active member (user_id PK).  sensor_ids, delivery_point_ids, and
 topology_ids are stored as Postgres text[] arrays.  Members with status other
 than 'active' are excluded.
 
+boundary_id carries the id of the member's area's boundary (registry schema
+v0.7: `area.boundary.id`, the area's GSE primary-substation `cod_ac`); it is
+null for an area without a boundary.  rec_it takes topology_ids[1] as the
+member's substation_id, which is right only when the area lists exactly one
+node, equal to boundary_id.  The flow flags every area breaking that (it does
+not refuse the export), and rec_it's singular test
+`rec_registry_mirror_substation_is_area_boundary` fails on it.
+
 Schedule: every 5 minutes.
 """
 
@@ -54,6 +62,9 @@ CREATE TABLE IF NOT EXISTS raw.rec_registry_mirror (
     last_updated        timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, rec_id)
 );
+
+-- Added after the table was first deployed: tables created earlier get it here.
+ALTER TABLE raw.rec_registry_mirror ADD COLUMN IF NOT EXISTS boundary_id text;
 
 CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_rec_id
     ON raw.rec_registry_mirror (rec_id);
@@ -121,6 +132,24 @@ def _parse_bundles(yaml_text: str) -> list[dict[str, Any]]:
     return docs
 
 
+def _area_boundary_id(area_data: Any) -> str | None:
+    """The id of an area's boundary, or None when the area has none.
+
+    A boundary is `{source, id}` (registry schema v0.7).  Anything else — no
+    boundary, a null one, a malformed one, a blank id — is treated as absent,
+    so an area exported before v0.7 mirrors with a null boundary_id.
+    """
+    if not isinstance(area_data, dict):
+        return None
+    boundary = area_data.get("boundary")
+    if not isinstance(boundary, dict):
+        return None
+    boundary_id = boundary.get("id")
+    if not isinstance(boundary_id, str) or not boundary_id.strip():
+        return None
+    return boundary_id
+
+
 def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Flatten community bundles into one row per active member.
@@ -129,7 +158,7 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     Columns produced:
       user_id, rec_id, area, role, member_type,
-      topology_ids, delivery_point_ids, sensor_ids
+      topology_ids, delivery_point_ids, sensor_ids, boundary_id
     """
     rows: list[dict[str, Any]] = []
 
@@ -160,7 +189,7 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
             area_key: str | None = member.get("area")
             area_data: dict = areas.get(area_key, {}) if area_key else {}
-            topology_ids: list[str] = area_data.get("topology", [])
+            topology_ids: list[str] = area_data.get("topology") or []
 
             delivery_point_ids: list[str] = [
                 dp["id"] for dp in member.get("delivery_points", []) if dp.get("id")
@@ -181,10 +210,35 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "topology_ids": topology_ids,
                     "delivery_point_ids": delivery_point_ids,
                     "sensor_ids": sensor_ids,
+                    "boundary_id": _area_boundary_id(area_data),
                 }
             )
 
     return rows
+
+
+def _substation_mismatches(rows: list[dict[str, Any]]) -> list[tuple[str, str]]:
+    """
+    The (rec_id, area) pairs whose mirror rows would get the wrong substation.
+
+    rec_it's silver_rec_registry takes topology_ids[1] as a member's
+    substation_id.  For a row whose area has a boundary, that is right only when
+    the area lists exactly one topology node and that node's id is the
+    boundary id.  Rows without a boundary_id (areas exported before registry
+    schema v0.7) are not checked.
+
+    Returns each offending pair once, sorted; area keys and community ids only,
+    never a member.
+    """
+    bad: set[tuple[str, str]] = set()
+    for row in rows:
+        boundary_id = row.get("boundary_id")
+        if boundary_id is None:
+            continue
+        topology_ids = row.get("topology_ids") or []
+        if len(topology_ids) != 1 or topology_ids[0] != boundary_id:
+            bad.add((row["rec_id"], row.get("area") or ""))
+    return sorted(bad)
 
 
 # ---------------------------------------------------------------------------
@@ -247,6 +301,7 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
             r["topology_ids"],
             r["delivery_point_ids"],
             r["sensor_ids"],
+            r.get("boundary_id"),
         )
         for r in rows
     ]
@@ -259,11 +314,12 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
                 """
                 INSERT INTO raw.rec_registry_mirror
                     (user_id, rec_id, area, role, member_type,
-                     topology_ids, delivery_point_ids, sensor_ids, last_updated)
+                     topology_ids, delivery_point_ids, sensor_ids, boundary_id,
+                     last_updated)
                 VALUES %s
                 """,
                 tuples,
-                template="(%s, %s, %s, %s, %s, %s, %s, %s, now())",
+                template="(%s, %s, %s, %s, %s, %s, %s, %s, %s, now())",
                 page_size=500,
             )
         conn.commit()
@@ -273,6 +329,30 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
         command="mirror_to_db",
         status=PipelineStatus.COMPLETED,
         details={"rows_inserted": len(tuples)},
+    )
+
+
+@task(name="Check substation attribution")
+def check_substations(rows: list[dict[str, Any]]) -> PipelineTaskResult:
+    """
+    Flag areas whose members would be netted under the wrong substation.
+
+    The rows are mirrored either way: refusing the export would leave the
+    previous mirror feeding rec_it, which is no better.  The registry refuses
+    such areas since schema v0.7, so a hit means data written before that.
+    """
+    mismatches = _substation_mismatches(rows)
+    for rec_id, area in mismatches:
+        logger.warning(
+            "Area %s in %s: substation_id (topology_ids[1]) is not the area's "
+            "boundary id, or the area lists other than one node",
+            area,
+            rec_id,
+        )
+    return PipelineTaskResult(
+        command="check_substations",
+        status=PipelineStatus.COMPLETED,
+        details={"areas_mismatched": len(mismatches)},
     )
 
 
@@ -287,13 +367,15 @@ def rec_registry_flow(config: dict[str, Any] | None = None) -> dict:
     Full REC Registry mirror pipeline:
       1. Ensure raw table + indexes exist
       2. Fetch all active REC members from the registry API
-      3. Truncate + re-insert into raw.rec_registry_mirror
+      3. Flag areas whose substation_id would not be their boundary id
+      4. Truncate + re-insert into raw.rec_registry_mirror
     """
     cfg = PipelineConfig.model_validate(config or {})
 
     result: dict = {"status": "success"}
     result["ensure_table"] = ensure_table(cfg)
     rows = fetch_registry(cfg)
+    result["substations"] = check_substations(rows)
     result["mirror"] = mirror_to_db(rows, cfg)
 
     return result

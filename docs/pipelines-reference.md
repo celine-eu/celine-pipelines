@@ -316,6 +316,23 @@ substation reference layer.
 > the companion's knowledge,
 > which also records the known defect in the hourly model.
 
+> **The netting is only as correct as the substation attribution.** `silver_rec_registry`
+> takes `topology_ids[1]` of the member's area as its `substation_id`. That is right when an
+> area lists exactly one `primary_substation` node, whose id is the `cod_ac` of the area's
+> boundary; an area listing several nodes puts all its members under the first. The registry
+> enforces it from schema v0.7 on area writes, topology node writes and bundle import. The
+> mirror carries the area's `boundary_id`, and the singular test
+> `rec_registry_mirror_substation_is_area_boundary` fails on any area breaking it. See
+> `apps/rec_it/README.md`.
+
+A membership change (meter attached or detached, role or area changed) reaches only the rows
+computed after it: the settlement models are incremental over a short lookback, and
+per-device keys include `substation_id`. Aligning history needs a bounded recompute by an
+operator; see `apps/rec_it/README.md`.
+
+Gold `gse_cabine_primarie` is read at runtime by the Digital Twin (through dataset-api) to
+resolve community areas, on `cod_ac` and `geometry`; its merge never deletes a substation.
+
 ## `rec_flexibility` — flexibility and gamification
 
 Opportunity windows, per-commitment settlement with proportional redistribution,
@@ -332,14 +349,25 @@ Without the forecast tables the windows model produces no output — no surplus 
 and the pipeline succeeds with an empty result. That is the expected local behaviour, not
 a failure.
 
+> **The points fleet is a deploy setting, not the registry.** Points, settlement, streaks
+> and the leaderboard are scoped to the devices in `REC_ACTIVE_DEVICES`; a meter attached
+> to a member later earns no points until its device id is added there. Issue:
+> [#8](https://github.com/celine-eu/celine-pipelines/issues/8).
+
 > **The flexibility signal is netted across substations.** There is no join path from this
 > app to `substation_id` at all; a deficit on one *cabina* cancels a surplus on another.
 
 ## `rec_registry` — registry mirror
 
 Full-replace mirror of the CELINE REC Registry API into `raw.rec_registry_mirror`, every
-5 minutes. One row per user/community pair: grid areas, topology nodes, delivery points,
-meter sensors. Python-only; no dbt, no Meltano. OIDC-authenticated.
+5 minutes. One row per user/community pair of an active member: area, role, member type,
+topology nodes, the area's boundary id, delivery points, meter sensors. Python-only; no dbt,
+no Meltano. OIDC-authenticated. Each run logs the areas whose `topology_ids[1]` is not their
+boundary id (it flags them; it does not refuse the export).
+
+> **An empty export does not replace the mirror.** When the export holds no active member,
+> the flow returns before the `TRUNCATE` and the previous rows keep feeding `rec_it`. Clear
+> the table by hand in that case. Issue: [#7](https://github.com/celine-eu/celine-pipelines/issues/7).
 
 ## `rec_flexibility_commitments` — commitments mirror
 

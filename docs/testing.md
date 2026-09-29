@@ -41,7 +41,13 @@ model agree on the same input — the test that catches the two implementations 
 
 ```bash
 uv run pytest apps/rec_flexibility/tests -q
+uv run pytest apps/rec_registry/tests -q
 ```
+
+pytest comes from the project's `dev` dependency group (`pyproject.toml`), which `uv run`
+installs into `.venv` by default. Run it through `uv run`, not a global `pytest`: a pytest
+outside the project environment cannot import `prefect` or `celine.utils` and fails at
+collection.
 
 ### dbt unit tests
 
@@ -292,10 +298,11 @@ tests; regenerate with `dbt ls --resource-type test` inside an app.
 | `grid` | yes | — | — | — |
 | `rec_metering` | yes | 3 | — | — |
 | `weather` | yes | 3 | — | — |
-| `rec_it` | yes | — | — | — |
+| `rec_it` | yes | 1 | — | — |
 | `pv_estimation`, `pv_detection` | source-level only | — | — | — |
 | `copernicus`, `dwd`, `osm`, `overture`, `owm`, `trentino_rooftops` | **none** | — | — | — |
-| `rec_registry`, `rec_flexibility_commitments` | no dbt project | — | — | — |
+| `rec_registry` | no dbt project | — | — | yes |
+| `rec_flexibility_commitments` | no dbt project | — | — | — |
 
 \* `rec_flexibility` has by far the largest suite in the repository, and **none of the dbt
 half runs on a fresh checkout** until the private fleet seed is generated — see the

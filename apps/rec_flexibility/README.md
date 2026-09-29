@@ -195,3 +195,5 @@ Serves with cron `*/15 * * * *` (every 15 minutes) in dev mode. The Python tasks
 ## Configuration
 
 All tunable parameters live in `flexibility_config.yaml` (shared with `src/notebooks/gamification/`). Edit the YAML, not the code, to retune baselines, effort tiers, bonus multipliers, streak decay, and anti-gaming thresholds.
+
+**The points fleet is a deploy setting, not the registry.** Points, settlement, streaks and the leaderboard are scoped to the devices in `REC_ACTIVE_DEVICES` (comma-separated; `fleet.active_devices` in the YAML is a local-dev fallback that ships empty), written to the `rec_active_devices` seed at flow start. A meter attached to a member in the registry after the fleet was set earns no points until its device id is added to that setting and the flow runs again. Issue: [#8](https://github.com/celine-eu/celine-pipelines/issues/8).
