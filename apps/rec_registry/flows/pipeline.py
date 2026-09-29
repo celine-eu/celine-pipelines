@@ -282,15 +282,13 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
     """
     Atomically replace raw.rec_registry_mirror:
     TRUNCATE + bulk INSERT in a single transaction.
-    """
-    if not rows:
-        logger.warning("No rows to insert — skipping mirror (registry may be empty)")
-        return PipelineTaskResult(
-            command="mirror_to_db",
-            status=PipelineStatus.COMPLETED,
-            details={"rows_inserted": 0},
-        )
 
+    **An empty row list still replaces the table** (celine-eu/celine-pipelines#7).
+    The rows are the export's *active* members, so none is a legitimate answer —
+    the last active member of a community suspended — and skipping the truncate
+    kept that member in the mirror, treated as active downstream. A broken or
+    empty fetch never reaches this task: `_parse_bundles` raises on it first.
+    """
     tuples = [
         (
             r["user_id"],
@@ -309,19 +307,25 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
     with _db_conn(cfg) as conn:
         with conn.cursor() as cur:
             cur.execute("TRUNCATE TABLE raw.rec_registry_mirror")
-            psycopg2.extras.execute_values(
-                cur,
-                """
-                INSERT INTO raw.rec_registry_mirror
-                    (user_id, rec_id, area, role, member_type,
-                     topology_ids, delivery_point_ids, sensor_ids, boundary_id,
-                     last_updated)
-                VALUES %s
-                """,
-                tuples,
-                template="(%s, %s, %s, %s, %s, %s, %s, %s, %s, now())",
-                page_size=500,
-            )
+            if not tuples:
+                logger.warning(
+                    "The registry export has no active member: raw.rec_registry_mirror "
+                    "is now empty"
+                )
+            else:
+                psycopg2.extras.execute_values(
+                    cur,
+                    """
+                    INSERT INTO raw.rec_registry_mirror
+                        (user_id, rec_id, area, role, member_type,
+                         topology_ids, delivery_point_ids, sensor_ids, boundary_id,
+                         last_updated)
+                    VALUES %s
+                    """,
+                    tuples,
+                    template="(%s, %s, %s, %s, %s, %s, %s, %s, %s, now())",
+                    page_size=500,
+                )
         conn.commit()
 
     logger.info("Mirrored %d rows into raw.rec_registry_mirror", len(tuples))

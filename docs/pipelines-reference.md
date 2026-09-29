@@ -365,9 +365,10 @@ topology nodes, the area's boundary id, delivery points, meter sensors. Python-o
 no Meltano. OIDC-authenticated. Each run logs the areas whose `topology_ids[1]` is not their
 boundary id (it flags them; it does not refuse the export).
 
-> **An empty export does not replace the mirror.** When the export holds no active member,
-> the flow returns before the `TRUNCATE` and the previous rows keep feeding `rec_it`. Clear
-> the table by hand in that case. Issue: [#7](https://github.com/celine-eu/celine-pipelines/issues/7).
+> **The mirror always equals the export's active members, the empty set included.** When
+> the export holds no active member the table is emptied, so a suspended last member stops
+> feeding `rec_it`. A fetch that fails or returns an empty export raises before the mirror
+> is touched, and the previous rows stay.
 
 ## `rec_flexibility_commitments` — commitments mirror
 

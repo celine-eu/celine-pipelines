@@ -19,7 +19,7 @@ License: Proprietary.
 ## Output datasets
 
 - **RAW**
-  - `rec_registry_mirror` — full-replace mirror of active community members (one row per user/community pair), except after an empty export (see [Known limitations](#known-limitations)). Columns: `user_id`, `rec_id`, `area` (the member's area key), `role`, `member_type`, `topology_ids` (text[], the node ids listed by the member's area), `delivery_point_ids` (text[]), `sensor_ids` (text[], the `sensor_id` of each meter asset), `boundary_id` (the id of the member's area's boundary, `area.boundary.id` in registry schema v0.7: the `cod_ac` of its GSE primary substation; null when the area has no boundary), `last_updated`. Primary key `(user_id, rec_id)`. `boundary_id` was added after the table was first deployed; the flow adds it to an existing table (`ADD COLUMN IF NOT EXISTS`) on its next run, and rows keep a null value until the registry exports a boundary for their area.
+  - `rec_registry_mirror` — full-replace mirror of active community members (one row per user/community pair). An export with no active member empties it: the last active member of a community suspended leaves no row behind. Columns: `user_id`, `rec_id`, `area` (the member's area key), `role`, `member_type`, `topology_ids` (text[], the node ids listed by the member's area), `delivery_point_ids` (text[]), `sensor_ids` (text[], the `sensor_id` of each meter asset), `boundary_id` (the id of the member's area's boundary, `area.boundary.id` in registry schema v0.7: the `cod_ac` of its GSE primary substation; null when the area has no boundary), `last_updated`. Primary key `(user_id, rec_id)`. `boundary_id` was added after the table was first deployed; the flow adds it to an existing table (`ADD COLUMN IF NOT EXISTS`) on its next run, and rows keep a null value until the registry exports a boundary for their area.
 
 Every community the registry exports lands in the same table, keyed by `rec_id`. A sensor listed on two active members appears in two rows, and downstream models count it twice. The registry refuses that case at the source (`409 sensor_held`: one active holder per sensor id across every community, from rec-registry 1.6.0); a pair stored before then stays until it is fixed, and the registry's `duplicate-sensors` command lists them.
 
@@ -37,7 +37,6 @@ No dbt transformation layers are included in this pipeline. The raw table serves
 
 ## Known limitations
 
-- **An empty export leaves the previous mirror in place.** `mirror_to_db` returns before the `TRUNCATE` when the export has no active member rows, so the rows of the last non-empty export keep feeding the downstream dbt models. This happens when every member of every community is suspended, removed or deleted, or when a community is retired before any new member is active. Until the flow truncates on an empty export, clear the table by hand in that situation (`TRUNCATE raw.rec_registry_mirror`). Issue: [#7](https://github.com/celine-eu/celine-pipelines/issues/7).
 - **Only the mirror is current.** Downstream incremental models recompute a short trailing window, so a membership change (a meter attached or detached, a role or area changed) reaches rows from the next run onwards; older rows keep the values they were computed with. See `apps/rec_it/README.md`.
 
 ---
