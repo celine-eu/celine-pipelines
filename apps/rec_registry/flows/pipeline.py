@@ -8,7 +8,8 @@ can use as a stable source of truth for community membership and asset metadata.
 
 One row per active member (user_id PK).  sensor_ids, delivery_point_ids, and
 topology_ids are stored as Postgres text[] arrays.  Members with status other
-than 'active' are excluded.
+than 'active' are excluded, and delivery_point_ids lists only the points in
+service: a delivery point flagged `active: false` is left out.
 
 boundary_id carries the id of the member's area's boundary (registry schema
 v0.7: `area.boundary.id`, the area's GSE primary-substation `cod_ac`); it is
@@ -150,11 +151,28 @@ def _area_boundary_id(area_data: Any) -> str | None:
     return boundary_id
 
 
+def _live_delivery_point_ids(points: Any) -> list[str]:
+    """The ids of a member's delivery points that are in service.
+
+    A point with `active: false` is a supply point no longer in service and is
+    left out: `rec_it`'s `rec_member_supply_points` unnests these ids into the
+    list a community hands its distributor, and a retired POD there asks the
+    distributor to release readings against a dead supply point.  The flag
+    defaults to true in the registry model, so a point without it is live.
+    """
+    return [
+        dp["id"]
+        for dp in points or []
+        if dp.get("id") and dp.get("active") is not False
+    ]
+
+
 def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Flatten community bundles into one row per active member.
 
-    Members whose status is not 'active' are skipped.
+    Members whose status is not 'active' are skipped, and so are delivery
+    points flagged `active: false` (the member keeps its row).
 
     Columns produced:
       user_id, rec_id, area, role, member_type,
@@ -191,9 +209,9 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
             area_data: dict = areas.get(area_key, {}) if area_key else {}
             topology_ids: list[str] = area_data.get("topology") or []
 
-            delivery_point_ids: list[str] = [
-                dp["id"] for dp in member.get("delivery_points", []) if dp.get("id")
-            ]
+            delivery_point_ids: list[str] = _live_delivery_point_ids(
+                member.get("delivery_points")
+            )
 
             meter_assets: dict = member.get("assets", {}).get("meter", {})
             sensor_ids: list[str] = [

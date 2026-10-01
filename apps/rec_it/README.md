@@ -7,7 +7,7 @@ Italian CER-specific settlement pipeline. Computes virtual self-consumption allo
 | Table | Schema | Origin | Description |
 |-------|--------|--------|-------------|
 | `meters_data_15m` | `ds_dev_gold` | rec_metering pipeline | 15-min metered readings |
-| `rec_registry_mirror` | `raw` | **`rec_registry` pipeline, in this repository** | REC participant registry, active members only: `user_id`, `rec_id`, `area`, `role`, `member_type`, `topology_ids[]`, `delivery_point_ids[]`, `sensor_ids[]`, `boundary_id`, `last_updated` |
+| `rec_registry_mirror` | `raw` | **`rec_registry` pipeline, in this repository** | REC participant registry, active members only: `user_id`, `rec_id`, `area`, `role`, `member_type`, `topology_ids[]`, `delivery_point_ids[]` (points in service only), `sensor_ids[]`, `boundary_id`, `last_updated` |
 | `gse_cabine_primarie` | `raw` | meltano (self-contained) | GSE primary substation open dataset |
 
 **Schema resolution:** `ds_dev_gold` is read from the `CELINE_GOLD_SCHEMA` env var. Set this in `.env` to match your deployment. The `raw` schema is fixed.
@@ -80,7 +80,7 @@ Bringing history in line with a changed membership needs a bounded recompute of 
 
 #### `rec_member_supply_points`
 
-One row per `(user_id, rec_id, pod_code)` — every active member's supply points, unnested from `rec_registry_mirror.delivery_point_ids`. A view, like `silver_rec_registry`, so it always reflects the current mirror.
+One row per `(user_id, rec_id, pod_code)` — every active member's supply points in service, unnested from `rec_registry_mirror.delivery_point_ids` (the mirror leaves out a point flagged `active: false`, so a retired POD never reaches the distributor's list). A view, like `silver_rec_registry`, so it always reflects the current mirror.
 
 **Consent-gated per member, and not filtered here.** Governance declares `consent_required: true` with a `direct_user_match` row filter on `user_id`: read through a dataspace, the data plane narrows it to the members who consented to the sharing offer the query runs under — the list a community hands the party that offer names. No purpose is declared in this repository; the deployment binds the offer and its purpose.
 

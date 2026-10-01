@@ -361,7 +361,8 @@ a failure.
 
 Full-replace mirror of the CELINE REC Registry API into `raw.rec_registry_mirror`, every
 5 minutes. One row per user/community pair of an active member: area, role, member type,
-topology nodes, the area's boundary id, delivery points, meter sensors. Python-only; no dbt,
+topology nodes, the area's boundary id, delivery points in service (a point flagged
+`active: false` is left out), meter sensors. Python-only; no dbt,
 no Meltano. OIDC-authenticated. Each run logs the areas whose `topology_ids[1]` is not their
 boundary id (it flags them; it does not refuse the export).
 
