@@ -4,7 +4,7 @@
 
 The **REC Registry pipeline** mirrors community membership data from the **CELINE REC Registry API** into a PostgreSQL raw table.
 
-It performs a **full-replace refresh every 5 minutes**, providing a stable source of active members, their grid areas, topology nodes, delivery points, and meter sensors. One exception: when the export holds no active member at all, the run writes nothing and the previous rows stay (see [Known limitations](#known-limitations)).
+It performs a **full-replace refresh every 5 minutes**, providing a stable source of active members, their grid areas, topology nodes, delivery points, and meter sensors. An export with no active member empties the table, so a community whose last active member is suspended leaves no row behind.
 
 ---
 
