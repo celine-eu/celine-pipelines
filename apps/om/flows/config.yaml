@@ -26,7 +26,13 @@ gold_meters:
   table: om_weather_features_meters
   schema: ds_dev_gold
 
-# Schedule
+# Timezone of the naive `datetime` columns in the weather tables. Used to
+# anchor the gold recompute window on the current hour. Must match the
+# tap-openmeteo `timezone` in meltano/meltano.yml.
+timezone: Europe/Rome
+
+# Schedule (UTC): twice a day, so consumers forecasting from origins up to
+# 12 h after a refresh still find 48 h of weather ahead.
 schedule:
-  cron: "0 6 * * *"
+  cron: "0 6,18 * * *"
   name: "om-weather-daily"

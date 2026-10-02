@@ -14,7 +14,6 @@ which matches the Open-Meteo API timezone parameter.
 
 import logging
 from datetime import date, timedelta
-from typing import Optional
 
 import numpy as np
 import pandas as pd
@@ -197,6 +196,37 @@ ITALIAN_HOLIDAYS: list[str] = _generate_italian_holidays()
 # =============================================================================
 # Imputation
 # =============================================================================
+
+def _drop_trailing_all_null_rows(
+    df: pd.DataFrame,
+    columns: list[str],
+) -> pd.DataFrame:
+    """Drop the latest rows whose ``columns`` are all null.
+
+    Such rows lie beyond the weather provider's forecast horizon: there is
+    nothing to impute from, so forward-filling them would invent weather.
+    Interior gaps and partially-null rows are kept for the imputation step.
+
+    Args:
+        df: DataFrame with a datetime column and the given weather columns.
+        columns: Weather input columns of the calling feature builder.
+
+    Returns:
+        DataFrame sorted by datetime with the trailing all-null rows removed.
+    """
+    df = df.sort_values(DATETIME_COL).reset_index(drop=True)
+    has_data = df[columns].notna().any(axis=1)
+    if not has_data.any():
+        return df.iloc[0:0]
+    last_valid = has_data[has_data].index[-1]
+    n_dropped = len(df) - 1 - last_valid
+    if n_dropped:
+        logger.info(
+            "Dropping %d trailing rows with no weather data (after %s)",
+            n_dropped, df[DATETIME_COL].iloc[last_valid],
+        )
+    return df.iloc[: last_valid + 1]
+
 
 def _find_gap_lengths(series: pd.Series) -> list[tuple[int, int, int]]:
     """Find all NaN gaps in a series.
@@ -601,8 +631,7 @@ def build_gold_features(
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
 
-    df = df.copy()
-    df = df.sort_values(DATETIME_COL).reset_index(drop=True)
+    df = _drop_trailing_all_null_rows(df, REQUIRED_WEATHER_COLS)
 
     if impute_missing:
         df = impute_missing_weather(df)
@@ -703,8 +732,7 @@ def build_gold_features_meters(
     if missing:
         raise ValueError(f"Missing required columns for meters features: {missing}")
 
-    df = df.copy()
-    df = df.sort_values(DATETIME_COL).reset_index(drop=True)
+    df = _drop_trailing_all_null_rows(df, METERS_WEATHER_COLS)
 
     if impute_missing:
         for col in METERS_WEATHER_COLS:

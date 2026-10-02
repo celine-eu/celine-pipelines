@@ -8,6 +8,8 @@ models:
       (shortwave_radiation, cloud_cover, temperature_2m, precipitation)
       plus datetime. Identical output for historical and forecast data,
       ensuring train/test consistency.
+    config:
+      tags: ["weather"]
     columns:
       - name: datetime
         description: "Hourly timestamp (Europe/Rome timezone)"

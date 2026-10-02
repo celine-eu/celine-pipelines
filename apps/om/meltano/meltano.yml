@@ -23,10 +23,13 @@ plugins:
             longitude: 11.1667
             timezone: "Europe/Rome"
         timezone: "Europe/Rome"
-        forecast_hours: 48
+        # icon_seamless = ICON-D2 for the first ~48 h, ICON-EU beyond (plain
+        # variable names, no nulls out to 72 h). Consumers forecast 48 h from
+        # origins up to 12 h after a refresh; 72 h also survives one missed run.
+        forecast_hours: 72
         past_hours: 120
         models:
-          - icon_d2
+          - icon_seamless
         hourly_variables:
           - shortwave_radiation
           - direct_radiation

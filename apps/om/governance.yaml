@@ -128,10 +128,11 @@ sources:
   datasets.ds_dev_gold.om_wind_gusts:
     title: "Open-Meteo Daily Wind Gust Alerts — Trentino Grid (Gold)"
     description: >
-      Daily wind gust risk indicators for the Trentino region. Aggregates
-      hourly wind data to daily max/avg per grid point, computes gust excess
-      (max_gust - max_sustained_wind), and classifies into NORMAL / WARNING
-      / ALERT tiers. Includes PostGIS geography point for spatial queries.
+      Daily wind gust risk indicators for the Trentino region: the worst of
+      the day's three 8-hour windows (om_wind_gusts_8h) per grid point — max
+      window gust excess (max_gust - max_sustained_wind within the window),
+      classified into NORMAL / WARNING / ALERT tiers — so the daily map is the
+      union of the intra-day windows. Includes PostGIS geography point.
       Replaces dwd_icon_d2_gusts.
     license: CC-BY-4.0
     access_level: internal

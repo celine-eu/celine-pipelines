@@ -1,0 +1,51 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: om_weather_soil
+        description: >
+          Raw daily soil temperature (28-100cm and 100-255cm ERA5-Land layers)
+          from the Open-Meteo archive API for the Trentino region. Same 4.4 km
+          grid as heat (~1064 points). Stores the *requested* grid lat/lon
+          (api_lat/api_lon hold the API-snapped coordinates, for provenance
+          only): the archive API snaps to 0.1 deg ERA5-Land cells, so soil
+          and heat points do not join by equality. Updated 1x/day, 21-day
+          lookback per run (archive lag).
+        columns:
+          - name: date
+            description: "Calendar date"
+          - name: lat
+            description: "Requested grid point latitude (WGS84)"
+          - name: lon
+            description: "Requested grid point longitude (WGS84)"
+          - name: soil_temperature_28_to_100cm_mean
+            description: "Daily mean soil temperature, 28-100cm depth (Celsius)"
+          - name: soil_temperature_100_to_255cm_mean
+            description: "Daily mean soil temperature, 100-255cm depth (Celsius)"
+          - name: api_lat
+            description: "API-returned (snapped to nearest 0.1deg ERA5-Land cell) latitude"
+          - name: api_lon
+            description: "API-returned (snapped to nearest 0.1deg ERA5-Land cell) longitude"
+    config:
+      tags: ["soil"]
+
+models:
+  - name: stg_om_soil
+    description: >
+      Staging view: type-casts raw soil columns and computes soil_1m_c, a
+      depth-weighted composite at 100cm (1m) depth interpolated between the
+      two ERA5-Land layer midpoints.
+    config:
+      tags: ["soil"]
+    columns:
+      - name: date
+        tests:
+          - not_null
+      - name: lat
+        tests:
+          - not_null
+      - name: lon
+        tests:
+          - not_null

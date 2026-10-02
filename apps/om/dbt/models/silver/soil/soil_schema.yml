@@ -1,0 +1,44 @@
+version: 2
+
+models:
+  - name: om_soil_daily
+    description: >
+      Silver layer: daily soil temperature per grid point. Deduplicated by
+      (date, lat, lon), keeping the most recent extraction. soil_1m_c is a
+      depth-weighted composite at 100cm (1m) depth; rows where it could not
+      be computed (source layer NULL) are dropped.
+    config:
+      tags: ["soil"]
+    columns:
+      - name: date
+        description: "Calendar date"
+        tests:
+          - not_null
+      - name: lat
+        description: "Requested grid point latitude"
+        tests:
+          - not_null
+      - name: lon
+        description: "Requested grid point longitude"
+        tests:
+          - not_null
+      - name: soil_28_100cm_c
+        description: "Daily mean soil temperature, 28-100cm depth (Celsius)"
+      - name: soil_100_255cm_c
+        description: "Daily mean soil temperature, 100-255cm depth (Celsius)"
+      - name: soil_1m_c
+        description: >
+          Depth-weighted composite soil temperature at 100cm (1m) depth
+          (0.683 * soil_28_100cm_c + 0.317 * soil_100_255cm_c).
+        tests:
+          - not_null
+      - name: api_lat
+        description: "API-returned (snapped) latitude, for provenance only"
+      - name: api_lon
+        description: "API-returned (snapped) longitude, for provenance only"
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - date
+            - lat
+            - lon

@@ -10,6 +10,8 @@ models:
       variability signals (cloud_cover_diff, ghi_ramp, pv_temp_factor).
       Identical output for historical and forecast data, ensuring
       train/test consistency.
+    config:
+      tags: ["weather"]
     columns:
       - name: datetime
         description: "Hourly timestamp (Europe/Rome timezone)"

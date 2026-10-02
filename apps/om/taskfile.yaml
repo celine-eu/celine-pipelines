@@ -14,6 +14,11 @@ tasks:
     cmds:
       - source <(celine-utils pipeline run envs) && celine-utils pipeline run prefect -f pipeline_heat
 
+  run:soil:
+    desc: Run the soil pipeline locally via Prefect
+    cmds:
+      - source <(celine-utils pipeline run envs) && celine-utils pipeline run prefect -f pipeline_soil
+
   run:wind:
     desc: Run the wind pipeline locally via Prefect
     cmds:
@@ -29,5 +34,6 @@ tasks:
     cmds:
       - task: run:obs
       - task: run:heat
+      - task: run:soil
       - task: run:wind
       - task: run:main

@@ -6,6 +6,8 @@ models:
       Hourly weather data for energy forecasting. Contains only the 4
       natural weather variables, identical across historical and forecast
       sources to ensure train/test consistency.
+    config:
+      tags: ["weather"]
     columns:
       - name: datetime
         description: "Hourly timestamp (Europe/Rome timezone)"

@@ -1,0 +1,55 @@
+# Soil pipeline configuration for Trentino region
+# Fetches daily soil temperature (28-100cm and 100-255cm layers) from the
+# Open-Meteo ERA5-Land archive API. Different host and rate limits than the
+# forecast API used by config_heat.yaml, and archive lag (recent days come
+# back with NULL soil values until ERA5-Land catches up) must not fail the
+# heat forecast, so this runs as its own flow.
+
+# Trentino grid: 4.4 km resolution (0.04 deg spacing), same grid as heat/wind
+grid:
+  lat_min: 45.44
+  lat_max: 46.52
+  lon_min: 10.40
+  lon_max: 11.90
+  spacing_deg: 0.04  # ~4.4 km
+
+# Open-Meteo ERA5-Land archive API configuration
+api:
+  base_url: "https://archive-api.open-meteo.com/v1/archive"
+  variables:
+    - soil_temperature_28_to_100cm_mean
+    - soil_temperature_100_to_255cm_mean
+  # Archive lag: the last few days of the window commonly come back NULL
+  # until ERA5-Land catches up, so each run re-fetches the whole lookback
+  # window rather than just the newest day.
+  lookback_days: 21
+  timezone: "Europe/Rome"
+  # Archive API is stricter than the forecast API over a 22-day window per
+  # point; smaller batches avoid 429s. 300 points/call verified 2026-09-14.
+  max_points_per_call: 300
+
+# Database targets
+raw:
+  table: om_weather_soil
+  schema: raw
+
+# Depth-weighted composite (soil_1m_c): linear interpolation between the two
+# ERA5-Land layer midpoints (64cm for 28-100cm, 177.5cm for 100-255cm) that
+# solves for the value at exactly 100cm. Mirrored in pipeline_soil.py
+# (_soil_1m) and dbt/models/staging/soil/stg_om_soil.sql.
+soil_1m_weights:
+  upper: 0.683   # soil_temperature_28_to_100cm_mean
+  lower: 0.317   # soil_temperature_100_to_255cm_mean
+
+# 7-day trailing mean P90 threshold (deg C), calibrated on the Trento valley
+# floor series (2014-2025, notebook 13 of the thermal model) and applied to
+# every grid point (ERA5-Land cells are ~9 km, so neighbouring points share
+# values). Only applied May-Sep; outside warm season -> always GREEN.
+# Mirrored as the default of var('soil7_p90_c', ...) in
+# dbt/models/gold/soil/om_soil_heat_risk.sql.
+soil7_p90_c: 21.4832
+
+# Schedule: 1x/day at 07:45 (offset after heat at 07:30)
+schedule:
+  cron: "45 7 * * *"
+  name: "om-soil-trentino"

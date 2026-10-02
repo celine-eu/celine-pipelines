@@ -3,6 +3,8 @@ version: 2
 sources:
   - name: raw
     schema: raw
+    config:
+      tags: ["weather"]
     tables:
       - name: om_weather
         identifier: weather_hourly
@@ -55,3 +57,11 @@ sources:
             tests:
               - not_null
               - unique
+
+models:
+  - name: stg_om_weather
+    description: >
+      Staging model: type-casts raw hourly weather columns from tap-openmeteo
+      and renames `time` to `datetime`.
+    config:
+      tags: ["weather"]

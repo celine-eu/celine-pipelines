@@ -3,10 +3,11 @@ version: 2
 models:
   - name: om_wind_gusts
     description: >
-      Gold layer: daily wind gust alerts per grid point.
-      Aggregates hourly wind to daily max/avg, computes gust excess
-      (max_gust - max_sustained_wind), and classifies into tiers
-      (NORMAL / WARNING / ALERT). Includes PostGIS geography point.
+      Gold layer: daily wind gust alerts per grid point — the worst of the
+      day's three 8-hour windows (om_wind_gusts_8h): daily gust excess is the
+      max window excess, classified into NORMAL / WARNING / ALERT, so the daily
+      map is the union of the intra-day windows. wind_speed_max / wind_gusts_max
+      are the daily maxima; averages are hour-weighted. Includes PostGIS point.
     config:
       tags: ["wind"]
     columns:
@@ -33,7 +34,7 @@ models:
       - name: wind_gusts_avg
         description: "Daily average wind gust (m/s)"
       - name: gust_excess
-        description: "wind_gusts_max - wind_speed_max (m/s)"
+        description: "Max over the day's 8-hour windows of (window max gust - window max sustained wind), m/s"
       - name: gust_excess_tier
         description: "NORMAL (<7.62), WARNING (>=7.62), ALERT (>=12.46)"
         tests:
@@ -43,5 +44,49 @@ models:
       - dbt_utils.unique_combination_of_columns:
           combination_of_columns:
             - date
+            - lat
+            - lon
+
+  - name: om_wind_gusts_8h
+    description: >
+      Gold layer: wind gust alerts per grid point on 8-hour windows (00–08,
+      08–16, 16–24). Same aggregation and thresholds as om_wind_gusts, on the
+      window instead of the day; a window's tier is never above the day's.
+    config:
+      tags: ["wind"]
+    columns:
+      - name: window_start
+        description: "Start of the 8-hour window (timestamp, same calendar as om_wind_hourly)"
+        tests:
+          - not_null
+      - name: date
+        description: "Calendar date of the window"
+        tests:
+          - not_null
+      - name: slot
+        description: "0 = 00–08, 1 = 08–16, 2 = 16–24"
+        tests:
+          - accepted_values:
+              values: [0, 1, 2]
+              quote: false
+      - name: lat
+        tests:
+          - not_null
+      - name: lon
+        tests:
+          - not_null
+      - name: n_hours
+        description: "Hourly rows aggregated into the window (< 8 at the edges of the fetched horizon)"
+      - name: gust_excess
+        description: "wind_gusts_max - wind_speed_max (m/s) over the window"
+      - name: gust_excess_tier
+        description: "NORMAL (<7.62), WARNING (>=7.62), ALERT (>=12.46)"
+        tests:
+          - accepted_values:
+              values: ['NORMAL', 'WARNING', 'ALERT']
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - window_start
             - lat
             - lon

@@ -4,7 +4,8 @@ Open-Meteo weather pipeline: Meltano extraction + dbt transforms.
 Extracts hourly weather data via tap-openmeteo (Meltano),
 loads into Postgres raw schema, then runs dbt staging -> silver -> gold.
 
-Schedule: daily at 06:00 (new forecast available ~05:00 UTC).
+Schedule: twice a day at 06:00 and 18:00 UTC, each run fetching a 72 h
+forecast (ICON seamless) plus 120 h of past hours.
 """
 
 import logging
@@ -75,14 +76,55 @@ def _get_pg_engine(cfg: PipelineConfig) -> sa.Engine:
     )
 
 
-# Hours to re-compute on every incremental run.
-# Open-Meteo serves forecast values for future hours; once those hours become
-# past they are replaced by ERA5 actuals. Re-processing the last 2 days ensures
-# gold features always reflect the most accurate silver values.
+# Hours to re-compute on every incremental run, counted back from the current
+# hour (or from the table end if that is earlier). Open-Meteo serves forecast
+# values for future hours and revises them on later runs; re-processing the
+# last 2 days ensures gold features always reflect the latest silver values,
+# and that every hour's final value is written after the hour has passed.
 _RECOMPUTE_WINDOW_HOURS: int = 48
 # Extra lookback added on top of the recompute window so that rolling-window
-# features (max window = 24 h) are computed with sufficient history.
-_ROLLING_BUFFER_HOURS: int = 24
+# features (longest window: cumulative_hdd_48h, 48 h; thermal_inertia_12h is an
+# EWM with a 12 h halflife, ~1.6 % residual weight after 72 h) are computed
+# with sufficient history.
+_ROLLING_BUFFER_HOURS: int = 72
+
+
+def _now_local(tz: str) -> pd.Timestamp:
+    """Return the current wall-clock hour in ``tz`` as a naive timestamp.
+
+    The weather tables store naive local wall-clock datetimes, so the clock
+    is expressed the same way. Kept as a function so tests can patch it.
+
+    Args:
+        tz: IANA timezone of the weather tables (e.g. ``Europe/Rome``).
+    """
+    return pd.Timestamp.now(tz=tz).floor("h").tz_localize(None)
+
+
+def _recompute_bounds(
+    max_processed: pd.Timestamp,
+    now: pd.Timestamp,
+) -> tuple[pd.Timestamp, pd.Timestamp]:
+    """Compute the gold recompute window start and the silver read cutoff.
+
+    The window is anchored on the earlier of the table end and the clock:
+    the forecast horizon extends past ``now``, so anchoring on the table end
+    alone would leave near-term forecast hours unrefreshed.
+
+    Args:
+        max_processed: Max datetime already in the raw gold table.
+        now: Current wall-clock hour (naive, same timezone as the table).
+
+    Returns:
+        ``(recompute_from, cutoff)``: rows at or after ``recompute_from`` are
+        recomputed; silver is read from ``cutoff`` to give rolling features
+        their history.
+    """
+    recompute_from = min(max_processed, now) - pd.Timedelta(
+        hours=_RECOMPUTE_WINDOW_HOURS
+    )
+    cutoff = recompute_from - pd.Timedelta(hours=_ROLLING_BUFFER_HOURS)
+    return recompute_from, cutoff
 
 
 def _load_to_postgres(
@@ -189,10 +231,10 @@ def _get_max_processed_datetime(
 def compute_gold_features_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Read new silver weather rows, compute 29 ML features, upsert to raw gold table.
 
-    On every incremental run the last _RECOMPUTE_WINDOW_HOURS (48 h) of gold rows
-    are deleted and recomputed from the latest silver values, so that hours that were
-    initially stored as Open-Meteo forecast data are updated once ERA5 actuals arrive.
-    Rows beyond max_processed are appended as new.
+    On every incremental run the gold rows from _RECOMPUTE_WINDOW_HOURS (48 h)
+    before min(max_processed, now) up to max_processed are deleted and recomputed
+    from the latest silver values, so that hours initially stored from an older
+    forecast are updated by later runs. Rows beyond max_processed are appended.
     """
     run_logger = get_run_logger()
     om_cfg = _load_config()
@@ -213,13 +255,13 @@ def compute_gold_features_task(cfg: PipelineConfig) -> PipelineTaskResult:
         silver_df = pd.read_sql_table(silver["table"], engine, schema=silver["schema"])
     else:
         # Lookback = recompute window + rolling-window buffer
-        cutoff = max_processed - pd.Timedelta(
-            hours=_RECOMPUTE_WINDOW_HOURS + _ROLLING_BUFFER_HOURS
+        recompute_from, cutoff = _recompute_bounds(
+            max_processed, _now_local(om_cfg["timezone"])
         )
         run_logger.info(
             "Incremental run — reading silver from %s "
-            "(max_processed=%s, recompute_window=%dh)",
-            cutoff, max_processed, _RECOMPUTE_WINDOW_HOURS,
+            "(max_processed=%s, recompute_from=%s)",
+            cutoff, max_processed, recompute_from,
         )
         silver_df = pd.read_sql(
             f"SELECT * FROM {silver['schema']}.{silver['table']} "
@@ -244,8 +286,6 @@ def compute_gold_features_task(cfg: PipelineConfig) -> PipelineTaskResult:
             rows, gold_raw["schema"], gold_raw["table"],
         )
     else:
-        recompute_from = max_processed - pd.Timedelta(hours=_RECOMPUTE_WINDOW_HOURS)
-
         # Rows in the recompute window: delete stale values, re-insert with fresh silver
         recompute_df = gold_df[
             (gold_df["datetime"] >= recompute_from)
@@ -287,9 +327,9 @@ def compute_gold_features_task(cfg: PipelineConfig) -> PipelineTaskResult:
 def compute_gold_features_meters_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Read new silver weather rows, compute 15 meters/PV features, upsert to raw gold table.
 
-    Same recompute-window strategy as compute_gold_features_task: the last
-    _RECOMPUTE_WINDOW_HOURS (48 h) of rows are deleted and re-inserted from the
-    latest silver so that forecast values are replaced by ERA5 actuals over time.
+    Same recompute-window strategy as compute_gold_features_task (see
+    _recompute_bounds): rows from 48 h before min(max_processed, now) are
+    deleted and re-inserted from the latest silver.
     """
     from features import build_gold_features_meters
 
@@ -311,13 +351,13 @@ def compute_gold_features_meters_task(cfg: PipelineConfig) -> PipelineTaskResult
         )
         silver_df = pd.read_sql_table(silver["table"], engine, schema=silver["schema"])
     else:
-        cutoff = max_processed - pd.Timedelta(
-            hours=_RECOMPUTE_WINDOW_HOURS + _ROLLING_BUFFER_HOURS
+        recompute_from, cutoff = _recompute_bounds(
+            max_processed, _now_local(om_cfg["timezone"])
         )
         run_logger.info(
             "Incremental run — reading silver from %s "
-            "(max_processed=%s, recompute_window=%dh)",
-            cutoff, max_processed, _RECOMPUTE_WINDOW_HOURS,
+            "(max_processed=%s, recompute_from=%s)",
+            cutoff, max_processed, recompute_from,
         )
         silver_df = pd.read_sql(
             f"SELECT * FROM {silver['schema']}.{silver['table']} "
@@ -343,8 +383,6 @@ def compute_gold_features_meters_task(cfg: PipelineConfig) -> PipelineTaskResult
             rows, gold_raw_meters["schema"], gold_raw_meters["table"],
         )
     else:
-        recompute_from = max_processed - pd.Timedelta(hours=_RECOMPUTE_WINDOW_HOURS)
-
         recompute_df = gold_df[
             (gold_df["datetime"] >= recompute_from)
             & (gold_df["datetime"] <= max_processed)
@@ -388,25 +426,25 @@ def compute_gold_features_meters_task(cfg: PipelineConfig) -> PipelineTaskResult
 @task(name="Transform Staging Layer")
 def transform_staging_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Run dbt staging for weather models."""
-    return dbt_run("staging", cfg)
+    return dbt_run("-s staging,tag:weather", cfg)
 
 
 @task(name="Transform Silver Layer")
 def transform_silver_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Run dbt silver for weather models."""
-    return dbt_run("silver", cfg)
+    return dbt_run("-s silver,tag:weather", cfg)
 
 
 @task(name="Transform Gold Layer")
 def transform_gold_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Run dbt gold for weather feature models."""
-    return dbt_run("gold", cfg)
+    return dbt_run("-s gold,tag:weather", cfg)
 
 
 @task(name="Run dbt Tests")
 def run_dbt_tests_task(cfg: PipelineConfig) -> PipelineTaskResult:
     """Run dbt tests for weather models."""
-    return dbt_run("test", cfg)
+    return dbt_run("test -s tag:weather", cfg)
 
 
 # ---------------------------------------------------------------------------

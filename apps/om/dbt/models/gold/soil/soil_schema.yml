@@ -1,0 +1,64 @@
+version: 2
+
+models:
+  - name: om_soil_heat_risk
+    description: >
+      Gold layer: daily soil heat risk per grid point. 7-day trailing mean
+      of soil_1m_c (soil7_mean_c), populated only when the window holds 7
+      consecutive daily readings with no gaps (soil_data_complete).
+      soil_status is ORANGE when the window is complete, month is May-Sep,
+      and soil7_mean_c exceeds soil7_p90_c (default 21.4832 deg C,
+      calibrated on the Trento valley floor series, 2014-2025, notebook 13
+      of the thermal model, and applied to every grid point; ERA5-Land
+      cells are ~9km so neighbouring points share values); GREEN otherwise
+      while complete, NULL while incomplete. Includes PostGIS geography
+      point for spatial queries (joined to heat by Task 3.2, since the
+      archive API's coordinate snapping means soil and heat points do not
+      join by equality).
+
+      Incremental runs use a two-band read/emit design: `base` reads the
+      last 16 days from om_soil_daily (10-day emit band plus 6-day window
+      lookback) so every date about to be emitted has its full 6
+      preceding days visible to the trailing window, then the final
+      select filters back down to the last 10 days before merging. A
+      single-band design would recompute and permanently corrupt
+      soil_data_complete/soil7_mean_c/soil_status for the oldest dates in
+      the band (see the model's header comment for the full story).
+    config:
+      tags: ["soil"]
+    columns:
+      - name: date
+        description: "Calendar date"
+        tests:
+          - not_null
+      - name: lat
+        description: "Requested grid point latitude"
+        tests:
+          - not_null
+      - name: lon
+        description: "Requested grid point longitude"
+        tests:
+          - not_null
+      - name: geoposition
+        description: "PostGIS geography point (SRID 4326)"
+      - name: soil_1m_c
+        description: "Depth-weighted composite soil temperature at 100cm (1m) depth (Celsius)"
+      - name: soil7_mean_c
+        description: "7-day trailing mean of soil_1m_c; NULL unless soil_data_complete"
+      - name: soil7_p90_c
+        description: "P90 threshold applied to soil7_mean_c (deg C), see model description for calibration caveat"
+      - name: soil7_n_days
+        description: "Number of rows in the trailing 7-day window (<=7)"
+      - name: soil_data_complete
+        description: "True when the trailing window holds exactly 7 rows spanning exactly 6 days (no gaps)"
+      - name: soil_status
+        description: "GREEN (normal) or ORANGE (May-Sep, soil7_mean_c > soil7_p90_c); NULL while soil_data_complete is false"
+        tests:
+          - accepted_values:
+              values: ['GREEN', 'ORANGE']
+    tests:
+      - dbt_utils.unique_combination_of_columns:
+          combination_of_columns:
+            - date
+            - lat
+            - lon
