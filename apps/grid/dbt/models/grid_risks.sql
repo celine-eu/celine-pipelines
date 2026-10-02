@@ -19,6 +19,11 @@
     Vector-specific metrics are stored as JSONB so the frontend can render
     them as a key-value table in the detail panel without the backend needing
     separate endpoints per vector.
+
+    Three asset families, two vectors: wind on the overhead tratte, heat on the
+    underground tratte and on the cable joints. Joint rows carry
+    metrics -> 'asset_type' = 'joint' and a segment_id minted exactly as
+    grid_shapes mints it, so the map panel resolves them like any other shape.
 #}
 
 with wind_ranked as (
@@ -52,6 +57,7 @@ with wind_ranked as (
         ) as rn
     from {{ ref('grid_wind_risks') }}
     where risk_level in ('ALERT', 'WARNING')
+      and line_name is not null and municipality is not null
     {% if is_incremental() %}
       and date >= current_date
     {% endif %}
@@ -74,7 +80,19 @@ heat_ranked as (
             'p90_threshold',         p90_threshold,
             'consecutive_heat_days', consecutive_heat_days,
             'altitude_band',         altitude_band,
-            'forecast_model',        forecast_model
+            'forecast_model',        forecast_model,
+            'thermal_tier',          thermal_tier,
+            'thermal_modelled',      thermal_modelled,
+            'thermal_margin_c',      thermal_margin_c,
+            'thermal_theta_max_c',   thermal_theta_max_c,
+            'thermal_insulation',    thermal_insulation,
+            'heat_status',           heat_status,
+            'soil_status',           soil_status,
+            'soil7_mean_c',          soil7_mean_c,
+            'soil7_p90_c',           soil7_p90_c,
+            'soil_asof_date',        soil_asof_date,
+            'air_heat_tier',         air_heat_tier,
+            'escalated_by_thermal',  escalated_by_thermal
         )                       as metrics,
         row_number() over (
             partition by
@@ -86,6 +104,54 @@ heat_ranked as (
                 temp_max_c desc nulls last
         ) as rn
     from {{ ref('grid_heat_risks') }}
+    where risk_level in ('ALERT', 'WARNING')
+      and line_name is not null and municipality is not null
+    {% if is_incremental() %}
+      and date >= current_date
+    {% endif %}
+
+),
+
+joint_ranked as (
+
+    select
+        md5(dso_id || '|' || 'joint' || '|' || joint_id::text) as segment_id,
+        date,
+        'heat'                  as risk_vector,
+        risk_level,
+        risk_color_hex,
+        jsonb_build_object(
+            'temp_max_c',            temp_max_c,
+            'p90_threshold',         p90_threshold,
+            'consecutive_heat_days', consecutive_heat_days,
+            'altitude_band',         altitude_band,
+            'forecast_model',        forecast_model,
+            'thermal_tier',          thermal_tier,
+            'thermal_modelled',      true,
+            'thermal_margin_c',      thermal_margin_c,
+            'thermal_theta_max_c',   thermal_theta_max_c,
+            'thermal_insulation',    thermal_insulation,
+            'heat_status',           heat_status,
+            'soil_status',           soil_status,
+            'soil7_mean_c',          soil7_mean_c,
+            'soil7_p90_c',           soil7_p90_c,
+            'soil_asof_date',        soil_asof_date,
+            'air_heat_tier',         air_heat_tier,
+            'escalated_by_thermal',  escalated_by_thermal,
+            'asset_type',            'joint',
+            'joint_id',              joint_id,
+            'technology',            technology,
+            'anno_posa',             anno_posa,
+            'is_asphalt',            is_asphalt,
+            'm_r_critico',           m_r_critico
+        )                       as metrics,
+        row_number() over (
+            partition by dso_id, joint_id, date
+            order by
+                case risk_level when 'ALERT' then 1 else 2 end,
+                temp_max_c desc nulls last
+        ) as rn
+    from {{ ref('grid_joint_heat_risks') }}
     where risk_level in ('ALERT', 'WARNING')
     {% if is_incremental() %}
       and date >= current_date
@@ -101,4 +167,10 @@ union all
 
 select segment_id, date, risk_vector, risk_level, risk_color_hex, metrics
 from heat_ranked
+where rn = 1
+
+union all
+
+select segment_id, date, risk_vector, risk_level, risk_color_hex, metrics
+from joint_ranked
 where rn = 1

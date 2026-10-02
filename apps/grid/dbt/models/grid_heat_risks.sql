@@ -1,25 +1,38 @@
 {{ config(
     materialized='incremental',
     unique_key=['date', 'dso_id', 'line_name', 'municipality', 'conductor_type', 'length_m'],
+    on_schema_change='append_new_columns',
     schema='gold'
 ) }}
 
 {#
     Heat risk per MT underground cable segment.
 
-    Replaces: grid_heat_risks_linee + grid_heat_risks (old).
+    Heat risk applies to underground cables only: buried conductors are the
+    ones the ground temperature derates. Overhead lines are excluded.
 
-    Heat risk applies to underground cables only — buried conductors
-    are sensitive to soil temperature / heat stress.
-    Overhead lines are excluded.
+    Two axes, not one. The weather side is grid_heat_status (soil temperature
+    crossed with the air heat tier per Open-Meteo point); the asset side is the
+    thermal tier of the cable, the margin between its peak conductor
+    temperature and the rating of its insulation. The matrix lives in the
+    grid_heat_matrix macro:
+
+        heat_status | tier low / mid | tier high
+        ------------+----------------+----------
+        GREEN       | NORMAL         | NORMAL
+        ORANGE      | NORMAL         | WARNING
+        RED         | WARNING        | ALERT
+
+    Arcs the thermal model does not cover read tier 'low' (thermal_modelled
+    false): they behave exactly as the air-only model did, so coverage gaps
+    never invent risk.
 
     Source: silver_grid_ac_line_segment WHERE conductor_type = 'underground_cable'.
-    Weather: om_heat_risk (spatial join ≤ 5 km, nearest station per segment per date).
+    Weather: grid_heat_status (nearest point within 5 km per segment per date).
     Date range: today + 2 days ahead.
 #}
 
-{% set seg  = source('grid_silver', 'silver_grid_ac_line_segment') %}
-{% set heat = source('om_heat', 'om_heat_risk') %}
+{% set seg = source('grid_silver', 'silver_grid_ac_line_segment') %}
 
 with date_range as (
 
@@ -38,7 +51,7 @@ with date_range as (
 heat_latest as (
 
     select h.*
-    from {{ heat }} h
+    from {{ ref('grid_heat_status') }} h
     join date_range d on h.date = d.date
 
 ),
@@ -55,8 +68,20 @@ with_dist as (
         s.municipality,
         s.length_m,
         s.geom,
+
+        coalesce(s.thermal_tier, 'low')     as thermal_tier,
+        s.thermal_tier is not null          as thermal_modelled,
+        s.thermal_margin_c,
+        s.thermal_theta_max_c,
+        s.thermal_insulation,
+
         h.date,
-        h.heat_risk_tier,
+        h.heat_status,
+        h.soil_status,
+        h.soil7_mean_c,
+        h.soil7_p90_c,
+        h.soil_asof_date,
+        h.air_heat_tier,
         h.temp_max_c,
         h.p90_threshold,
         h.consecutive_heat_days,
@@ -86,16 +111,12 @@ ranked as (
 
 ),
 
-normalized as (
+leveled as (
 
     select
         *,
-        CASE heat_risk_tier
-            WHEN 'RED'    THEN 'ALERT'
-            WHEN 'ORANGE' THEN 'WARNING'
-            WHEN 'GREEN'  THEN 'NORMAL'
-            ELSE heat_risk_tier
-        END as risk_tier
+        {{ grid_heat_matrix('heat_status', 'thermal_tier') }}    as risk_tier,
+        {{ grid_heat_escalated('heat_status', 'thermal_tier') }} as escalated_by_thermal
     from ranked
 
 ),
@@ -105,7 +126,7 @@ colored as (
     select
         *,
         {{ grid_risk_color('risk_tier') }} as risk_color_hex
-    from normalized
+    from leveled
 
 )
 
@@ -119,8 +140,23 @@ select
     municipality,
     length_m,
 
+    thermal_tier,
+    thermal_modelled,
+    thermal_margin_c,
+    thermal_theta_max_c,
+    thermal_insulation,
+
     date,
     risk_tier             as risk_level,
+    escalated_by_thermal,
+
+    heat_status,
+    soil_status,
+    soil7_mean_c,
+    soil7_p90_c,
+    soil_asof_date,
+    air_heat_tier,
+
     temp_max_c,
     p90_threshold,
     consecutive_heat_days,

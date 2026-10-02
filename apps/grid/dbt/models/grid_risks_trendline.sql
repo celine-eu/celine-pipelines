@@ -16,6 +16,10 @@
       > 0.65 → ALERT  (majority of relevant network at risk)
       > 0.35 → WARNING
       else   → NORMAL
+
+    Cable joints are excluded from the heat numerator: they are their own asset
+    family with no length and no place in the segment denominator, so counting
+    them here would push the ratio above what the tratte actually say.
 #}
 
 with totals as (
@@ -40,8 +44,9 @@ counts as (
         count(*) filter (where risk_level = 'ALERT')   as alert_count,
         count(*) filter (where risk_level = 'WARNING') as warning_count
     from {{ ref('grid_risks') }}
+    where coalesce(metrics ->> 'asset_type', 'ac_line_segment') <> 'joint'
     {% if is_incremental() %}
-    where date >= current_date
+      and date >= current_date
     {% endif %}
     group by date, risk_vector
 

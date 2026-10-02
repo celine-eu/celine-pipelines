@@ -6,7 +6,7 @@ Open-Meteo gold tables produced by the om pipeline.
 
 No extraction step — all upstream data is already in the warehouse.
 
-Schedule: daily (once per day, after om wind/heat pipelines complete).
+Schedule: daily (once per day, after om wind/heat/soil pipelines complete).
 """
 
 import os
@@ -22,6 +22,7 @@ from celine.utils.pipelines.pipeline import (
     PipelineTaskResult,
     dbt_run,
     dbt_run_tests,
+    flow_hooks,
 )
 
 os.environ.setdefault("APP_NAME", "grid")
@@ -32,6 +33,12 @@ dbt_dir = str(app_dir / "dbt")
 
 os.environ.setdefault("DBT_PROJECT_DIR", dbt_dir)
 os.environ.setdefault("DBT_PROFILES_DIR", dbt_dir)
+
+# MQTT run events on celine/pipelines/runs/<namespace> — celine-grid listens for the
+# completed event of this flow to evaluate the DSO alert rules (see celine-grid
+# docs/specifications/alert-dispatch.md).
+_cfg = PipelineConfig()
+_on_running, _on_completion, _on_failure = flow_hooks(_cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -56,17 +63,27 @@ def test_grid_task(cfg: PipelineConfig) -> PipelineTaskResult:
 # ---------------------------------------------------------------------------
 
 
-@flow(name="grid-resilience-flow")
+@flow(
+    name="grid-resilience-flow",
+    on_running=[_on_running],
+    on_completion=[_on_completion],
+    on_failure=[_on_failure],
+)
 def grid_resilience_flow(config: Dict[str, Any] | None = None) -> dict:
     """Grid resilience pipeline: compute wind/heat risk overlays.
 
     Reads CIM-normalized silver tables (produced by the grid topology ingestion pipeline) and
     Open-Meteo weather gold tables (produced by om pipeline), then writes:
       - grid_wind_risks         (overhead segments + wind metrics, today + 2 days — intermediary)
+      - grid_heat_status        (soil x air heat status per weather point: intermediary)
       - grid_heat_risks         (underground cables + heat metrics, today + 2 days — intermediary)
-      - grid_shapes             (unified CIM asset registry, geometry only — monthly)
-      - grid_risks              (collapsed WARNING/ALERT risks by segment — incremental)
+      - grid_joint_heat_risks   (cable joints + heat metrics, today + 2 days: intermediary)
+      - grid_shapes             (unified CIM asset registry, geometry only: monthly, run by hand)
+      - grid_risks              (collapsed WARNING/ALERT risks by asset: incremental)
+      - grid_wind_risks_8h / grid_risks_8h (same on 8-hour windows — incremental)
       - grid_risks_trendline    (daily risk ratio per vector — incremental)
+      - grid_risk_km            (length-weighted exposure per tratta / unit — incremental)
+      - grid_tile_grid / grid_tree_strike_spans / grid_tree_strike_tiles (tree-strike overlay — monthly)
       - v_superset_grid         (Superset view: risks joined with shapes, today + future)
       - grid_substations        (MV/LV substations with geojson — legacy)
       - grid_network_topology   (topology filter values — static)

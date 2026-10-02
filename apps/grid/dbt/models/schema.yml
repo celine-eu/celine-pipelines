@@ -65,11 +65,155 @@ models:
       - name: risk_color_hex
         description: "Hex color for map rendering"
 
+  - name: grid_wind_risks_8h
+    description: >
+      Wind risk per MT overhead line segment on 8-hour windows — intermediary model.
+      Same join, tiers and tree-strike escalation as grid_wind_risks, against
+      om_wind_gusts_8h (window max gust excess). Consumed by grid_risks_8h.
+    config:
+      tags: ["grid", "daily"]
+    columns:
+      - name: window_start
+        description: "Start of the 8-hour window"
+        tests:
+          - not_null
+      - name: date
+        tests:
+          - not_null
+      - name: slot
+        description: "0 = 00–08, 1 = 08–16, 2 = 16–24"
+        tests:
+          - accepted_values:
+              values: [0, 1, 2]
+              quote: false
+      - name: risk_level
+        description: "ALERT | WARNING | NORMAL"
+      - name: escalated_by_tree_strike
+        description: "True when WARNING became ALERT because strike_tree_tier = 'high'"
+
+  - name: grid_risks_8h
+    description: >
+      Intra-day companion of grid_risks: WARNING/ALERT rows per segment_id and
+      8-hour window. Wind from grid_wind_risks_8h; heat rows repeated on the three
+      windows of their day (the heat forecast is a daily max). Same segment_id,
+      colours and metrics layout as grid_risks.
+    config:
+      tags: ["grid", "daily"]
+    columns:
+      - name: segment_id
+        tests:
+          - not_null
+      - name: date
+        tests:
+          - not_null
+      - name: window_start
+        tests:
+          - not_null
+      - name: slot
+        tests:
+          - not_null
+          - accepted_values:
+              values: [0, 1, 2]
+              quote: false
+      - name: risk_vector
+        tests:
+          - accepted_values:
+              values: ['wind', 'heat']
+      - name: risk_level
+        tests:
+          - accepted_values:
+              values: ['ALERT', 'WARNING']
+
+  - name: grid_heat_status
+    description: >
+      Two-axis heat status per Open-Meteo point and forecast date, the weather
+      side of the heat vector. Crosses the soil axis (om_soil_heat_risk: 1 m soil
+      temperature against its own 7-day P90) with the air axis (om_heat_risk:
+      Tmax over the altitude-band P90): soil ORANGE and air RED gives RED, soil
+      ORANGE alone gives ORANGE, everything else GREEN. The two sources do not
+      share coordinates (om_heat_risk stores API-snapped lat/lon), so they are
+      matched by nearest geoposition within 10 km, never by equality. The soil
+      row is taken as-of (latest complete row within 10 days), with the staleness
+      exposed as soil_asof_date. No soil row in reach reads GREEN, which maps to
+      NORMAL for every tier, so a soil-feed outage switches the whole heat vector
+      off rather than falling back to an air-only assessment.
+    config:
+      tags: ["grid", "daily"]
+    columns:
+      - name: status_key
+        description: "MD5(date|lat|lon): the grain of the model, one row per heat point per date"
+        tests:
+          - not_null
+          - unique
+      - name: date
+        description: "Forecast date (today + 2 days ahead)"
+        tests:
+          - not_null
+      - name: lat
+        description: "Latitude of the Open-Meteo heat point (API-snapped, EPSG:4326)"
+      - name: lon
+        description: "Longitude of the Open-Meteo heat point (API-snapped, EPSG:4326)"
+      - name: geoposition
+        description: "Point geography (EPSG:4326) of the heat point, for the nearest-point joins downstream"
+      - name: air_heat_tier
+        description: "Air axis: heat_risk_tier of om_heat_risk (GREEN | ORANGE | RED)"
+        tests:
+          - accepted_values:
+              values: ['GREEN', 'ORANGE', 'RED']
+      - name: temp_max_c
+        description: "Maximum forecast temperature (°C)"
+      - name: p90_threshold
+        description: "P90 temperature threshold for the altitude band and month"
+      - name: consecutive_heat_days
+        description: "Number of consecutive air heat days at this point"
+      - name: elevation_m
+        description: "Point elevation (m)"
+      - name: altitude_band
+        description: "Altitude classification band"
+      - name: forecast_model
+        description: "Source forecast model identifier"
+      - name: soil_status
+        description: >
+          Soil axis of the nearest soil point, GREEN when no complete soil row is
+          in reach (GREEN | ORANGE).
+        tests:
+          - accepted_values:
+              values: ['GREEN', 'ORANGE']
+      - name: soil_data_complete
+        description: >
+          True when a complete soil row backs soil_status, false when none was in
+          reach and the axis fell back to GREEN. Never NULL: only complete rows
+          are eligible for the as-of match, so this is the presence of a match.
+      - name: soil_asof_date
+        description: "Date of the soil row used; NULL when no complete row was found within 10 km and 10 days"
+      - name: soil_dist_m
+        description: "Distance (m) to the soil point used"
+      - name: soil_1m_c
+        description: "Soil temperature at 1 m depth (°C)"
+      - name: soil7_mean_c
+        description: "7-day mean of the 1 m soil temperature (°C)"
+      - name: soil7_p90_c
+        description: "P90 of the 7-day soil temperature window (°C)"
+      - name: soil7_n_days
+        description: "Days present in the 7-day soil window"
+      - name: heat_status
+        description: "Two-axis status: GREEN | ORANGE | RED, the row of the risk matrix"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['GREEN', 'ORANGE', 'RED']
+
   - name: grid_heat_risks
     description: >
       Heat risk per MT underground cable segment — intermediary model.
-      Source: silver_grid_ac_line_segment (conductor_type = underground_cable) + om_heat_risk.
-      Nearest weather station within 5 km per segment per date (today + 2 days).
+      Source: silver_grid_ac_line_segment (conductor_type = underground_cable)
+      crossed with grid_heat_status (nearest point within 5 km per segment per
+      date, today + 2 days). risk_level is the soil x thermal matrix
+      (grid_heat_matrix macro) of the two-axis heat status and the thermal tier
+      of the cable: GREEN is NORMAL everywhere, ORANGE is WARNING only at tier
+      high, RED is ALERT at tier high and WARNING elsewhere. Arcs the thermal
+      model does not cover read tier low (thermal_modelled false), so a coverage
+      gap never invents risk.
       No geometry output — geom lives in grid_shapes; consumed by grid_risks.
     config:
       tags: ["grid", "daily"]
@@ -92,10 +236,61 @@ models:
         description: "Administrative municipality"
       - name: length_m
         description: "Segment length in metres (ACLineSegment.length)"
+      - name: thermal_tier
+        description: >
+          Thermal exposure tier of the cable (worst of its arcs), from the
+          physical heat model. Arcs the model does not cover read 'low'; never
+          NULL on a risk row.
+        tests:
+          - not_null:
+          # Scoped to the current run window: history rows predate this column
+          # (append_new_columns leaves it NULL on them).
+              config:
+                where: "date >= current_date"
+          - accepted_values:
+              values: ['low', 'mid', 'high']
+              config:
+                where: "date >= current_date"
+      - name: thermal_modelled
+        description: "False when the thermal model has no tier for the segment and 'low' is the fallback"
+        tests:
+          - not_null:
+          # Scoped to the current run window: history rows predate this column
+          # (append_new_columns leaves it NULL on them).
+              config:
+                where: "date >= current_date"
+      - name: thermal_margin_c
+        description: "Margin (°C) between the peak conductor temperature and the rating of its insulation"
+      - name: thermal_theta_max_c
+        description: "Maximum admissible conductor temperature (°C) of the insulation class"
+      - name: thermal_insulation
+        description: "Insulation class of the tightest-margin arc of the segment"
       - name: date
         description: "Forecast date"
       - name: risk_level
-        description: "ALERT | WARNING | NORMAL"
+        description: "ALERT | WARNING | NORMAL, from the soil x thermal matrix; NULL when no weather point is within 5 km"
+      - name: escalated_by_thermal
+        description: >
+          True when the thermal axis lifted the level: tier high under an ORANGE
+          or RED status. Never NULL.
+        tests:
+          - not_null:
+          # Scoped to the current run window: history rows predate this column
+          # (append_new_columns leaves it NULL on them).
+              config:
+                where: "date >= current_date"
+      - name: heat_status
+        description: "Two-axis heat status of the matched point: GREEN | ORANGE | RED"
+      - name: soil_status
+        description: "Soil axis of the matched point: GREEN | ORANGE"
+      - name: soil7_mean_c
+        description: "7-day mean of the 1 m soil temperature (°C)"
+      - name: soil7_p90_c
+        description: "P90 of the 7-day soil temperature window (°C)"
+      - name: soil_asof_date
+        description: "Date of the soil row behind soil_status; NULL when none was in reach"
+      - name: air_heat_tier
+        description: "Air axis of the matched point: GREEN | ORANGE | RED"
       - name: temp_max_c
         description: "Maximum forecast temperature (°C)"
       - name: p90_threshold
@@ -104,6 +299,85 @@ models:
         description: "Number of consecutive heat days at this station"
       - name: elevation_m
         description: "Station elevation (m)"
+      - name: altitude_band
+        description: "Altitude classification band"
+      - name: forecast_model
+        description: "Source forecast model identifier"
+      - name: risk_color_hex
+        description: "Hex color for map rendering"
+
+  - name: grid_joint_heat_risks
+    description: >
+      Heat risk per MT cable joint (giunto), intermediary model.
+      A joint is the weak point of a buried run: same soil, shorter thermal path,
+      its own insulation class, so the physical model tiers it separately. Same
+      soil x thermal matrix as grid_heat_risks, on joint_tier, against
+      grid_heat_status (nearest point within 5 km, today + 2 days).
+      Only joints the model tiered are assessed: an untiered joint would read
+      'low' and pretend to be safe, so it is left out here and shown on the map
+      as 'unmodelled' instead. Joints carry no length and are deliberately absent
+      from grid_risk_km. Consumed by grid_risks and grid_risks_8h.
+    config:
+      tags: ["grid", "daily"]
+    columns:
+      - name: dso_id
+        description: "UUID of the Distribution System Operator."
+        tests:
+          - not_null
+      - name: joint_id
+        description: "Joint identifier of the thermal model (silver_grid_geo_thermal_joints.joint_id)"
+        tests:
+          - not_null
+      - name: municipality
+        description: "Administrative municipality (comune of the joint)"
+      - name: thermal_tier
+        description: "Thermal exposure tier of the joint; never NULL and never 'unmodelled' here"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['low', 'mid', 'high']
+      - name: thermal_margin_c
+        description: "Minimum margin (°C) between the peak temperature of the joint and its rating"
+      - name: thermal_theta_max_c
+        description: "Maximum admissible temperature (°C) of the insulation class"
+      - name: thermal_insulation
+        description: "Insulation class of the joint"
+      - name: technology
+        description: "Joint technology (RESINA | TERMORESTRINGENTE | AUTORESTRINGENTE ...)"
+      - name: anno_posa
+        description: "Installation year"
+      - name: is_asphalt
+        description: "True when the joint is buried under asphalt (worse heat dissipation)"
+      - name: m_r_critico
+        description: "Critical thermal resistance ratio of the physical model"
+      - name: date
+        description: "Forecast date"
+      - name: risk_level
+        description: "ALERT | WARNING | NORMAL, from the soil x thermal matrix; NULL when no weather point is within 5 km"
+      - name: escalated_by_thermal
+        description: "True when tier high under an ORANGE or RED status lifted the level"
+        tests:
+          - not_null
+      - name: heat_status
+        description: "Two-axis heat status of the matched point: GREEN | ORANGE | RED"
+      - name: soil_status
+        description: "Soil axis of the matched point: GREEN | ORANGE"
+      - name: soil7_mean_c
+        description: "7-day mean of the 1 m soil temperature (°C)"
+      - name: soil7_p90_c
+        description: "P90 of the 7-day soil temperature window (°C)"
+      - name: soil_asof_date
+        description: "Date of the soil row behind soil_status"
+      - name: air_heat_tier
+        description: "Air axis of the matched point: GREEN | ORANGE | RED"
+      - name: temp_max_c
+        description: "Maximum forecast temperature (°C)"
+      - name: p90_threshold
+        description: "P90 temperature threshold for the location"
+      - name: consecutive_heat_days
+        description: "Number of consecutive heat days at this point"
+      - name: elevation_m
+        description: "Point elevation (m)"
       - name: altitude_band
         description: "Altitude classification band"
       - name: forecast_model
@@ -139,11 +413,14 @@ models:
   - name: grid_shapes
     description: >
       Unified CIM asset registry — geometry only, no risk properties.
-      Combines ACLineSegment and Substation assets so the frontend can load
-      network topology once and cache it independently from daily risk updates.
+      Combines ACLineSegment, Substation and thermal joint assets so the frontend
+      can load network topology once and cache it independently from daily risk updates.
       segment_id is MD5(dso_id|asset_type|asset_key|conductor_type|municipality) for lines,
-      MD5(dso_id|'substation'|asset_id) for substations. Lines are aggregated per
-      municipality via ST_Union.
+      MD5(dso_id|'substation'|asset_id) for substations, MD5(dso_id|'joint'|joint_id)
+      for joints (the same expression the joint rows of grid_risks mint). Lines are
+      aggregated per municipality via ST_Union, carrying the worst thermal tier of
+      their arcs, the minimum margin and rating, and the insulation class of the
+      tightest-margin arc.
     config:
       tags: ["grid", "monthly"]
     columns:
@@ -153,26 +430,65 @@ models:
           - not_null
           - unique
       - name: asset_type
-        description: "ac_line_segment | substation"
+        description: "ac_line_segment | substation | joint"
+        tests:
+          - accepted_values:
+              values: ['ac_line_segment', 'substation', 'joint']
       - name: asset_key
-        description: "line_name for lines, asset_id for substations"
+        description: "line_name for lines, asset_id for substations, joint_id for joints"
       - name: line_name
-        description: "ACLineSegment.name — equals asset_key for lines, source line for substations"
+        description: "ACLineSegment.name: equals asset_key for lines, source line for substations, null for joints"
       - name: name
-        description: "Human-readable name — null for lines, substation name for substations"
+        description: "Human-readable name: null for lines, substation name for substations, 'Giunto <joint_id>' for joints"
       - name: strike_tree_tier
         description: >
-          Tree-strike exposure tier from the wind_tree_strike LiDAR analysis
-          (worst intersecting span). NULL where the analysis has no coverage.
+          Tree-strike exposure tier of the tratta: the worst of its fragments
+          (the tier that escalates the wind risk). NULL where the analysis has
+          no coverage. Read it together with strike_km_* — a 'high' tratta may
+          be high on a few hundred metres only.
         tests:
           - accepted_values:
               values: ['low', 'mid', 'high']
               config:
                 where: "strike_tree_tier is not null"
       - name: strike_tree_multiplier
-        description: Fault-rate multiplier of the matched span (1.0 / ~1.28 / ~3.30).
+        description: Fault-rate multiplier of the worst fragment (1.0 / ~1.28 / ~3.30).
       - name: strike_density_per_km
-        description: Strike-tree density (trees/km) of the matched span.
+        description: >
+          Length-weighted strike-tree density (trees/km) over the whole tratta:
+          sum(fragment density x fragment length) / length_m, unforested
+          fragments counting as zero. NULL where no fragment is tiered (same
+          coverage rule as strike_tree_tier).
+      - name: strike_km_high
+        description: km of fragments in the 'high' tree-strike tier (0 when none).
+      - name: strike_km_mid
+        description: km of fragments in the 'mid' tree-strike tier (0 when none).
+      - name: strike_km_low
+        description: km of fragments in the 'low' tree-strike tier (0 when none).
+      - name: thermal_tier
+        description: >
+          Thermal exposure tier: worst arc of the line, or the tier of the joint.
+          'unmodelled' is the joint-only marker for a joint the thermal model did
+          not tier; lines and substations outside the model leave it NULL.
+        tests:
+          - accepted_values:
+              values: ['low', 'mid', 'high', 'unmodelled']
+              config:
+                where: "thermal_tier is not null"
+      - name: thermal_margin_c
+        description: "Minimum thermal margin (°C) over the arcs of the line, or the margin of the joint"
+      - name: thermal_theta_max_c
+        description: "Minimum admissible conductor temperature (°C) over the arcs, or the rating of the joint"
+      - name: thermal_insulation
+        description: "Insulation class of the tightest-margin arc, or of the joint"
+      - name: is_asphalt
+        description: "Joints only: true when buried under asphalt. NULL for lines and substations."
+      - name: anno_posa
+        description: "Joints only: installation year. NULL for lines and substations."
+      - name: technology
+        description: "Joints only: joint technology. NULL for lines and substations."
+      - name: m_r_critico
+        description: "Joints only: critical thermal resistance ratio. NULL for lines and substations."
       - name: geom
         description: "PostGIS geometry EPSG:32632 — for spatial ops and Superset"
       - name: feature_geojson
@@ -202,6 +518,75 @@ models:
       - name: tile_bbox_geojson
         description: "GeoJSON Polygon of the tile boundary (EPSG:4326)"
 
+  - name: grid_tile_grid
+    description: >
+      The 5 km x 5 km UTM tile grid over the extent of grid_shapes, shared by
+      grid_tiles and grid_tree_strike_tiles (same tile ids for both layers).
+    config:
+      tags: ["grid", "monthly"]
+    columns:
+      - name: tile_id
+        tests:
+          - unique
+          - not_null
+      - name: tile_geom
+        description: "Tile envelope (EPSG:32632)"
+      - name: tile_bbox_geojson
+        description: "GeoJSON Polygon of the tile boundary (EPSG:4326)"
+
+  - name: grid_tree_strike_spans
+    description: >
+      Tree-strike exposure spans as their own static overlay: one row per LiDAR
+      analysis span with its geometry, tier, density and the operational unit of the
+      nearest CIM segment of its line (50 m). Exposure only — wind escalation is
+      unchanged. span_id is minted from attributes + geometry, not from the export's
+      positional seg_id.
+    config:
+      tags: ["grid", "monthly"]
+    columns:
+      - name: span_id
+        tests:
+          - unique
+          - not_null
+      - name: dso_id
+        tests:
+          - not_null
+      - name: line_name
+        tests:
+          - not_null
+      - name: operational_unit
+        description: "Inherited from the nearest CIM segment of the line; NULL when none within 50 m"
+      - name: conductor_type
+        description: "overhead_bare | overhead_insulated (mapped from the export's tipologia)"
+      - name: tier
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['low', 'mid', 'high']
+      - name: multiplier
+        description: "Fault-rate multiplier of the tier (1.0 / ~1.28 / ~3.30)"
+      - name: strike_density_km
+        description: "Strike-tree density (trees/km) along the span"
+      - name: length_m
+        description: "Span length (m) from the geometry"
+      - name: feature_geojson
+        description: "GeoJSON Feature (EPSG:4326) with the span properties"
+
+  - name: grid_tree_strike_tiles
+    description: >
+      Tile-to-span mapping on the shared 5 km grid for progressive loading of the
+      tree-strike overlay. Spans crossing a tile border appear in several tiles —
+      the frontend deduplicates by span_id.
+    config:
+      tags: ["grid", "monthly"]
+    columns:
+      - name: tile_id
+        tests:
+          - not_null
+      - name: span_id
+        tests:
+          - not_null
+
   - name: grid_tile_index
     description: >
       Lightweight tile catalog for progressive loading.
@@ -230,6 +615,9 @@ models:
       WARNING and ALERT only — NORMAL excluded at pipeline level.
       Maps to grid_shapes by segment_id; no geometry stored here.
       metrics JSONB holds vector-specific KVs for the detail panel.
+      Three asset families, two vectors: wind on the overhead tratte, heat on the
+      underground tratte and on the cable joints. Joint rows carry
+      metrics -> 'asset_type' = 'joint' and the joint segment_id of grid_shapes.
     config:
       tags: ["grid", "daily"]
     columns:
@@ -244,13 +632,103 @@ models:
       - name: risk_level
         description: "ALERT | WARNING"
       - name: metrics
-        description: "JSONB — vector-specific metrics (gust_excess, temp_max_c, etc.)"
+        description: >
+          JSONB, vector-specific metrics for the detail panel. Wind: gust_excess,
+          wind_speed_max, wind_gusts_max and the strike_tree_* keys. Heat:
+          temp_max_c, p90_threshold, consecutive_heat_days, altitude_band,
+          forecast_model, the thermal_* keys (tier, modelled, margin_c,
+          theta_max_c, insulation), the weather axes (heat_status, soil_status,
+          soil7_mean_c, soil7_p90_c, soil_asof_date, air_heat_tier) and
+          escalated_by_thermal. Joint rows add asset_type ('joint'), joint_id,
+          technology, anno_posa, is_asphalt and m_r_critico.
+
+  - name: grid_risk_km
+    description: >
+      Length-weighted risk exposure per tratta (line × municipality × conductor type),
+      split by operational unit, for tabular views, CSV export and DSO reports.
+      Aggregated from the fragment-grain wind/heat intermediaries; km_total is the
+      length of the fragments with a weather match for the date, scoped by vector
+      (wind → overhead, heat → underground cable). risk_index = 100·(km_alert + 0.5·km_warning)/km_total.
+      Rollups per line and per operational unit are exact sums of these rows.
+      Cable joints are excluded: a joint has no length, so it cannot enter a km
+      measure. The DSO alert dispatcher reads this table and therefore does not
+      see joints, by design.
+    config:
+      tags: ["grid", "daily"]
+    columns:
+      - name: date
+        description: "Forecast date"
+        tests:
+          - not_null
+      - name: risk_vector
+        description: "wind | heat"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['wind', 'heat']
+      - name: dso_id
+        description: "UUID of the Distribution System Operator."
+        tests:
+          - not_null
+      - name: operational_unit
+        description: "Distribution network operational unit (NULL for unassigned segments)"
+      - name: line_name
+        description: "ACLineSegment.name"
+        tests:
+          - not_null
+      - name: municipality
+        description: "Administrative municipality"
+      - name: conductor_type
+        description: "overhead_bare | overhead_insulated | underground_cable"
+      - name: segment_id
+        description: "FK to grid_shapes.segment_id (same MD5 grain) — links a table row to the map tratta"
+        tests:
+          - not_null
+      - name: parent_substation_name
+        description: "Upstream HV/MV substation name"
+      - name: feeder_id
+        description: "Feeder circuit identifier"
+      - name: n_fragments
+        description: "Number of silver fragments aggregated into the row"
+      - name: km_total
+        description: "Length (km) of the tratta fragments with a weather match for the date"
+      - name: km_alert
+        description: "Length (km) at ALERT"
+      - name: km_warning
+        description: "Length (km) at WARNING"
+      - name: km_normal
+        description: "Length (km) at NORMAL (or without a level)"
+      - name: km_escalated
+        description: >
+          Length (km) whose level the exposure axis lifted: tree-strike tier high
+          on wind rows, thermal tier high under an ORANGE or RED soil status on
+          heat rows.
+      - name: km_tree_high
+        description: "Static tree-strike exposure: length (km) in tier high (wind rows only)"
+      - name: km_tree_mid
+        description: "Static tree-strike exposure: length (km) in tier mid (wind rows only)"
+      - name: km_thermal_high
+        description: "Static thermal exposure: length (km) in thermal tier high (heat rows only, 0 for wind)"
+      - name: km_thermal_mid
+        description: "Static thermal exposure: length (km) in thermal tier mid (heat rows only, 0 for wind)"
+      - name: metric_max
+        description: "Max gust_excess (wind) or max temp_max_c (heat) over the fragments"
+      - name: worst_level
+        description: "Worst fragment level: ALERT | WARNING | NORMAL"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['ALERT', 'WARNING', 'NORMAL']
+      - name: risk_index
+        description: "100·(km_alert + 0.5·km_warning)/km_total, rounded to 2 decimals; NULL when km_total = 0"
 
   - name: grid_risks_trendline
     description: >
       Daily risk percentage indicator per vector.
       risk_ratio = (alert+warning) / total_segments (conductor-type-aware denominator).
       day_risk_level: >0.65 ALERT, >0.35 WARNING, else NORMAL.
+      Cable joints are excluded from the heat numerator: they have no place in a
+      segment denominator.
     config:
       tags: ["grid", "daily"]
     columns:
@@ -359,12 +837,91 @@ models:
       - name: observed_at
         description: "Timestamp of the observation used (TIMESTAMPTZ)"
 
+  - name: grid_heat_status_now
+    description: >
+      Two-axis heat status for today from observations, the nowcast twin of
+      grid_heat_status. Air axis: heat_daily_obs against the altitude-band P90
+      with the gaps-and-islands heat-day streak, translated into the same
+      GREEN / ORANGE / RED vocabulary as the forecast tier (no stress GREEN,
+      streak below 3 ORANGE, streak 3 or more RED). Soil axis: the latest
+      complete om_soil_heat_risk row on or before today at the nearest point
+      within 10 km, the soil temperature having no useful sub-daily observation.
+      Intermediary: consumed by grid_heat_risks_now and grid_joint_heat_risks_now.
+    config:
+      tags: ["grid", "nowcast"]
+    columns:
+      - name: status_key
+        description: "MD5(date|lat|lon): one row per observation point for today"
+        tests:
+          - not_null
+          - unique
+      - name: date
+        description: "Assessment date (current_date)"
+      - name: air_heat_tier
+        description: "Air axis from observations: GREEN | ORANGE | RED"
+        tests:
+          - accepted_values:
+              values: ['GREEN', 'ORANGE', 'RED']
+      - name: soil_status
+        description: "Soil axis, GREEN when no complete soil row is in reach"
+        tests:
+          - accepted_values:
+              values: ['GREEN', 'ORANGE']
+      - name: soil_data_complete
+        description: >
+          True when a complete soil row backs soil_status, false when none was in
+          reach and the axis fell back to GREEN. Never NULL.
+      - name: soil_asof_date
+        description: "Date of the soil row used; NULL when none was found within 10 km and 10 days"
+      - name: heat_status
+        description: "Two-axis status: GREEN | ORANGE | RED"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['GREEN', 'ORANGE', 'RED']
+      - name: observed_at
+        description: "Timestamp of the most recent observation used (TIMESTAMPTZ)"
+
+  - name: grid_joint_heat_risks_now
+    description: >
+      Heat risk per MT cable joint from real-time observations, the nowcast twin
+      of grid_joint_heat_risks. Same matrix on joint_tier against
+      grid_heat_status_now, nearest point within 15 km. NORMAL rows are dropped.
+    config:
+      tags: ["grid", "nowcast"]
+    columns:
+      - name: dso_id
+        description: "UUID of the Distribution System Operator."
+        tests:
+          - not_null
+      - name: joint_id
+        description: "Joint identifier of the thermal model"
+        tests:
+          - not_null
+      - name: thermal_tier
+        description: "Thermal exposure tier of the joint"
+        tests:
+          - accepted_values:
+              values: ['low', 'mid', 'high']
+      - name: risk_level
+        description: "ALERT | WARNING (NORMAL is filtered out)"
+        tests:
+          - accepted_values:
+              values: ['ALERT', 'WARNING']
+      - name: escalated_by_thermal
+        description: "True when tier high under an ORANGE or RED status lifted the level"
+      - name: heat_status
+        description: "Two-axis heat status of the matched point: GREEN | ORANGE | RED"
+      - name: observed_at
+        description: "Timestamp of the most recent observation used (TIMESTAMPTZ)"
+
   - name: grid_heat_risks_now
     description: >
       Heat risk per underground cable segment from real-time observations (nowcasting).
-      Reads from heat_daily_obs proxy table (provider-agnostic daily max temperature).
-      Applies P90 thresholds by altitude band, computes consecutive heat days
-      (gaps-and-islands), nearest observation point within 15 km per segment.
+      Weather comes from grid_heat_status_now (observed air heat tier crossed with
+      the latest soil reading), nearest point within 15 km per segment; the asset
+      side is the thermal tier of the cable, read through the same soil x thermal
+      matrix as the daily model. NORMAL rows are dropped.
     config:
       tags: ["grid", "nowcast"]
     columns:
@@ -388,8 +945,38 @@ models:
         description: "Segment length in metres"
       - name: date
         description: "Assessment date (current_date)"
+      - name: thermal_tier
+        description: "Thermal exposure tier of the cable; arcs outside the model read 'low'"
+        tests:
+          - accepted_values:
+              values: ['low', 'mid', 'high']
+      - name: thermal_modelled
+        description: "False when the thermal model has no tier for the segment"
+      - name: thermal_margin_c
+        description: "Margin (°C) between the peak conductor temperature and its rating"
+      - name: thermal_theta_max_c
+        description: "Maximum admissible conductor temperature (°C)"
+      - name: thermal_insulation
+        description: "Insulation class of the tightest-margin arc"
       - name: risk_level
-        description: "ALERT | WARNING | NORMAL"
+        description: "ALERT | WARNING (NORMAL is filtered out)"
+        tests:
+          - accepted_values:
+              values: ['ALERT', 'WARNING']
+      - name: escalated_by_thermal
+        description: "True when tier high under an ORANGE or RED status lifted the level"
+      - name: heat_status
+        description: "Two-axis heat status of the matched point: GREEN | ORANGE | RED"
+      - name: soil_status
+        description: "Soil axis of the matched point: GREEN | ORANGE"
+      - name: soil7_mean_c
+        description: "7-day mean of the 1 m soil temperature (°C)"
+      - name: soil7_p90_c
+        description: "P90 of the 7-day soil temperature window (°C)"
+      - name: soil_asof_date
+        description: "Date of the soil row behind soil_status"
+      - name: air_heat_tier
+        description: "Air axis of the matched point: GREEN | ORANGE | RED"
       - name: temp_max_c
         description: "Maximum observed temperature today (°C)"
       - name: p90_threshold
@@ -411,7 +998,8 @@ models:
       Same structure as grid_risks plus observed_at timestamp.
       WARNING and ALERT only — NORMAL excluded at pipeline level.
       Maps to grid_shapes by segment_id.
-      metrics JSONB holds vector-specific KVs for the detail panel.
+      metrics JSONB holds vector-specific KVs for the detail panel, with the same
+      thermal and soil keys as grid_risks; joint rows carry asset_type 'joint'.
     config:
       tags: ["grid", "nowcast"]
     columns:

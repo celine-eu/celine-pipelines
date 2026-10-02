@@ -9,18 +9,54 @@ sources:
         description: "CIM ACLineSegment: MT line segments with vegetation annotation."
       - name: silver_grid_substation
         description: "CIM Substation: MV/LV substations (voltage_class='mv_lv')."
+      - name: silver_grid_geo_tree_strike
+        description: >
+          Tree-strike exposure spans of the wind_tree_strike LiDAR analysis
+          (nomelinea, feederid, sottostazi, comune, tipologia, n_strike,
+          strike_density_km, tier, multiplier, geom EPSG:32632).
+      - name: silver_grid_geo_thermal_joints
+        description: >
+          Thermal model of the MT cable joints (giunti): joint_id, comune,
+          insulation_class, theta_max_c, technology, anno_posa, eta_anni,
+          is_asphalt, theta_peak_c, margin_min_c, m_r_critico, joint_tier
+          ('low' | 'mid' | 'high'), dso_id, geom EPSG:32632.
+      - name: silver_grid_geo_thermal_cables
+        description: >
+          Thermal model of the MT cable arcs, the per-arc detail behind the
+          thermal_* columns already carried on silver_grid_ac_line_segment.
+          Declared for completeness: no model in this project reads it, the
+          cable thermal tier arrives on the line segment table.
 
   - name: om_wind
     schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
     description: "Open-Meteo wind gust forecasts (produced by celine-pipelines)."
     tables:
       - name: om_wind_gusts
+      - name: om_wind_gusts_8h
+        description: "Same gust model on 8-hour windows (window_start, date, slot 0..2)."
 
   - name: om_heat
     schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
     description: "Open-Meteo heat risk forecasts (produced by celine-pipelines)."
     tables:
       - name: om_heat_risk
+        description: >
+          The air axis: daily Tmax against the altitude-band P90 with a heat-day
+          streak, per forecast point. lat/lon are the coordinates the API snapped
+          the request to, not the requested ones, so this table is joined to
+          om_soil_heat_risk by nearest geoposition, never by lat/lon equality.
+
+  - name: om_soil
+    schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
+    description: "Open-Meteo soil temperature risk (produced by celine-pipelines)."
+    tables:
+      - name: om_soil_heat_risk
+        description: >
+          The soil axis: 1 m soil temperature with its 7-day mean and P90 per
+          requested grid point and date (date, lat, lon, geoposition, soil_1m_c,
+          soil7_mean_c, soil7_p90_c, soil7_n_days, soil_data_complete,
+          soil_status 'GREEN' | 'ORANGE'). Grain: one row per point per date;
+          rows with soil_data_complete false carry no status.
 
   - name: om_obs
     schema: "{{ env_var('CELINE_SILVER_SCHEMA', 'ds_dev_silver') }}"

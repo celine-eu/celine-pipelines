@@ -24,8 +24,18 @@ defaults:
 depends_on:
   - dataset: datasets.*_gold.om_wind_gusts
     description: Wind gust forecasts behind the wind risk models.
+  - dataset: datasets.*_gold.om_wind_gusts_8h
+    description: The same gust forecasts on 8-hour windows, behind the intra-day view.
   - dataset: datasets.*_gold.om_heat_risk
-    description: Heat risk forecasts.
+    description: >
+      Heat risk forecasts, the air axis of the heat vector. Stores the lat/lon
+      the weather API snapped the request to, so it is matched to the soil table
+      by nearest geoposition, never by coordinate equality.
+  - dataset: datasets.*_gold.om_soil_heat_risk
+    description: >
+      Soil temperature risk (1 m soil temperature against its own 7-day P90), the
+      soil axis of the heat vector. Grain: one row per requested grid point per
+      date.
   - dataset: datasets.*_silver.om_obs_15min
     description: Sub-hourly observations behind the nowcasting flow.
   - dataset: datasets.*_gold.heat_daily_obs
@@ -40,6 +50,23 @@ depends_on:
   - dataset: datasets.*_silver.silver_grid_substation
     external: true
     description: CIM substations, from the same deployment ingestion.
+  - dataset: datasets.*_silver.silver_grid_geo_tree_strike
+    external: true
+    description: >
+      Tree-strike exposure spans (LiDAR analysis export), from the same deployment
+      ingestion; drawn as their own overlay by grid_tree_strike_spans.
+  - dataset: datasets.*_silver.silver_grid_geo_thermal_joints
+    external: true
+    description: >
+      Thermal model of the MT cable joints (tier, margin, insulation class,
+      technology, laying year), from the same deployment ingestion. The joint
+      asset family of grid_shapes and of the heat risk tables.
+  - dataset: datasets.*_silver.silver_grid_geo_thermal_cables
+    external: true
+    description: >
+      Thermal model of the MT cable arcs, the per-arc detail behind the thermal_*
+      columns carried on silver_grid_ac_line_segment. Declared for completeness:
+      no model in this project reads it directly.
 
 sources:
 
@@ -54,8 +81,23 @@ sources:
     dataspace:
       expose: false
 
+  datasets.ds_dev_gold.grid_wind_risks_8h:
+    tags: [ grid, wind, risk, gold, intermediary, 8h ]
+    dataspace:
+      expose: false
+
+  datasets.ds_dev_gold.grid_heat_status:
+    tags: [ grid, heat, soil, risk, gold, intermediary ]
+    dataspace:
+      expose: false
+
   datasets.ds_dev_gold.grid_heat_risks:
     tags: [ grid, heat, risk, gold, intermediary ]
+    dataspace:
+      expose: false
+
+  datasets.ds_dev_gold.grid_joint_heat_risks:
+    tags: [ grid, heat, thermal, joint, risk, gold, intermediary ]
     dataspace:
       expose: false
 
@@ -110,12 +152,15 @@ sources:
   datasets.ds_dev_gold.grid_shapes:
     title: "Grid Asset Geometry — Lines and Substations (Gold)"
     description: >
-      A unified CIM asset registry carrying geometry only, combining `ACLineSegment` and
-      `Substation` so a consumer loads network topology once and caches it independently of
-      daily risk updates. Line segments are keyed by (line, conductor type, municipality)
-      because the silver layer splits lines at administrative boundaries; sub-fragments are
-      merged with `ST_Union`, lengths summed, and a segment is flagged as vegetated when any
-      fragment intersects forest.
+      A unified CIM asset registry carrying geometry only, combining `ACLineSegment`,
+      `Substation` and the cable joints of the thermal model so a consumer loads network
+      topology once and caches it independently of daily risk updates. Line segments are
+      keyed by (line, conductor type, municipality) because the silver layer splits lines at
+      administrative boundaries; sub-fragments are merged with `ST_Union`, lengths summed, and
+      a segment is flagged as vegetated when any fragment intersects forest. Every asset also
+      carries its thermal exposure: for a line the worst tier of its arcs with the minimum
+      margin and rating, for a joint the tier of the physical model, `unmodelled` where the
+      model does not reach it.
     tags: [ grid, geo, topology, gold ]
     expose: true
     dataspace:
@@ -141,6 +186,46 @@ sources:
       contract_required: true
       consent_required: false
 
+  datasets.ds_dev_gold.grid_tile_grid:
+    title: "Grid 5 km Tile Grid (Gold)"
+    description: >
+      The 5 km x 5 km UTM tile grid over the network extent, shared by the segment
+      and tree-strike tile indexes so both layers are addressed by the same tile ids.
+    tags: [ grid, tiles, gold, intermediary ]
+    dataspace:
+      expose: false
+
+  datasets.ds_dev_gold.grid_tree_strike_spans:
+    title: "Tree-strike Exposure Spans (Gold)"
+    description: >
+      The overhead spans of the tree-strike LiDAR analysis as a static map overlay, one
+      row per span with its own geometry, exposure tier, strike-tree density and the
+      operational unit inherited from the nearest CIM segment of its line. Finer than
+      the map tratte, whose tier is the worst intersecting span; exposure only, the wind
+      risk escalation is unchanged.
+    tags: [ grid, tree_strike, exposure, gold ]
+    expose: true
+    dataspace:
+      purpose: [GridResilience]
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
+
+  datasets.ds_dev_gold.grid_tree_strike_tiles:
+    title: "Tree-strike Span Tile Index (Gold)"
+    description: >
+      Tile-to-span mapping on the shared 5 km grid, so the overlay is loaded per
+      viewport with the same tile ids as the segments.
+    tags: [ grid, tree_strike, tiles, gold ]
+    expose: true
+    dataspace:
+      purpose: [GridResilience]
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
+
   datasets.ds_dev_gold.grid_tile_index:
     title: "Grid Tile Index (Gold)"
     description: >
@@ -159,12 +244,50 @@ sources:
   datasets.ds_dev_gold.grid_risks:
     title: "Grid Wind and Heat Risk by Segment (Gold)"
     description: >
-      Wind and heat risk levels per grid segment and day, merged into one table and restricted
+      Wind and heat risk levels per grid asset and day, merged into one table and restricted
       to WARNING and ALERT — NORMAL is excluded at pipeline level. Geometry is deliberately
       absent: join the asset geometry by segment id for it. Where a municipality holds
       sub-fragments at different levels the worst is kept, and vector-specific metrics are
-      carried as JSON so a consumer can render them without a per-vector endpoint.
+      carried as JSON so a consumer can render them without a per-vector endpoint. Heat is a
+      two-axis judgement: the soil temperature of the location crossed with the thermal tier
+      of the asset, both readable in the metrics, on the underground tratte and on the cable
+      joints (`asset_type` = `joint` in the metrics).
     tags: [ grid, risk, gold ]
+    expose: true
+    dataspace:
+      purpose: [GridResilience]
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
+
+  datasets.ds_dev_gold.grid_risk_km:
+    title: "Grid Risk Exposure in km by Tratta and Operational Unit (Gold)"
+    description: >
+      Length-weighted wind and heat risk exposure per tratta (line × municipality × conductor
+      type), split by operational unit, per forecast date. Carries km at ALERT / WARNING /
+      NORMAL, the static tree-strike and thermal exposure km, and a 0–100 risk index
+      (km_alert + half km_warning over the km subject to the vector). Rollups per line and
+      per operational unit are exact sums of these rows; used by the tabular view, CSV
+      export and the DSO alert e-mail. Cable joints are excluded: a joint has no length, so
+      the km table, and with it the alert e-mail, stays a measure of the cable network.
+    tags: [ grid, risk, exposure, gold ]
+    expose: true
+    dataspace:
+      purpose: [GridResilience]
+      expose: true
+      medallion: gold
+      contract_required: true
+      consent_required: false
+
+  datasets.ds_dev_gold.grid_risks_8h:
+    title: "Grid Wind and Heat Risk by Segment and 8-hour Window (Gold)"
+    description: >
+      Intra-day companion of grid_risks: WARNING and ALERT levels per grid segment and
+      8-hour window (00–08, 08–16, 16–24). Wind is the same model as the daily table on
+      the window's max gust excess; heat, a daily forecast, is repeated on the three
+      windows of its day. Same segment id, colours and metrics as grid_risks.
+    tags: [ grid, risk, gold, 8h ]
     expose: true
     dataspace:
       purpose: [GridResilience]
@@ -198,8 +321,18 @@ sources:
     dataspace:
       expose: false
 
+  datasets.ds_dev_gold.grid_heat_status_now:
+    tags: [ grid, heat, soil, risk, nowcast, gold, intermediary ]
+    dataspace:
+      expose: false
+
   datasets.ds_dev_gold.grid_heat_risks_now:
     tags: [ grid, heat, risk, nowcast, gold, intermediary ]
+    dataspace:
+      expose: false
+
+  datasets.ds_dev_gold.grid_joint_heat_risks_now:
+    tags: [ grid, heat, thermal, joint, risk, nowcast, gold, intermediary ]
     dataspace:
       expose: false
 
