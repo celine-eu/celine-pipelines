@@ -64,6 +64,13 @@ sources:
       collectively shared, not anyone's own self-use.
     tags: [rec, consumption, gold]
     expose: true
+    # One community's figures per row: a reader in a community's organization reads
+    # that community's rows only. `rec_id` holds the community's organization alias.
+    row_filters:
+      - handler: organization_match
+        binds: organization
+        args:
+          column: rec_id
     dataspace:
       purpose: [IncentiveCalculation]
       expose: true
@@ -73,12 +80,10 @@ sources:
 
   # The same figures, one quantity per row, mapped onto SOSA.
   #
-  # Shares the source's governance block by anchor so the two cannot diverge.
-  # Note what that inherits here: **no row filter**. The community models have
-  # never carried one — a latent cross-community leak the moment a second REC
-  # exists, recorded in celine-dev/.agents/celine-pipelines/FACTS.md. This view
-  # neither fixes nor widens it, and the anchor means adding a filter to the
-  # source covers the view in the same edit.
+  # Shares the source's governance block by anchor so the two cannot diverge,
+  # its `organization_match` on `rec_id` included. `device_id` is always NULL
+  # here (community figures, not a device's), so a per-device filter would
+  # serve nobody.
   datasets.ds_dev_gold.rec_measurements_15m:
     title: "Community Energy Measurements, 15-minute — Observations (Gold)"
     description: >
@@ -96,6 +101,11 @@ sources:
   datasets.ds_dev_gold.rec_virtual_consumption_hourly:
     tags: [rec, consumption, gold]
     expose: true
+    row_filters:
+      - handler: organization_match
+        binds: organization
+        args:
+          column: rec_id
     dataspace:
       purpose: [IncentiveCalculation]
       expose: false
