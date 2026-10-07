@@ -1,5 +1,6 @@
 {{ config(
     materialized='incremental',
+    on_schema_change='append_new_columns',
     schema='gold',
     pre_hook="{% if is_incremental() %}DELETE FROM {{ this }} WHERE date >= current_date{% endif %}"
 ) }}
@@ -33,6 +34,7 @@ with wind_ranked as (
             dso_id || '|' || 'ac_line_segment' || '|' ||
             line_name || '|' || conductor_type || '|' || municipality
         )                       as segment_id,
+        dso_id,
         date,
         'wind'                  as risk_vector,
         risk_level,
@@ -71,6 +73,7 @@ heat_ranked as (
             dso_id || '|' || 'ac_line_segment' || '|' ||
             line_name || '|' || conductor_type || '|' || municipality
         )                       as segment_id,
+        dso_id,
         date,
         'heat'                  as risk_vector,
         risk_level,
@@ -116,6 +119,7 @@ joint_ranked as (
 
     select
         md5(dso_id || '|' || 'joint' || '|' || joint_id::text) as segment_id,
+        dso_id,
         date,
         'heat'                  as risk_vector,
         risk_level,
@@ -159,18 +163,18 @@ joint_ranked as (
 
 )
 
-select segment_id, date, risk_vector, risk_level, risk_color_hex, metrics
+select segment_id, date, risk_vector, risk_level, risk_color_hex, metrics, dso_id
 from wind_ranked
 where rn = 1
 
 union all
 
-select segment_id, date, risk_vector, risk_level, risk_color_hex, metrics
+select segment_id, date, risk_vector, risk_level, risk_color_hex, metrics, dso_id
 from heat_ranked
 where rn = 1
 
 union all
 
-select segment_id, date, risk_vector, risk_level, risk_color_hex, metrics
+select segment_id, date, risk_vector, risk_level, risk_color_hex, metrics, dso_id
 from joint_ranked
 where rn = 1

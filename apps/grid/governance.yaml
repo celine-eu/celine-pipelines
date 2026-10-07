@@ -102,13 +102,14 @@ sources:
       expose: false
 
   datasets.ds_dev_gold.grid_substations:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Secondary Substations — Map Layer (Gold)"
     description: >
       Map-ready GeoJSON for secondary substations (CIM `Substation`), derived from the
@@ -141,13 +142,14 @@ sources:
       consent_required: false
 
   datasets.ds_dev_gold.grid_network_topology:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Grid Topology Reference Values (Gold)"
     description: >
       The distinct substations, lines, operational units and municipalities present in the
@@ -164,13 +166,14 @@ sources:
       consent_required: false
 
   datasets.ds_dev_gold.grid_shapes:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Grid Asset Geometry — Lines and Substations (Gold)"
     description: >
       A unified CIM asset registry carrying geometry only, combining `ACLineSegment`,
@@ -192,13 +195,14 @@ sources:
       consent_required: false
 
   datasets.ds_dev_gold.grid_tiles:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Grid Shape Tile Assignment (Gold)"
     description: >
       A 5 km x 5 km UTM tiling (EPSG:32632) over the extent of the grid shapes, assigning
@@ -224,13 +228,14 @@ sources:
       expose: false
 
   datasets.ds_dev_gold.grid_tree_strike_spans:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Tree-strike Exposure Spans (Gold)"
     description: >
       The overhead spans of the tree-strike LiDAR analysis as a static map overlay, one
@@ -248,13 +253,14 @@ sources:
       consent_required: false
 
   datasets.ds_dev_gold.grid_tree_strike_tiles:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Tree-strike Span Tile Index (Gold)"
     description: >
       Tile-to-span mapping on the shared 5 km grid, so the overlay is loaded per
@@ -269,13 +275,14 @@ sources:
       consent_required: false
 
   datasets.ds_dev_gold.grid_tile_index:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Grid Tile Index (Gold)"
     description: >
       One row per tile of the 5 km x 5 km grid, with its bounding box and the number of grid
@@ -291,13 +298,14 @@ sources:
       consent_required: false
 
   datasets.ds_dev_gold.grid_risks:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Grid Wind and Heat Risk by Segment (Gold)"
     description: >
       Wind and heat risk levels per grid asset and day, merged into one table and restricted
@@ -318,13 +326,14 @@ sources:
       consent_required: false
 
   datasets.ds_dev_gold.grid_risk_km:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Grid Risk Exposure in km by Tratta and Operational Unit (Gold)"
     description: >
       Length-weighted wind and heat risk exposure per tratta (line × municipality × conductor
@@ -344,13 +353,14 @@ sources:
       consent_required: false
 
   datasets.ds_dev_gold.grid_risks_8h:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Grid Wind and Heat Risk by Segment and 8-hour Window (Gold)"
     description: >
       Intra-day companion of grid_risks: WARNING and ALERT levels per grid segment and
@@ -367,13 +377,14 @@ sources:
       consent_required: false
 
   datasets.ds_dev_gold.grid_risks_trendline:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Daily Grid Risk Ratio by Vector (Gold)"
     description: >
       The share of the relevant network at risk per day and risk vector, as (alert + warning)
@@ -414,13 +425,14 @@ sources:
       expose: false
 
   datasets.ds_dev_gold.grid_risks_now:
-    # A distribution operator's network: readable by a reading group of any `dso`
-    # organization. No column names the operator yet, so it is not split per operator.
+    # A distribution operator's network: readable by a reading group of the `dso`
+    # organization whose alias is the row's dso_id, so each operator reads only its own.
     row_filters:
       - handler: organization_match
         binds: organization
         args:
           org_type: dso
+          column: dso_id
     title: "Grid Wind and Heat Risk — Nowcast (Gold)"
     description: >
       The observation-based counterpart of the daily risk table: the same segment, vector,

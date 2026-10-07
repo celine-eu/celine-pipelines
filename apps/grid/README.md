@@ -14,7 +14,7 @@ Reads from two CIM-normalized silver tables produced by a DSO-specific ingestion
 
 | Column | Description |
 |--------|-------------|
-| `dso_id` | UUID of the DSO — stamped from `raw.dso_registry` in the upstream ingestion pipeline |
+| `dso_id` | Organisation alias of the DSO (its Keycloak organisation, e.g. `example-dso`), stamped on every row in the upstream ingestion pipeline |
 | `line_name` | ACLineSegment name |
 | `conductor_type` | `overhead_bare` \| `overhead_insulated` \| `underground_cable` |
 | `parent_substation_name` | Upstream HV/MV substation |
@@ -36,7 +36,7 @@ Reads from two CIM-normalized silver tables produced by a DSO-specific ingestion
 
 | Column | Description |
 |--------|-------------|
-| `dso_id` | UUID of the DSO |
+| `dso_id` | Organisation alias of the DSO (its Keycloak organisation, e.g. `example-dso`), stamped on every row in the upstream ingestion pipeline |
 | `joint_id` | Joint identifier (unique per DSO) |
 | `comune` | Administrative municipality |
 | `insulation_class`, `theta_max_c` | Insulation class and its maximum admissible temperature (°C) |
@@ -53,7 +53,7 @@ Reads from two CIM-normalized silver tables produced by a DSO-specific ingestion
 
 | Column | Description |
 |--------|-------------|
-| `dso_id` | UUID of the DSO — stamped from `raw.dso_registry` in the upstream ingestion pipeline |
+| `dso_id` | Organisation alias of the DSO (its Keycloak organisation, e.g. `example-dso`), stamped on every row in the upstream ingestion pipeline |
 | `asset_id` | IdentifiedObject.mRID (unique) |
 | `name` | Substation name |
 | `label_id`, `label` | Display identifiers |
@@ -65,7 +65,9 @@ Reads from two CIM-normalized silver tables produced by a DSO-specific ingestion
 
 ## dbt models
 
-All four gold models carry a `dso_id` column (UUID) inherited from the silver source. This enables DSO-scoped access control via row-filter handlers and supports future multi-DSO deployments.
+Every exposed gold model carries `dso_id`, the operator's organisation alias inherited from the silver source, and declares the row filter `organization_match {org_type: dso, column: dso_id}`: a reading group of a `dso` organisation reads only the rows whose `dso_id` is that organisation's alias. Every figure computed across assets (the trendline, the tile grid) is computed per operator.
+
+`dso_id` is part of every asset id (`segment_id`, `span_id`) and of the unique keys of the incremental tables. Changing its value on existing data is a migration (re-key the ids and the history in place), never a full refresh: the incremental tables keep days the weather sources no longer serve.
 
 ### `grid_wind_risks`
 
@@ -140,9 +142,9 @@ The intra-day view. `grid_wind_risks_8h` is `grid_wind_risks` joined to `om_wind
 
 ### `grid_tile_grid`, `grid_tree_strike_spans`, `grid_tree_strike_tiles`
 
-`grid_tile_grid` is the 5 km × 5 km UTM tile grid over the network extent, shared by `grid_tiles` (segments) and `grid_tree_strike_tiles` (tree-strike spans), so both layers are loaded per viewport with the same tile ids.
+`grid_tile_grid` is the 5 km × 5 km UTM tile grid, one per operator over the extent of its network (`tile_id` is unique per `dso_id`), shared by `grid_tiles` (segments) and `grid_tree_strike_tiles` (tree-strike spans), so both layers are loaded per viewport with the same tile ids.
 
-`grid_tree_strike_spans` publishes the spans of the tree-strike LiDAR analysis (`silver_grid_geo_tree_strike`, ~3.6k overhead spans of ~100 m) as their own static overlay, with geometry, `tier`, `multiplier`, `strike_density_km`, `n_strike`, `length_m` and the `operational_unit` / `dso_id` / feeder / primary substation inherited from the nearest CIM segment of the same line within 50 m. `span_id` is minted from line, municipality, conductor type and a geometry hash (the export's positional `seg_id` renumbers on every regeneration). This is the exposure layer only: the wind escalation on the tratte (`grid_wind_risks`) is unchanged.
+`grid_tree_strike_spans` publishes the spans of the tree-strike LiDAR analysis (`silver_grid_geo_tree_strike`, ~3.6k overhead spans of ~100 m) as their own static overlay, with geometry, `tier`, `multiplier`, `strike_density_km`, `n_strike`, `length_m`, the `dso_id` the silver row is stamped with, and the `operational_unit` / feeder / primary substation inherited from the nearest CIM segment of the same line within 50 m. The operator never comes from geometry: a nearest segment of another operator fails the test `grid_tree_strike_spans_dso_matches_nearest_segment`. `span_id` is minted from operator, line, municipality, conductor type and a geometry hash (the export's positional `seg_id` renumbers on every regeneration). This is the exposure layer only: the wind escalation on the tratte (`grid_wind_risks`) is unchanged.
 
 All three are `monthly` topology tables (rebuilt with `grid_shapes`).
 
@@ -247,4 +249,4 @@ dbt test --select tag:monthly
 
 Until it is run, `grid_risks` can carry joint rows whose `segment_id` is not yet in `grid_shapes` and the map panel opens on nothing: the singular test `grid_joint_segment_ids_exist_in_shapes` warns (not fails) exactly for that case.
 
-One caveat on the tiling: `grid_tile_grid` derives its origin from `ST_Extent(grid_shapes.geom)`, so a joint (or any asset) lying outside the current bounding box by more than the 5 km snap can shift the origin and renumber every `tile_id`. Clients cache tiles by id, so check `grid_tile_index` after a monthly build that changed the asset extent.
+One caveat on the tiling: `grid_tile_grid` derives each operator's origin from the `ST_Extent` of that operator's `grid_shapes`, so a joint (or any asset) lying outside the current bounding box by more than the 5 km snap can shift the origin and renumber every `tile_id`. Clients cache tiles by id, so check `grid_tile_index` after a monthly build that changed the asset extent.

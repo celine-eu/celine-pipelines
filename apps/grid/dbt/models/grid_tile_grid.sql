@@ -1,14 +1,17 @@
 {{ config(materialized='table', schema='gold') }}
 
 {#
-    The 5 km x 5 km UTM tile grid (EPSG:32632) over the extent of grid_shapes.
+    The 5 km x 5 km UTM tile grid (EPSG:32632), one grid per distribution
+    system operator (dso_id) over the extent of that operator's grid_shapes.
+    One operator's network never moves another's tile ids, and tile_id is
+    unique per dso_id, not across operators.
 
     Shared by grid_tiles (segments) and grid_tree_strike_tiles (tree-strike
     spans), so both layers are addressed by the same tile ids — the frontend
     loads them per viewport with one tile index.
 
     Tile coordinates (tile_x, tile_y) are 0-based from the south-west corner
-    of the extent.  tile_id encodes them as "tile_{x}_{y}".
+    of the operator's extent.  tile_id encodes them as "tile_{x}_{y}".
 #}
 
 {% set tile_size = 5000 %}
@@ -16,15 +19,18 @@
 with extent as (
 
     select
+        dso_id,
         floor(ST_XMin(ST_Extent(geom)) / {{ tile_size }}.0)::int * {{ tile_size }} as x_min,
         floor(ST_YMin(ST_Extent(geom)) / {{ tile_size }}.0)::int * {{ tile_size }} as y_min,
         ceil(ST_XMax(ST_Extent(geom))  / {{ tile_size }}.0)::int * {{ tile_size }} as x_max,
         ceil(ST_YMax(ST_Extent(geom))  / {{ tile_size }}.0)::int * {{ tile_size }} as y_max
     from {{ ref('grid_shapes') }}
+    group by dso_id
 
 )
 
 select
+    e.dso_id,
     'tile_' || ((x.v - e.x_min) / {{ tile_size }})::int
          || '_' || ((y.v - e.y_min) / {{ tile_size }})::int   as tile_id,
     ((x.v - e.x_min) / {{ tile_size }})::int                  as tile_x,
