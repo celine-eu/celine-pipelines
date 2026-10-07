@@ -952,7 +952,7 @@ unit_tests:
 
   - name: lb3_fleet_complete_current_season_ranked_ties_zero_fill
     description: >
-      Current season is fleet-complete: every rec_active_devices device gets a row,
+      Current season is fleet-complete: every rec_device_membership device gets a row,
       0-filled when it earned nothing, ranked (rank() ties share a rank, 0-point devices
       tie last), total_members = fleet size, season_end = season_start + season_months.
     model: rec_points_leaderboard

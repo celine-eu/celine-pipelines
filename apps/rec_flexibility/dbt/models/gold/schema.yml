@@ -207,7 +207,7 @@ models:
       DISPLAYED (resettable, shown to the participant): season_base_points,
       season_bonus_points, season_points, season_rank, total_members — they accrue within a
       season and start again at 0 every season. season_end is the exclusive season boundary.
-      The current season is fleet-complete: every rec_active_devices device gets a row
+      The current season is fleet-complete: every rec_device_membership device gets a row
       (0-filled if it earned nothing), while past seasons stay earned-rows-only. The frontend
       shows the row WHERE is_current_season.
       PRIVATE (never shown): alltime_base_points, alltime_bonus_points — lifetime cumulative
