@@ -40,7 +40,7 @@ depends_on:
     description: Community-level forecast, produced by a deployment's forecasting app.
 
 # Not declared on purpose, so not served by the dataset-api: rec_settlement_points,
-# rec_flexibility_bonus, rec_anti_gaming_flags, _rec_device_baselines_raw,
+# rec_flexibility_bonus, _rec_device_baselines_raw,
 # _rec_device_streaks_raw, silver_flexibility_commitments. They are intermediate or
 # internal tables no reader is meant to reach through the catalogue; their absence here is
 # the intended state, not an omission.
@@ -103,6 +103,23 @@ sources:
       consent_required: true
 
   datasets.ds_dev_gold.rec_participant_points:
+    classification: pii
+    tags: [flexibility, gamification, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    expose: true
+    dataspace:
+      purpose: [EnergyCommunityOperation]
+      expose: false
+      medallion: gold
+      consent_required: true
+
+  # Read by the community operator console through the digital twin's manager fetcher
+  # (rec_anti_gaming_flags_community), which narrows it to one community and is gated to
+  # the community's operators; a person reads only their own devices' flags.
+  datasets.ds_dev_gold.rec_anti_gaming_flags:
     classification: pii
     tags: [flexibility, gamification, gold]
     row_filters:
