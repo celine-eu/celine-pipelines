@@ -3,7 +3,7 @@
 These tests run against the built gold tables on the local DB (15432). They
 assert the *semantic* properties of the migration that unit tests cannot reach:
 
-- the fleet is scoped to the 11 active devices everywhere;
+- the fleet is the registry's membership, matched on (device, community);
 - exactly the M1-only devices carry the consumption proxy basis;
 - the per-device reward numerator matches its basis (proxy vs total_consumption);
 - effort_ratio is computed on a matched basis (numerator and settlement baseline);
@@ -20,8 +20,6 @@ import os
 import pandas as pd
 import pytest
 from sqlalchemy import create_engine, text
-
-from lib.config import get_active_devices, load_config
 
 DB_URL = os.environ.get(
     "DB_LOCAL",
@@ -69,12 +67,26 @@ def settlement_points(engine):
         )
 
 
-def test_fleet_scoped_to_active_devices(settlement_points):
-    active = set(get_active_devices(load_config()))
-    if not active:
-        pytest.skip("REC_ACTIVE_DEVICES not set; fleet scope unavailable")
-    seen = set(settlement_points["device_id"].unique())
-    assert seen <= active, f"settlement points leaked non-fleet devices: {seen - active}"
+def test_fleet_scoped_to_membership(engine, settlement_points):
+    """Recent settlement rows come only from (device, community) pairs of the membership.
+
+    Older rows were computed with the fleet of their time and are not checked.
+    """
+    if not _table_exists(engine, GOLD_SCHEMA, "rec_device_membership"):
+        pytest.skip("rec_device_membership not built")
+    with engine.connect() as conn:
+        members = pd.read_sql(
+            text(f"select device_id, community_id from {GOLD_SCHEMA}.rec_device_membership"), conn
+        )
+    recent = settlement_points[
+        pd.to_datetime(settlement_points["ts"], utc=True)
+        >= pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=2)
+    ]
+    if recent.empty:
+        pytest.skip("no settlement rows in the last 2 days")
+    seen = set(map(tuple, recent[["device_id", "community_id"]].drop_duplicates().to_numpy()))
+    allowed = set(map(tuple, members.to_numpy()))
+    assert seen <= allowed, f"settlement points leaked non-member pairs: {seen - allowed}"
 
 
 def test_m1_only_flag_matches_expected(settlement_points):

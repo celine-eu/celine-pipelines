@@ -1,8 +1,9 @@
 {{
   config(
     materialized='incremental',
-    unique_key=['ts', 'rec_id', 'substation_id'],
+    unique_key=['ts', 'community_id', 'substation_id'],
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
       'total_consumption_kwh',
       'total_production_kwh',
@@ -15,7 +16,7 @@
 with hourly as (
     select
         date_trunc('hour', ts)        as ts,
-        rec_id,
+        community_id,
         substation_id,
         sum(total_consumption_kwh)    as total_consumption_kwh,
         sum(total_production_kwh)     as total_production_kwh,
@@ -29,12 +30,12 @@ with hourly as (
     )
     {% endif %}
 
-    group by date_trunc('hour', ts), rec_id, substation_id
+    group by date_trunc('hour', ts), community_id, substation_id
 )
 
 select
     ts,
-    rec_id,
+    community_id,
     substation_id,
     total_consumption_kwh,
     total_production_kwh,

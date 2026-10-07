@@ -1,21 +1,55 @@
 version: 2
 
 models:
+  # Every rec_it model and view carries the rec_it tag: rec_it_flow selects tag:rec_it,
+  # so a view that lacked it would keep its old column list after an upgrade.
   - name: rec_virtual_consumption_15m
+    description: Community virtual self-consumption per (ts, community_id, substation_id).
     config:
       tags: ["rec_it"]
+    columns:
+      - name: community_id
+        description: The community's slug, from the reading (meters_data_15m). Matched against the reader's organisation.
+        data_tests:
+          - not_null
 
   - name: rec_virtual_consumption_hourly
+    description: Hourly roll-up of rec_virtual_consumption_15m, per (ts, community_id, substation_id).
     config:
       tags: ["rec_it"]
+    columns:
+      - name: community_id
+        description: The community's slug, from the reading (meters_data_15m). Matched against the reader's organisation.
+        data_tests:
+          - not_null
 
   - name: rec_virtual_consumption_per_device_15m
+    description: Per-device share of the community's shared energy. _id = md5(device_id || ts || substation_id).
     config:
       tags: ["rec_it"]
+    columns:
+      - name: _id
+        data_tests:
+          - unique
+          - not_null
+      - name: community_id
+        description: The community's slug, from the reading (meters_data_15m). Matched against the reader's organisation.
+        data_tests:
+          - not_null
 
   - name: rec_virtual_consumption_per_device_hourly
+    description: Hourly roll-up of rec_virtual_consumption_per_device_15m. _id = md5(device_id || hour || substation_id).
     config:
       tags: ["rec_it"]
+    columns:
+      - name: _id
+        data_tests:
+          - unique
+          - not_null
+      - name: community_id
+        description: The community's slug, from the reading (meters_data_15m). Matched against the reader's organisation.
+        data_tests:
+          - not_null
 
   - name: gse_cabine_primarie
     description: >

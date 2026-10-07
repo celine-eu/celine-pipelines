@@ -3,9 +3,11 @@
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
       'ts_date',
       'device_id',
+      'community_id',
       'total_consumption_kwh',
       'total_allocated_kwh',
       'committed',
@@ -31,12 +33,14 @@
 --     If passive_total > remaining_budget, consumption is scaled proportionally.
 --
 -- Ranking (percentile_rank, rank_position) is based on total_consumption_kwh across all
--- devices in the same day, regardless of committed status, for leaderboard display.
+-- devices of the same community in the same day, regardless of committed status, for
+-- leaderboard display. Every budget is the device's own community's window budget.
 
 with device_window_consumption as (
     -- Per-device, per-window actual consumption from 15-min intervals.
     select
         s.device_id,
+        s.community_id,
         s.ts_date,
         s.window_start,
         s.window_end,
@@ -48,7 +52,7 @@ with device_window_consumption as (
     and s.ts >= date_trunc('day', now() - interval '2 days')
     {% endif %}
 
-    group by s.device_id, s.ts_date, s.window_start, s.window_end
+    group by s.device_id, s.community_id, s.ts_date, s.window_start, s.window_end
 ),
 
 -- Devices holding an active commitment on each calendar date.
@@ -70,22 +74,24 @@ committed_on_date as (
 -- Already proportionally capped at community_kwh by rec_commitment_settlement.
 committed_allocated_per_window as (
     select
+        community_id,
         period_start,
         period_end,
         sum(allocated_kwh) as committed_allocated_total
     from {{ ref('rec_commitment_settlement') }}
     where status in ('committed', 'settled')
-    group by period_start, period_end
+    group by community_id, period_start, period_end
 ),
 
 -- Community solar budget per window (identical across all devices in a window).
 window_budget as (
-    select distinct on (window_start, window_end)
+    select distinct on (community_id, window_start, window_end)
+        community_id,
         window_start,
         window_end,
         community_kwh
     from {{ ref('rec_flexibility_windows') }}
-    order by window_start, window_end
+    order by community_id, window_start, window_end
 ),
 
 -- Remaining budget available for passive devices after committed allocation.
@@ -93,6 +99,7 @@ window_budget as (
 -- Windows with no budget row (e.g. DSO flex) yield remaining_budget = 0.
 window_remaining as (
     select
+        wb.community_id,
         wb.window_start,
         wb.window_end,
         greatest(
@@ -101,7 +108,8 @@ window_remaining as (
         ) as remaining_budget
     from window_budget wb
     left join committed_allocated_per_window ca
-        on  ca.period_start = wb.window_start
+        on  ca.community_id = wb.community_id
+        and ca.period_start = wb.window_start
         and ca.period_end   = wb.window_end
 ),
 
@@ -109,6 +117,7 @@ window_remaining as (
 passive_window as (
     select
         dw.device_id,
+        dw.community_id,
         dw.ts_date,
         dw.window_start,
         dw.window_end,
@@ -119,7 +128,8 @@ passive_window as (
         on  cod.device_id = dw.device_id
         and cod.ts_date   = dw.ts_date
     left join window_remaining wr
-        on  wr.window_start = dw.window_start
+        on  wr.community_id = dw.community_id
+        and wr.window_start = dw.window_start
         and wr.window_end   = dw.window_end
     where cod.device_id is null   -- exclude committed devices
 ),
@@ -127,11 +137,12 @@ passive_window as (
 -- Total passive consumption per window — denominator for proportional capping.
 passive_window_totals as (
     select
+        community_id,
         window_start,
         window_end,
         sum(window_consumption_kwh) as passive_total_kwh
     from passive_window
-    group by window_start, window_end
+    group by community_id, window_start, window_end
 ),
 
 -- Allocate passive consumption within remaining budget per window.
@@ -141,6 +152,7 @@ passive_window_totals as (
 passive_window_allocated as (
     select
         p.device_id,
+        p.community_id,
         p.ts_date,
         p.window_consumption_kwh,
         case
@@ -156,7 +168,8 @@ passive_window_allocated as (
         end as allocated_kwh
     from passive_window p
     left join passive_window_totals pt
-        on  pt.window_start = p.window_start
+        on  pt.community_id = p.community_id
+        and pt.window_start = p.window_start
         and pt.window_end   = p.window_end
 ),
 
@@ -165,6 +178,7 @@ passive_window_allocated as (
 committed_daily as (
     select
         dw.device_id,
+        dw.community_id,
         dw.ts_date,
         sum(dw.window_consumption_kwh) as total_consumption_kwh,
         0::numeric                     as total_allocated_kwh,
@@ -173,19 +187,20 @@ committed_daily as (
     join committed_on_date cod
         on  cod.device_id = dw.device_id
         and cod.ts_date   = dw.ts_date
-    group by dw.device_id, dw.ts_date
+    group by dw.device_id, dw.community_id, dw.ts_date
 ),
 
 -- Passive devices: daily aggregate with budget-aware allocation.
 passive_daily as (
     select
         device_id,
+        community_id,
         ts_date,
         sum(window_consumption_kwh) as total_consumption_kwh,
         sum(allocated_kwh)          as total_allocated_kwh,
         false                       as committed
     from passive_window_allocated
-    group by device_id, ts_date
+    group by device_id, community_id, ts_date
 ),
 
 daily as (
@@ -197,17 +212,18 @@ daily as (
 select
     md5(device_id || ts_date::text)      as _id,
     device_id,
+    community_id,
     ts_date,
     total_consumption_kwh,
     total_allocated_kwh,
     committed,
     percent_rank() over (
-        partition by ts_date
+        partition by community_id, ts_date
         order by total_consumption_kwh
     )                                    as percentile_rank,
     rank() over (
-        partition by ts_date
+        partition by community_id, ts_date
         order by total_consumption_kwh desc
     )                                    as rank_position,
-    count(*) over (partition by ts_date) as total_members
+    count(*) over (partition by community_id, ts_date) as total_members
 from daily

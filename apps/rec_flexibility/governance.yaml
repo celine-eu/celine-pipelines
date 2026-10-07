@@ -24,6 +24,10 @@ defaults:
 depends_on:
   - dataset: datasets.*_gold.meters_data_15m
     description: Quarter-hourly meter readings, per device.
+  - dataset: datasets.*_gold.rec_device_membership
+    description: >
+      REC membership by device, published by `rec_registry` in this repository: the
+      fleet every model computes over.
   - dataset: datasets.raw.flexibility_commitments_mirror
     description: >
       Commitments. Mirrored into `raw` by a pipeline in this repository —
@@ -34,6 +38,18 @@ depends_on:
   - dataset: datasets.*_gold.total_meters_forecast
     external: true
     description: Community-level forecast, produced by a deployment's forecasting app.
+
+# Not declared on purpose, so not served by the dataset-api: rec_settlement_points,
+# rec_flexibility_bonus, rec_anti_gaming_flags, _rec_device_baselines_raw,
+# _rec_device_streaks_raw, silver_flexibility_commitments. They are intermediate or
+# internal tables no reader is meant to reach through the catalogue; their absence here is
+# the intended state, not an omission.
+#
+# Row filters by grain: a device-grain dataset declares `rec_registry` on `device_id`
+# (a person sees their own devices); a community-grain dataset declares
+# `organization_match` on `community_id` (a reader of a community's organization sees that
+# community's rows). Never both on one dataset: filters are ANDed, so a community operator
+# with no meter would see nothing.
 
 sources:
   # ---------------------------------------------------------------------------
@@ -148,6 +164,13 @@ sources:
       forecast generation, so its history exists through daily incremental runs.
     tags: [flexibility, gold]
     expose: true
+    # One community's windows per row: a reader in a community's organization reads that
+    # community's windows only. `community_id` is the community's organization alias.
+    row_filters:
+      - handler: organization_match
+        binds: organization
+        args:
+          column: community_id
     dataspace:
       purpose: [FlexibilityResearch]
       expose: true
@@ -211,6 +234,11 @@ sources:
   datasets.ds_dev_gold.rec_co2_savings_community:
     tags: [co2, flexibility, gold]
     expose: true
+    row_filters:
+      - handler: organization_match
+        binds: organization
+        args:
+          column: community_id
     dataspace:
       purpose: [EnergyCommunityOperation]
       expose: false

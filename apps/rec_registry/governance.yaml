@@ -41,7 +41,8 @@ sources:
     description: >
       Full-replace mirror of all active community members registered in the
       CELINE REC Registry API. Refreshed every 5 minutes via a Prefect pipeline.
-      One row per member (user_id), carrying the community ID, grid area,
+      One row per member and community (user_id, community_id), carrying the
+      community's slug as community_id, grid area,
       topology node references, the IDs of the delivery points in service
       (a point flagged inactive is left out), and meter sensor IDs.
       Intended as a stable raw source for dbt pipelines computing virtual
@@ -56,5 +57,35 @@ sources:
     dataspace:
       expose: false
       medallion: bronze
+      contract_required: true
+      consent_required: false
+
+  # ---------------------------------------------------------------------------
+  # GOLD - membership by device, the one source of membership for the REC apps
+  # ---------------------------------------------------------------------------
+
+  # Device grain: a person reading it with their own token sees only the devices the
+  # registry lists as theirs. organization_match is not added on top: filters are
+  # ANDed, so a community operator with no meter would see nothing. A service that
+  # lists a community's meters names the community in its own statement.
+  datasets.ds_dev_gold.rec_device_membership:
+    title: "REC Device Membership (Gold)"
+    description: >
+      One row per community and meter device, from the REC registry: every meter sensor
+      of every active member, with the member's role and type and the primary
+      substation of their area. No member identity. The fleet and population the other
+      REC pipelines compute over.
+    access_level: internal
+    classification: yellow
+    tags: [rec-registry, members, devices, gold]
+    retention_days: null
+    expose: true
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    dataspace:
+      expose: false
+      medallion: gold
       contract_required: true
       consent_required: false

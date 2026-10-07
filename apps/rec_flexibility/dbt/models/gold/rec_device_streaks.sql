@@ -2,6 +2,7 @@
 
 select
     device_id,
+    community_id,
     level,
     peak,
     multiplier,

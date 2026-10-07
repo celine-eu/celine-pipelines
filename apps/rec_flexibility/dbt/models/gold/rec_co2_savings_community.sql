@@ -1,8 +1,9 @@
 {{
   config(
     materialized='incremental',
-    unique_key='ts_date',
+    unique_key=['community_id', 'ts_date'],
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
       'consumption_kwh',
       'co2_avoided_kg',
@@ -17,10 +18,12 @@
 -- in rec_settlement_15m) are included — this scopes the metric to energy shifts
 -- that the flexibility programme actually induced, not ambient self-consumption.
 -- Device-level daily CO2 (all self-consumption, all day) lives in rec_co2_savings.
+-- One row per (community_id, ts_date): each community counts its own devices only.
 
 with window_intervals as (
     select
         device_id,
+        community_id,
         ts
     from {{ ref('rec_settlement_15m') }}
     where window_start is not null
@@ -34,19 +37,21 @@ daily as (
     -- self_consumed_kwh is already kWh per 15-min bucket: sum buckets directly,
     -- NO unit conversion.
     select
+        m.community_id,
         m.ts::date                          as ts_date,
         sum(m.self_consumed_kwh)            as consumption_kwh,
         count(distinct m.device_id)         as participating_devices
     from {{ ref('rec_meters_15m') }} m
     join window_intervals w
-        on  m.device_id = w.device_id
-        and m.ts        = w.ts
+        on  m.device_id    = w.device_id
+        and m.community_id = w.community_id
+        and m.ts           = w.ts
 
     {% if is_incremental() %}
     where m.ts >= date_trunc('day', now() - interval '2 days')
     {% endif %}
 
-    group by m.ts::date
+    group by m.community_id, m.ts::date
 ),
 
 factor as (
@@ -56,6 +61,7 @@ factor as (
 )
 
 select
+    d.community_id,
     d.ts_date,
     round(d.consumption_kwh::numeric, 4)                                         as consumption_kwh,
     round((d.consumption_kwh * f.kg_co2_per_kwh)::numeric, 3)                   as co2_avoided_kg,

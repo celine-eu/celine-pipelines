@@ -1,0 +1,25 @@
+version: 2
+
+models:
+  - name: rec_device_membership
+    description: >
+      Membership by device, from the REC registry: every meter sensor of every active
+      member, under the community that lists it, with the member's role and type and the
+      primary substation of their area. The fleet of rec_flexibility and the population
+      of rec_it.
+    config:
+      tags: ["rec_registry"]
+    columns:
+      - name: community_id
+        description: The community's slug, also its organisation alias and registry key.
+        tests:
+          - not_null
+      - name: device_id
+        description: The meter sensor identifier, as the measurements carry it.
+        tests:
+          - not_null
+      - name: role
+        description: consumer, prosumer or producer. Only prosumers contribute production in rec_it.
+      - name: member_type
+      - name: substation_id
+        description: The primary substation (cabina primaria) of the member's area.

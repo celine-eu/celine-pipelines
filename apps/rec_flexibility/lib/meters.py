@@ -2,7 +2,8 @@
 
 ``rec_meters_15m`` is the dbt view over ``ds_dev_gold.meters_data_15m`` (the
 sanctioned rec_metering interface) that reconstructs ``pv_production_kwh``,
-clips ``self_consumed_kwh`` at zero and scopes to the active fleet. All energy
+clips ``self_consumed_kwh`` at zero and scopes to the fleet: the registry's
+membership (``rec_device_membership``), matched on ``(device_id, community_id)``. All energy
 columns are kWh per 15-min bucket and are read as-is — no kW/kWh conversion
 happens anywhere in this app.
 """
@@ -15,7 +16,34 @@ import pandas as pd
 from sqlalchemy import Engine, text
 
 _SILVER_SCHEMA = os.environ.get("CELINE_SILVER_SCHEMA", "ds_dev_silver")
+_GOLD_SCHEMA = os.environ.get("CELINE_GOLD_SCHEMA", "ds_dev_gold")
 METERS_VIEW = "rec_meters_15m"
+MEMBERSHIP_VIEW = "rec_device_membership"
+
+
+def load_fleet(engine: Engine) -> dict[str, str]:
+    """The fleet, as ``{device_id: community_id}``.
+
+    Every device of the registry's membership (every role). A device's community is
+    the one its latest reading carries; a member device with no reading yet takes the
+    community the membership lists it under (the first, by name, if it is listed under
+    several). The Python tasks write this ``community_id`` on every row.
+    """
+    sql = text(
+        f"""
+        select distinct on (device_id) device_id, community_id
+        from (
+            select device_id, community_id, ts
+            from {_SILVER_SCHEMA}.{METERS_VIEW}
+            union all
+            select device_id, community_id, null::timestamptz as ts
+            from {_GOLD_SCHEMA}.{MEMBERSHIP_VIEW}
+        ) rows
+        order by device_id, ts desc nulls last, community_id
+        """
+    )
+    with engine.connect() as conn:
+        return {device_id: community_id for device_id, community_id in conn.execute(sql)}
 
 
 def load_meters(
@@ -28,8 +56,9 @@ def load_meters(
     Args:
         engine: SQLAlchemy engine.
         lookback_days: How many days back to read.
-        devices: Optional extra fleet scope. The view is already restricted to the
-            active fleet; pass a subset to narrow further. ``None`` reads all.
+        devices: Optional extra scope. The view is already restricted to the fleet
+            (the registry's membership); pass a subset to narrow further. ``None``
+            reads the whole fleet.
 
     Returns:
         One row per ``(device_id, ts)`` with columns ``consumption_kwh``

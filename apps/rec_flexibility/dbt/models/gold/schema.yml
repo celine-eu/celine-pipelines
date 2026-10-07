@@ -15,6 +15,10 @@ models:
     config:
       tags: ["rec_flexibility"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: _id
         description: MD5 surrogate key on (device_id, ts_date, window_start, window_end).
         data_tests:
@@ -45,10 +49,17 @@ models:
     config:
       tags: ["rec_flexibility"]
     columns:
-      - name: _id
-        description: MD5 surrogate key on (ts_date, window_start, window_end).
+      - name: community_id
+        description: The community whose forecast and devices this row aggregates.
         data_tests:
-          - unique
+          - not_null
+      - name: _id
+        description: >
+          md5(ts_date || window_start || window_end), without the community, so the
+          rows migrated in place keep their key. It repeats across communities that
+          share window bounds: the merge key and the uniqueness check are
+          (community_id, _id) — tests/rec_flexibility_windows_community_unique_per_community.sql.
+        data_tests:
           - not_null
       - name: window_start
         data_tests:
@@ -79,6 +90,10 @@ models:
     config:
       tags: ["rec_flexibility"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: _id
         description: MD5 surrogate key on (device_id, ts_date).
         data_tests:
@@ -112,6 +127,10 @@ models:
     config:
       tags: ["rec_flexibility", "settlement"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: _id
         description: MD5 surrogate key on (device_id, ts).
         data_tests:
@@ -135,6 +154,10 @@ models:
     config:
       tags: ["rec_flexibility", "settlement"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: _id
         description: MD5 surrogate key on (device_id, date_trunc('hour', ts)).
         data_tests:
@@ -153,6 +176,10 @@ models:
     config:
       tags: ["rec_flexibility", "settlement", "gamification"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: _id
         description: MD5 surrogate key on (device_id, ts_date).
         data_tests:
@@ -189,6 +216,10 @@ models:
     config:
       tags: ["rec_flexibility", "gamification"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: _id
         description: MD5 surrogate key on (device_id, season_start).
         data_tests:
@@ -244,6 +275,10 @@ models:
     config:
       tags: ["rec_flexibility"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: _id
         description: MD5 surrogate key on (device_id, ts_date).
         data_tests:
@@ -298,9 +333,13 @@ models:
     config:
       tags: ["rec_flexibility"]
     columns:
-      - name: ts_date
+      - name: community_id
+        description: The community whose forecast and devices this row aggregates.
         data_tests:
-          - unique
+          - not_null
+      - name: ts_date
+        description: One row per (community_id, ts_date) — tests/rec_co2_savings_community_unique_per_community.sql.
+        data_tests:
           - not_null
 
   - name: rec_settlement_points
@@ -317,6 +356,10 @@ models:
     config:
       tags: ["rec_flexibility", "settlement", "gamification"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: _id
         data_tests:
           - unique
@@ -340,6 +383,10 @@ models:
     config:
       tags: ["rec_flexibility", "gamification"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: _id
         data_tests:
           - unique
@@ -361,6 +408,10 @@ models:
     config:
       tags: ["rec_flexibility", "gamification"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: _id
         data_tests:
           - unique
@@ -388,6 +439,10 @@ models:
     config:
       tags: ["rec_flexibility", "gamification"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: device_id
         data_tests:
           - not_null
@@ -405,6 +460,10 @@ models:
     config:
       tags: ["rec_flexibility", "gamification"]
     columns:
+      - name: community_id
+        description: "The community this row's figures belong to, its device's readings' community."
+        data_tests:
+          - not_null
       - name: device_id
         data_tests:
           - unique

@@ -3,7 +3,9 @@
     materialized='incremental',
     unique_key='event_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
+      'community_id',
       'device_id',
       'ts',
       'created_at'
@@ -17,14 +19,18 @@ with detection_window as (
         date_trunc('hour', current_timestamp) + interval '15 minutes' * floor(extract(minute from current_timestamp) / 15)                     as detection_window_end
 ),
 
+-- each device once, under the community of its latest reading: a gap belongs to the
+-- device's community, and event_id stays md5(device_id || expected_ts)
 known_devices as (
-    select distinct device_id
+    select distinct on (device_id) device_id, community_id
     from {{ ref('meters_data_15m') }}
+    order by device_id, ts desc
 ),
 
 expected_ts as (
     select
         d.device_id,
+        d.community_id,
         g.expected_ts
     from known_devices d
     cross join detection_window w
@@ -45,6 +51,7 @@ missing_intervals as (
     select
         md5(e.device_id || e.expected_ts::text) as event_id,
         e.device_id,
+        e.community_id,
         e.expected_ts as ts,
         extract(hour from e.expected_ts AT TIME ZONE 'Europe/Rome') as hour,
         current_timestamp as created_at

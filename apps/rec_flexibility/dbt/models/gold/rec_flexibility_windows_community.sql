@@ -1,7 +1,13 @@
 {#
   Community-level flexibility windows — the EVENT layer of the event/enrichment split.
   One row per community surplus window. Row existence = the opportunity is visible to
-  ALL community members. Per-device estimates live in rec_flexibility_windows.
+  ALL members of that community. Per-device estimates live in rec_flexibility_windows.
+
+  Per community throughout: windows are detected from each community's own rows of
+  total_meters_forecast (its own latest generation), and the confidence is each
+  community's own realized hit rate. _id stays md5(ts_date || window_start ||
+  window_end), without the community, so the rows migrated in place keep their key; the
+  merge key and the uniqueness test are (community_id, _id).
 
   The incremental pre-hook deletes the refresh scope (ts_date >= current_date) before
   merging, so windows whose bounds shifted between forecast generations cannot leave
@@ -10,8 +16,9 @@
 {{
   config(
     materialized='incremental',
-    unique_key='_id',
+    unique_key=['community_id', '_id'],
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     full_refresh=false,
     merge_update_columns=[
       'ts_date',
@@ -39,21 +46,26 @@
 -- Minimum surplus hours for a window to be shown (skip isolated 1h blips)
 {% set MIN_WINDOW_HOURS = 2 %}
 
+-- each community's own latest forecast generation: a community whose forecast arrived
+-- earlier keeps its windows instead of losing them to another community's newer run
 with latest_forecast as (
-    select max(generated_at) as generated_at
+    select community_id, max(generated_at) as generated_at
     from {{ source('meters_gold', 'total_meters_forecast') }}
     where period = 'forecast'
+    group by community_id
 ),
 
 surplus_forecast as (
     select
+        f.community_id,
         f.timestamp::timestamp                  as ts,
         f.timestamp::timestamp::date            as ts_date,
         f.net_exchange_kwh
     from {{ source('meters_gold', 'total_meters_forecast') }} f
-    cross join latest_forecast lf
+    join latest_forecast lf
+      on lf.community_id = f.community_id
+     and (f.generated_at = lf.generated_at or lf.generated_at is null)
     where f.period = 'forecast'
-      and (f.generated_at = lf.generated_at or lf.generated_at is null)
       and f.net_exchange_kwh > {{ EXPORT_THRESHOLD_KWH }}
       and extract(hour from f.timestamp::timestamp) >= 5   -- skip sleeping hours 00:00–05:00
 
@@ -64,15 +76,17 @@ surplus_forecast as (
 
 windowed as (
     select
+        community_id,
         ts,
         ts_date,
         net_exchange_kwh,
-        lag(ts) over (partition by ts_date order by ts) as prev_ts
+        lag(ts) over (partition by community_id, ts_date order by ts) as prev_ts
     from surplus_forecast
 ),
 
 grouped as (
     select
+        community_id,
         ts,
         ts_date,
         net_exchange_kwh,
@@ -81,18 +95,19 @@ grouped as (
                 when prev_ts is null or ts - prev_ts > interval '1 hour' then 1
                 else 0
             end
-        ) over (partition by ts_date order by ts rows unbounded preceding) as window_group
+        ) over (partition by community_id, ts_date order by ts rows unbounded preceding) as window_group
     from windowed
 ),
 
 sub_grouped as (
     select
+        community_id,
         ts,
         ts_date,
         net_exchange_kwh,
         window_group,
         floor(
-            (row_number() over (partition by ts_date, window_group order by ts) - 1)
+            (row_number() over (partition by community_id, ts_date, window_group order by ts) - 1)
             / {{ MAX_WINDOW_HOURS }}
         )::int as sub_group
     from grouped
@@ -100,6 +115,7 @@ sub_grouped as (
 
 windows as (
     select
+        community_id,
         ts_date,
         window_group,
         sub_group,
@@ -107,7 +123,7 @@ windows as (
         max(ts) + interval '1 hour'     as window_end,
         sum(net_exchange_kwh)           as community_kwh
     from sub_grouped
-    group by ts_date, window_group, sub_group
+    group by community_id, ts_date, window_group, sub_group
     having count(*) >= {{ MIN_WINDOW_HOURS }}
 )
 
@@ -118,7 +134,7 @@ windows as (
 -- are excluded from the denominator. Replaces the 0.75 placeholder
 -- (closes CELINE-FLEX-CONF-CAL).
 , past_window_hours as (
-    select hour_ts
+    select w.community_id, hour_ts
     from {{ this }} w
     cross join lateral generate_series(
         w.window_start,
@@ -131,26 +147,31 @@ windows as (
 
 actual_hours as (
     select
+        f.community_id,
         date_trunc('hour', f.timestamp::timestamp) as hour_ts,
         avg(f.net_exchange_kwh)                    as net_exchange_kwh
     from {{ source('meters_gold', 'total_meters_forecast') }} f
     where f.period = 'actual'
       and f.timestamp::timestamp >= current_date - interval '31 days'
       and f.timestamp::timestamp <  current_date
-    group by date_trunc('hour', f.timestamp::timestamp)
+    group by f.community_id, date_trunc('hour', f.timestamp::timestamp)
 ),
 
+-- one hit rate per community, scored on that community's own windows and actuals
 hit_rate as (
     select
+        pwh.community_id,
         count(*) filter (where a.net_exchange_kwh > {{ EXPORT_THRESHOLD_KWH }})::numeric
             / nullif(count(a.hour_ts), 0) as raw_rate
     from past_window_hours pwh
-    left join actual_hours a using (hour_ts)
+    left join actual_hours a using (community_id, hour_ts)
+    group by pwh.community_id
 )
 {% endif %}
 
 select
     md5(w.ts_date::text || w.window_start::text || w.window_end::text)  as _id,
+    w.community_id,
     w.ts_date,
     w.window_start,
     w.window_end,
@@ -170,5 +191,5 @@ select
     '{{ var("flexibility_model", "solar_overproduction") }}'::text      as flexibility_model
 from windows w
 {% if is_incremental() %}
-cross join hit_rate hr
+left join hit_rate hr using (community_id)
 {% endif %}

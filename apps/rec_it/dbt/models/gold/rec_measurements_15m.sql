@@ -1,4 +1,4 @@
-{{ config(materialized='view') }}
+{{ config(materialized='view', tags=['rec_it']) }}
 
 {#
     rec_virtual_consumption_15m, one quantity per row.
@@ -9,7 +9,7 @@
     `obs_energy_measurement.yaml` in celine-ontologies for the mapping.
 
     ── The feature of interest is the sharing group, not the community ─────────
-    The source model's grain is `(ts, rec_id, substation_id)` because netting is
+    The source model's grain is `(ts, community_id, substation_id)` because netting is
     per primary substation: sharing cannot cross an unconnected cabina primaria,
     and a community-wide net would invent energy that physically cannot flow.
     Collapsing the feature to the REC would throw that away and mint one IRI for
@@ -32,7 +32,7 @@
     so a consumer does not have to guess.
 
     ── The feature IRI is relative, deliberately ───────────────────────────────
-    `feature_iri` is emitted as `sharing-group/<rec_id>/<substation_id>`, with no
+    `feature_iri` is emitted as `sharing-group/<community_id>/<substation_id>`, with no
     base. It identifies something *this deployment's data is about*, so the base
     is the serving deployment's — `dataset-api`'s `entity_base_uri`, which
     `MappingEngine._absolutize` prepends to any value not already starting
@@ -42,11 +42,10 @@
     reason: they name a CELINE term and a QUDT unit, published by someone else.
 
     ── Governance ──────────────────────────────────────────────────────────────
-    The source model carries **no row filter** — a known gap, latent until a
-    second REC exists, recorded in celine-dev/.agents/celine-pipelines/FACTS.md.
-    This view inherits that gap and does not widen it: `rec_id` is carried
-    verbatim so a filter can be added to both at once. Its governance entry
-    shares the source's block by YAML anchor.
+    The source model is filtered per organisation on `community_id`
+    (`organization_match`): a reader in a community's organisation reads that
+    community's rows only. `community_id` is carried verbatim so the same filter
+    applies here; the governance entry shares the source's block by YAML anchor.
 #}
 
 {% set celine_ns = 'https://w3id.org/celine-eu#' %}
@@ -56,7 +55,7 @@
 with base as (
     select
         ts,
-        rec_id,
+        community_id,
         substation_id,
         total_consumption_kwh,
         total_production_kwh,
@@ -73,8 +72,8 @@ with base as (
 keyed as (
     select
         *,
-        rec_id || '|' || substation_id || '|' || ts::text        as grain,
-        'sharing-group/' || rec_id || '/' || substation_id       as feature_iri
+        community_id || '|' || substation_id || '|' || ts::text        as grain,
+        'sharing-group/' || community_id || '/' || substation_id       as feature_iri
     from base
 ),
 
@@ -84,7 +83,7 @@ unpivoted as (
         md5(grain || '|GridImportEnergy')   as observation_id,
         ts                                  as result_time,
         cast(null as text)                  as device_id,
-        rec_id,
+        community_id,
         substation_id,
         feature_iri,
         {# No sensor: an aggregate over a substation is made by no single one,
@@ -100,7 +99,7 @@ unpivoted as (
 
     select
         md5(grain || '|GridExportEnergy'),
-        ts, cast(null as text), rec_id, substation_id, feature_iri,
+        ts, cast(null as text), community_id, substation_id, feature_iri,
         cast(null as text),
         '{{ celine_ns }}GridExportEnergy',
         total_production_kwh,
@@ -112,7 +111,7 @@ unpivoted as (
 
     select
         md5(grain || '|CollectivelySharedEnergy'),
-        ts, cast(null as text), rec_id, substation_id, feature_iri,
+        ts, cast(null as text), community_id, substation_id, feature_iri,
         cast(null as text),
         -- Not celine:SharedEnergy. That IRI belongs to the period-total KPI
         -- concept in celine:KPICatalog, released in ontology v0.5; the
@@ -128,7 +127,7 @@ unpivoted as (
 
     select
         md5(grain || '|SelfConsumptionRatio'),
-        ts, cast(null as text), rec_id, substation_id, feature_iri,
+        ts, cast(null as text), community_id, substation_id, feature_iri,
         cast(null as text),
         '{{ celine_ns }}SelfConsumptionRatio',
         self_consumption_ratio,

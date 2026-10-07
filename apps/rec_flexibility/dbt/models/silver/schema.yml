@@ -4,7 +4,8 @@ models:
   - name: rec_meters_15m
     description: >
       Analysis-ready 15-min meter view over ds_dev_gold.meters_data_15m (the
-      sanctioned rec_metering interface), scoped to the active fleet. All columns
+      sanctioned rec_metering interface), scoped to the fleet: the registry's
+      membership (rec_device_membership), matched on (device_id, community_id). All columns
       are kWh per 15-min bucket. pv_production_kwh and the clipped
       self_consumed_kwh are reconstructed from the unclipped upstream
       self_consumed_kwh (matches gamification/data_loader.py::load_meters).
@@ -19,6 +20,10 @@ models:
           - unique
           - not_null
       - name: device_id
+        data_tests:
+          - not_null
+      - name: community_id
+        description: The reading's community, from meters_data_15m.
         data_tests:
           - not_null
       - name: ts

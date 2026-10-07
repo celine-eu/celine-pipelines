@@ -3,15 +3,9 @@
 # All tunable parameters for the CER flexibility incentive system.
 # Adjust these values to calibrate the points distribution without changing code.
 
-# --- Section 0: Fleet scope (v2 grid-based migration) ---
-# The points pipeline is scoped to exactly the active-device fleet. Those device IDs
-# are PRIVATE demo data and are kept OUT of git: the authoritative source is the
-# REC_ACTIVE_DEVICES env var (comma-separated, injected via the sops-encrypted deploy
-# values). lib/config.get_active_devices reads the env; the flow generates the dbt seed
-# dbt/seeds/rec_active_devices.csv from it at start-up (the CSV is git-ignored too).
-# The list below is a LOCAL-DEV fallback only and ships empty.
-fleet:
-  active_devices: []
+# --- Section 0: Fleet scope ---
+# The fleet is the REC registry's membership (rec_registry's rec_device_membership,
+# every role, per community); rec_meters_15m reads it. Nothing here configures it.
 
 # --- Section 0b: Seasons (periodic points reset) ---
 # Displayed points reset to 0 every `months_per_season` calendar months, anchored at

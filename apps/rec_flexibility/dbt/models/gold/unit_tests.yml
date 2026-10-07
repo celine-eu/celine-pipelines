@@ -16,16 +16,16 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 3.0, confidence: 0.75}
+          - {community_id: 'example-rec', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 3.0, confidence: 0.75}
       - input: ref('rec_device_baselines')
         rows: []
       - input: ref('rec_device_class')
         rows: []
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
-          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 11:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 11:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
     expect:
       rows:
         - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', reward_points_estimated: 14}
@@ -43,17 +43,17 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 2.0, confidence: 0.75}
+          - {community_id: 'example-rec', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 2.0, confidence: 0.75}
       - input: ref('rec_device_baselines')
         rows: []
       - input: ref('rec_device_class')
         rows: []
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
-          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-02', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 1.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-02', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 1.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-02', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 1.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-02', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 1.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
     expect:
       rows:
         - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', reward_points_estimated: 5}
@@ -70,17 +70,17 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 4.0, confidence: 0.75}
+          - {community_id: 'example-rec', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 4.0, confidence: 0.75}
       - input: ref('rec_device_baselines')
         rows: []
       - input: ref('rec_device_class')
         rows: []
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
-          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-02', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.8, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-02', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.8, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-02', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.8, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-02', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.8, grid_import_kwh: null, period: 'forecast', data_missing: 0}
     expect:
       rows:
         - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', reward_points_estimated: 9}
@@ -99,17 +99,17 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: 0.75}
+          - {community_id: 'example-rec', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: 0.75}
       - input: ref('rec_device_baselines')
         rows: []
       - input: ref('rec_device_class')
         rows: []
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
-          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-02', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-02', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-02', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-02', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
     expect:
       rows:
         - {device_id: 'dev-01'}
@@ -128,32 +128,32 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: 0.62}
+          - {community_id: 'example-rec', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: 0.62}
       - input: ref('rec_device_class')
         rows:
-          - {device_id: 'dev-01', is_m1_only: false}
+          - {community_id: 'example-rec', device_id: 'dev-01', is_m1_only: false}
       - input: ref('rec_device_baselines')
         rows:
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.05}
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
-          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
     expect:
       rows:
         - {device_id: 'dev-01', estimated_kwh: "1.20", reward_points_estimated: 11, confidence: 0.62}
@@ -169,48 +169,48 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: null}
+          - {community_id: 'example-rec', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: null}
       - input: ref('rec_device_class')
         rows:
-          - {device_id: 'dev-m1', is_m1_only: true}
+          - {community_id: 'example-rec', device_id: 'dev-m1', is_m1_only: true}
       - input: ref('rec_device_baselines')
         rows:
-          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-m1', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.5}
-          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.5}
-          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.5}
-          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.5}
-          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.5}
-          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.5}
-          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.5}
-          - {device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.5}
-          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 36, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 37, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 38, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 39, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 40, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 41, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 42, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 43, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 36, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 37, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 38, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 39, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 40, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 41, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 42, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-m1', baseline_type: 'import_spread', slot: 43, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.5}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.5}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.5}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.5}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.5}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.5}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.5}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.5}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 36, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 37, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 38, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 39, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 40, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 41, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 42, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'grid_export_median', slot: 43, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'import_spread', slot: 36, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'import_spread', slot: 37, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'import_spread', slot: 38, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'import_spread', slot: 39, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'import_spread', slot: 40, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'import_spread', slot: 41, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'import_spread', slot: 42, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-m1', baseline_type: 'import_spread', slot: 43, is_weekday: false, baseline_kwh: 0.05}
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
-          - {device_id: 'dev-m1', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: null, grid_import_kwh: 0.0, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-m1', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: null, grid_import_kwh: 0.0, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-m1', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: null, grid_import_kwh: 0.0, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-m1', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: null, grid_import_kwh: 0.0, period: 'forecast', data_missing: 0}
     expect:
       rows:
         - {device_id: 'dev-m1', estimated_kwh: "1.60", reward_points_estimated: 15, confidence: null}
@@ -227,34 +227,34 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 4.0, confidence: 0.75}
+          - {community_id: 'example-rec', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 4.0, confidence: 0.75}
       - input: ref('rec_device_class')
         rows:
-          - {device_id: 'dev-base', is_m1_only: false}
+          - {community_id: 'example-rec', device_id: 'dev-base', is_m1_only: false}
       - input: ref('rec_device_baselines')
         rows:
-          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-base', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.05}
-          - {device_id: 'dev-base', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.05}
+          - {community_id: 'example-rec', device_id: 'dev-base', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.05}
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
-          - {device_id: 'dev-base', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-base', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-cold', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-cold', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-base', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-base', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-cold', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-cold', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.5, grid_import_kwh: null, period: 'forecast', data_missing: 0}
     expect:
       rows:
         - {device_id: 'dev-base', estimated_kwh: "1.20", reward_points_estimated: 11}
@@ -272,32 +272,32 @@ unit_tests:
     given:
       - input: ref('rec_flexibility_windows_community')
         rows:
-          - {ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: 0.75}
+          - {community_id: 'example-rec', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: 3.0, confidence: 0.75}
       - input: ref('rec_device_class')
         rows:
-          - {device_id: 'dev-01', is_m1_only: false}
+          - {community_id: 'example-rec', device_id: 'dev-01', is_m1_only: false}
       - input: ref('rec_device_baselines')
         rows:
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.0}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.0}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.0}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.0}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.0}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.0}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.0}
-          - {device_id: 'dev-01', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 36, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 37, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 38, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 39, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 40, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 41, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 42, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'settlement', slot: 43, is_weekday: false, baseline_kwh: 0.1}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 36, is_weekday: false, baseline_kwh: 0.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 37, is_weekday: false, baseline_kwh: 0.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 38, is_weekday: false, baseline_kwh: 0.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 39, is_weekday: false, baseline_kwh: 0.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 40, is_weekday: false, baseline_kwh: 0.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 41, is_weekday: false, baseline_kwh: 0.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 42, is_weekday: false, baseline_kwh: 0.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', baseline_type: 'shift_potential', slot: 43, is_weekday: false, baseline_kwh: 0.0}
       - input: source('meters_gold', 'meters_energy_forecast')
         rows:
-          - {device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
-          - {device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 09:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
+          - {community_id: 'example-rec', device_id: 'dev-01', timestamp: '2024-06-01 10:00:00', total_consumption_kwh: 0.0, grid_import_kwh: null, period: 'forecast', data_missing: 0}
     expect:
       rows:
         - {device_id: 'dev-01', estimated_kwh: "0.80", reward_points_estimated: 8}
@@ -315,7 +315,7 @@ unit_tests:
     given:
       - input: source('meters_gold', 'total_meters_forecast')
         rows:
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
     expect:
       rows: []
 
@@ -328,15 +328,15 @@ unit_tests:
     given:
       - input: source('meters_gold', 'total_meters_forecast')
         rows:
-          - {timestamp: '2024-06-01 06:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 07:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 08:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 11:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 12:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 13:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 14:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 06:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 07:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 08:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 11:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 12:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 13:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 14:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
     expect:
       rows:
         - {window_start: '2024-06-01 06:00:00', window_end: '2024-06-01 09:00:00', community_kwh: "3.00"}
@@ -352,10 +352,10 @@ unit_tests:
     given:
       - input: source('meters_gold', 'total_meters_forecast')
         rows:
-          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 13:00:00', net_exchange_kwh: 0.9, period: 'forecast'}
-          - {timestamp: '2024-06-01 14:00:00', net_exchange_kwh: 0.9, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 13:00:00', net_exchange_kwh: 0.9, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 14:00:00', net_exchange_kwh: 0.9, period: 'forecast'}
     expect:
       rows:
         - {window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00', community_kwh: "2.00"}
@@ -370,10 +370,10 @@ unit_tests:
     given:
       - input: source('meters_gold', 'total_meters_forecast')
         rows:
-          - {timestamp: '2024-06-01 03:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 04:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 06:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
-          - {timestamp: '2024-06-01 07:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 03:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 04:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 06:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 07:00:00', net_exchange_kwh: 1.0, period: 'forecast'}
     expect:
       rows:
         - {window_start: '2024-06-01 06:00:00', window_end: '2024-06-01 08:00:00', community_kwh: "2.00"}
@@ -387,8 +387,8 @@ unit_tests:
     given:
       - input: source('meters_gold', 'total_meters_forecast')
         rows:
-          - {timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 0.4, period: 'forecast'}
-          - {timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 0.5, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 09:00:00', net_exchange_kwh: 0.4, period: 'forecast'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 0.5, period: 'forecast'}
     expect:
       rows: []
 
@@ -408,6 +408,7 @@ unit_tests:
         rows: |
           select
             'past-1'::text                                            as _id,
+            'example-rec'::text                                       as community_id,
             (current_date - 1)::date                                  as ts_date,
             (current_date - 1)::timestamp + interval '9 hours'        as window_start,
             (current_date - 1)::timestamp + interval '11 hours'       as window_end,
@@ -417,15 +418,15 @@ unit_tests:
       - input: source('meters_gold', 'total_meters_forecast')
         format: sql
         rows: |
-          select ((current_date - 1)::timestamp + interval '9 hours')::text  as timestamp, 'actual'::text   as period, 1.0::float as net_exchange_kwh, null::text as generated_at
+          select ((current_date - 1)::timestamp + interval '9 hours')::text  as timestamp, 'actual'::text   as period, 1.0::float as net_exchange_kwh, null::text as generated_at, 'example-rec'::text as community_id
           union all
-          select ((current_date - 1)::timestamp + interval '10 hours')::text as timestamp, 'actual'::text   as period, 0.2::float as net_exchange_kwh, null::text as generated_at
+          select ((current_date - 1)::timestamp + interval '10 hours')::text as timestamp, 'actual'::text   as period, 0.2::float as net_exchange_kwh, null::text as generated_at, 'example-rec'::text as community_id
           union all
-          select (current_date::timestamp + interval '9 hours')::text        as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at
+          select (current_date::timestamp + interval '9 hours')::text        as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at, 'example-rec'::text as community_id
           union all
-          select (current_date::timestamp + interval '10 hours')::text       as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at
+          select (current_date::timestamp + interval '10 hours')::text       as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at, 'example-rec'::text as community_id
           union all
-          select (current_date::timestamp + interval '11 hours')::text       as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at
+          select (current_date::timestamp + interval '11 hours')::text       as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at, 'example-rec'::text as community_id
     expect:
       format: sql
       rows: |
@@ -435,6 +436,7 @@ unit_tests:
             || (current_date::timestamp + interval '9 hours')::text
             || (current_date::timestamp + interval '12 hours')::text
           )                                                      as _id,
+          'example-rec'::text                                    as community_id,
           current_date::date                                    as ts_date,
           current_date::timestamp + interval '9 hours'          as window_start,
           current_date::timestamp + interval '12 hours'         as window_end,
@@ -458,6 +460,7 @@ unit_tests:
         rows: |
           select
             'past-old'::text                                            as _id,
+            'example-rec'::text                                       as community_id,
             (current_date - 40)::date                                  as ts_date,
             (current_date - 40)::timestamp + interval '9 hours'        as window_start,
             (current_date - 40)::timestamp + interval '11 hours'       as window_end,
@@ -467,9 +470,9 @@ unit_tests:
       - input: source('meters_gold', 'total_meters_forecast')
         format: sql
         rows: |
-          select (current_date::timestamp + interval '9 hours')::text        as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at
+          select (current_date::timestamp + interval '9 hours')::text        as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at, 'example-rec'::text as community_id
           union all
-          select (current_date::timestamp + interval '10 hours')::text       as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at
+          select (current_date::timestamp + interval '10 hours')::text       as timestamp, 'forecast'::text as period, 1.0::float as net_exchange_kwh, '2099-01-01'::text as generated_at, 'example-rec'::text as community_id
     expect:
       format: sql
       rows: |
@@ -479,6 +482,7 @@ unit_tests:
             || (current_date::timestamp + interval '9 hours')::text
             || (current_date::timestamp + interval '11 hours')::text
           )                                                      as _id,
+          'example-rec'::text                                    as community_id,
           current_date::date                                    as ts_date,
           current_date::timestamp + interval '9 hours'          as window_start,
           current_date::timestamp + interval '11 hours'         as window_end,
@@ -508,17 +512,17 @@ unit_tests:
              committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 13:00:00'}
       - input: ref('rec_settlement_1h')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
-          - {device_id: 'dev-01', ts: '2024-06-01 10:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
-          - {device_id: 'dev-01', ts: '2024-06-01 11:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 10:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 11:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
       - input: ref('rec_settlement_points')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 10.0}
-          - {device_id: 'dev-01', ts: '2024-06-01 10:00:00', settlement_points: 10.0}
-          - {device_id: 'dev-01', ts: '2024-06-01 11:00:00', settlement_points: 10.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 10.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 10:00:00', settlement_points: 10.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 11:00:00', settlement_points: 10.0}
       - input: ref('rec_flexibility_bonus')
         rows: []
     expect:
@@ -550,16 +554,16 @@ unit_tests:
              committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 09:00:00'}
       - input: ref('rec_settlement_1h')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
-          - {device_id: 'dev-02', ts: '2024-06-01 09:00:00', consumption_kwh: 3.0, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'dev-02', ts: '2024-06-01 09:00:00', consumption_kwh: 3.0, window_start: '2024-06-01 09:00:00'}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 2.0}
-          - {device_id: 'dev-02', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 2.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 2.0}
+          - {community_id: 'example-rec', device_id: 'dev-02', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 2.0}
       - input: ref('rec_settlement_points')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 5.0}
-          - {device_id: 'dev-02', ts: '2024-06-01 09:00:00', settlement_points: 15.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 5.0}
+          - {community_id: 'example-rec', device_id: 'dev-02', ts: '2024-06-01 09:00:00', settlement_points: 15.0}
       - input: ref('rec_flexibility_bonus')
         rows: []
     expect:
@@ -585,10 +589,10 @@ unit_tests:
              committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 09:00:00'}
       - input: ref('rec_settlement_1h')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 1.5, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 1.5, window_start: '2024-06-01 09:00:00'}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
       - input: ref('rec_settlement_points')
         rows: []
       - input: ref('rec_flexibility_bonus')
@@ -615,12 +619,12 @@ unit_tests:
              committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 09:00:00'}
       - input: ref('rec_settlement_1h')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 2.0, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 2.0, window_start: '2024-06-01 09:00:00'}
       - input: ref('rec_flexibility_windows')
         rows: []
       - input: ref('rec_settlement_points')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 20.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 20.0}
       - input: ref('rec_flexibility_bonus')
         rows: []
     expect:
@@ -645,13 +649,13 @@ unit_tests:
              committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 09:00:00'}
       - input: ref('rec_settlement_1h')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 3.0, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 3.0, window_start: '2024-06-01 09:00:00'}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
       - input: ref('rec_settlement_points')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 15.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 15.0}
       - input: ref('rec_flexibility_bonus')
         rows: []
     expect:
@@ -677,15 +681,15 @@ unit_tests:
              last_updated: '2024-06-01 13:00:00'}
       - input: ref('rec_settlement_1h')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 3.0, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 3.0, window_start: '2024-06-01 09:00:00'}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
       - input: ref('rec_settlement_points')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 10.0}
-          - {device_id: 'dev-01', ts: '2024-06-01 10:00:00', settlement_points: 10.0}
-          - {device_id: 'dev-01', ts: '2024-06-01 11:00:00', settlement_points: 10.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', settlement_points: 10.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 10:00:00', settlement_points: 10.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 11:00:00', settlement_points: 10.0}
       - input: ref('rec_flexibility_bonus')
         rows: []
     expect:
@@ -707,10 +711,10 @@ unit_tests:
     given:
       - input: ref('rec_meters_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kwh: 2.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kwh: 2.0}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00',
+          - {community_id: 'example-rec', device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00',
              ts_date: '2024-06-01', estimated_kwh: 3.0, reward_points_estimated: 30}
     expect:
       rows:
@@ -728,10 +732,10 @@ unit_tests:
     given:
       - input: ref('rec_meters_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 14:00:00', consumption_kwh: 1.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 14:00:00', consumption_kwh: 1.0}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00',
+          - {community_id: 'example-rec', device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00',
              ts_date: '2024-06-01', estimated_kwh: 3.0, reward_points_estimated: 30}
     expect:
       rows:
@@ -748,8 +752,8 @@ unit_tests:
     given:
       - input: ref('rec_meters_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 2.0}
-          - {device_id: 'dev-01', ts: '2024-06-01 09:15:00', consumption_kwh: 4.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:00:00', consumption_kwh: 2.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:15:00', consumption_kwh: 4.0}
       - input: ref('rec_flexibility_windows')
         rows: []
     expect:
@@ -768,12 +772,12 @@ unit_tests:
     given:
       - input: ref('rec_meters_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kwh: 2.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:30:00', consumption_kwh: 2.0}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {device_id: 'dev-01', window_start: '2024-06-01 08:00:00', window_end: '2024-06-01 12:00:00',
+          - {community_id: 'example-rec', device_id: 'dev-01', window_start: '2024-06-01 08:00:00', window_end: '2024-06-01 12:00:00',
              ts_date: '2024-06-01', estimated_kwh: 4.0, reward_points_estimated: 40}
-          - {device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00',
+          - {community_id: 'example-rec', device_id: 'dev-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 11:00:00',
              ts_date: '2024-06-01', estimated_kwh: 2.0, reward_points_estimated: 20}
     expect:
       rows:
@@ -796,18 +800,18 @@ unit_tests:
     given:
       - input: ref('rec_settlement_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 2.0}
-          - {device_id: 'dev-02', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 1.0}
-          - {device_id: 'dev-03', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 2.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 2.0}
+          - {community_id: 'example-rec', device_id: 'dev-02', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 1.0}
+          - {community_id: 'example-rec', device_id: 'dev-03', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 2.0}
       - input: ref('silver_flexibility_commitments')
         rows:
           - {device_id: 'dev-01', committed_at: '2024-06-01 08:00:00', status: 'committed'}
       - input: ref('rec_commitment_settlement')
         rows:
-          - {period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00', allocated_kwh: 2.0, status: 'committed'}
+          - {community_id: 'example-rec', period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00', allocated_kwh: 2.0, status: 'committed'}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0, device_id: 'dev-01'}
+          - {community_id: 'example-rec', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0, device_id: 'dev-01'}
     expect:
       rows:
         - {device_id: 'dev-01', ts_date: '2024-06-01', committed: true,  total_consumption_kwh: 2.0, total_allocated_kwh: 0.0}
@@ -825,17 +829,17 @@ unit_tests:
     given:
       - input: ref('rec_settlement_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 3.0}
-          - {device_id: 'dev-02', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 1.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 3.0}
+          - {community_id: 'example-rec', device_id: 'dev-02', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 1.0}
       - input: ref('silver_flexibility_commitments')
         rows:
           - {device_id: 'dev-01', committed_at: '2024-06-01 08:00:00', status: 'committed'}
       - input: ref('rec_commitment_settlement')
         rows:
-          - {period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00', allocated_kwh: 3.0, status: 'committed'}
+          - {community_id: 'example-rec', period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00', allocated_kwh: 3.0, status: 'committed'}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 3.0, device_id: 'dev-01'}
+          - {community_id: 'example-rec', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 3.0, device_id: 'dev-01'}
     expect:
       rows:
         - {device_id: 'dev-01', committed: true,  total_allocated_kwh: 0.0}
@@ -853,18 +857,18 @@ unit_tests:
     given:
       - input: ref('rec_settlement_15m')
         rows:
-          - {device_id: 'dev-01', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 2.0}
-          - {device_id: 'dev-02', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 1.0}
-          - {device_id: 'dev-03', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 3.0}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 2.0}
+          - {community_id: 'example-rec', device_id: 'dev-02', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 1.0}
+          - {community_id: 'example-rec', device_id: 'dev-03', ts: '2024-06-01 09:30:00', ts_date: '2024-06-01', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', consumption_kwh: 3.0}
       - input: ref('silver_flexibility_commitments')
         rows:
           - {device_id: 'dev-01', committed_at: '2024-06-01 08:00:00', status: 'committed'}
       - input: ref('rec_commitment_settlement')
         rows:
-          - {period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00', allocated_kwh: 3.0, status: 'committed'}
+          - {community_id: 'example-rec', period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00', allocated_kwh: 3.0, status: 'committed'}
       - input: ref('rec_flexibility_windows')
         rows:
-          - {window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0, device_id: 'dev-01'}
+          - {community_id: 'example-rec', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0, device_id: 'dev-01'}
     expect:
       rows:
         - {device_id: 'dev-01', committed: true,  total_allocated_kwh: 0.0}
@@ -887,9 +891,9 @@ unit_tests:
     given:
       - input: ref('rec_settlement_points')
         rows:
-          - {device_id: 'dev-01', ts: '2025-09-15 09:00:00', consumption_kwh: 1.0, settlement_points: 10}
-          - {device_id: 'dev-01', ts: '2025-11-05 09:00:00', consumption_kwh: 1.0, settlement_points: 20}
-          - {device_id: 'dev-01', ts: '2026-05-28 09:00:00', consumption_kwh: 1.0, settlement_points: 30}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2025-09-15 09:00:00', consumption_kwh: 1.0, settlement_points: 10}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2025-11-05 09:00:00', consumption_kwh: 1.0, settlement_points: 20}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts: '2026-05-28 09:00:00', consumption_kwh: 1.0, settlement_points: 30}
       - input: ref('rec_flexibility_bonus')
         rows: []
     expect:
@@ -913,13 +917,13 @@ unit_tests:
       - input: ref('rec_participant_points')
         rows:
           # dev-01, season Sep-Oct 2025
-          - {device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 3, daily_points: 13}
-          - {device_id: 'dev-01', ts_date: '2025-10-02', season_start: '2025-09-01', daily_settlement_points: 20, daily_bonus_points: 2, daily_points: 22}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 3, daily_points: 13}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts_date: '2025-10-02', season_start: '2025-09-01', daily_settlement_points: 20, daily_bonus_points: 2, daily_points: 22}
           # dev-01, season Nov-Dec 2025
-          - {device_id: 'dev-01', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 40, daily_bonus_points: 0, daily_points: 40}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 40, daily_bonus_points: 0, daily_points: 40}
           # dev-02, single season
-          - {device_id: 'dev-02', ts_date: '2025-09-20', season_start: '2025-09-01', daily_settlement_points: 5, daily_bonus_points: 1, daily_points: 6}
-      - input: ref('rec_active_devices')
+          - {community_id: 'example-rec', device_id: 'dev-02', ts_date: '2025-09-20', season_start: '2025-09-01', daily_settlement_points: 5, daily_bonus_points: 1, daily_points: 6}
+      - input: source('rec_registry_gold', 'rec_device_membership')
         rows: []
     expect:
       rows:
@@ -937,10 +941,10 @@ unit_tests:
       - input: ref('rec_participant_points')
         rows:
           # pre-anchor (2025-07-01 season) — must be dropped
-          - {device_id: 'dev-01', ts_date: '2025-08-26', season_start: '2025-07-01', daily_settlement_points: 99, daily_bonus_points: 9, daily_points: 108}
+          - {community_id: 'example-rec', device_id: 'dev-01', ts_date: '2025-08-26', season_start: '2025-07-01', daily_settlement_points: 99, daily_bonus_points: 9, daily_points: 108}
           # in-program season
-          - {device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 2, daily_points: 12}
-      - input: ref('rec_active_devices')
+          - {community_id: 'example-rec', device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 2, daily_points: 12}
+      - input: source('rec_registry_gold', 'rec_device_membership')
         rows: []
     expect:
       rows:
@@ -958,15 +962,15 @@ unit_tests:
     given:
       - input: ref('rec_participant_points')
         rows:
-          - {device_id: 'dev-01', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 25, daily_bonus_points: 5, daily_points: 30}
-          - {device_id: 'dev-02', ts_date: '2025-11-06', season_start: '2025-11-01', daily_settlement_points: 18, daily_bonus_points: 2, daily_points: 20}
-          - {device_id: 'dev-03', ts_date: '2025-11-07', season_start: '2025-11-01', daily_settlement_points: 15, daily_bonus_points: 5, daily_points: 20}
-      - input: ref('rec_active_devices')
+          - {community_id: 'example-rec', device_id: 'dev-01', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 25, daily_bonus_points: 5, daily_points: 30}
+          - {community_id: 'example-rec', device_id: 'dev-02', ts_date: '2025-11-06', season_start: '2025-11-01', daily_settlement_points: 18, daily_bonus_points: 2, daily_points: 20}
+          - {community_id: 'example-rec', device_id: 'dev-03', ts_date: '2025-11-07', season_start: '2025-11-01', daily_settlement_points: 15, daily_bonus_points: 5, daily_points: 20}
+      - input: source('rec_registry_gold', 'rec_device_membership')
         rows:
-          - {device_id: 'dev-01'}
-          - {device_id: 'dev-02'}
-          - {device_id: 'dev-03'}
-          - {device_id: 'dev-04'}
+          - {community_id: 'example-rec', device_id: 'dev-01'}
+          - {community_id: 'example-rec', device_id: 'dev-02'}
+          - {community_id: 'example-rec', device_id: 'dev-03'}
+          - {community_id: 'example-rec', device_id: 'dev-04'}
     expect:
       rows:
         - {device_id: 'dev-01', season_start: '2025-11-01', season_end: '2026-01-01', season_base_points: 25, season_bonus_points: 5, season_points: 30, season_rank: 1, total_members: 4, is_current_season: true}
@@ -986,11 +990,11 @@ unit_tests:
     given:
       - input: ref('rec_participant_points')
         rows:
-          - {device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 0, daily_points: 10}
-          - {device_id: 'dev-99', ts_date: '2025-09-20', season_start: '2025-09-01', daily_settlement_points: 40, daily_bonus_points: 5, daily_points: 45}
-      - input: ref('rec_active_devices')
+          - {community_id: 'example-rec', device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 0, daily_points: 10}
+          - {community_id: 'example-rec', device_id: 'dev-99', ts_date: '2025-09-20', season_start: '2025-09-01', daily_settlement_points: 40, daily_bonus_points: 5, daily_points: 45}
+      - input: source('rec_registry_gold', 'rec_device_membership')
         rows:
-          - {device_id: 'dev-01'}
+          - {community_id: 'example-rec', device_id: 'dev-01'}
     expect:
       rows:
         - {device_id: 'dev-99', season_start: '2025-09-01', season_points: 45, season_rank: 1, total_members: 2, is_current_season: false}
@@ -1009,14 +1013,104 @@ unit_tests:
     given:
       - input: ref('rec_participant_points')
         rows:
-          - {device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 2, daily_points: 12}
-      - input: ref('rec_active_devices')
+          - {community_id: 'example-rec', device_id: 'dev-01', ts_date: '2025-09-15', season_start: '2025-09-01', daily_settlement_points: 10, daily_bonus_points: 2, daily_points: 12}
+      - input: source('rec_registry_gold', 'rec_device_membership')
         rows:
-          - {device_id: 'dev-01'}
-          - {device_id: 'dev-02'}
+          - {community_id: 'example-rec', device_id: 'dev-01'}
+          - {community_id: 'example-rec', device_id: 'dev-02'}
     expect:
       rows:
         - {device_id: 'dev-01', season_start: '2025-09-01', season_points: 12, alltime_base_points: 10, alltime_bonus_points: 2, is_current_season: false}
         - {device_id: 'dev-01', season_start: '2025-11-01', season_points: 0, alltime_base_points: 10, alltime_bonus_points: 2, is_current_season: true}
         - {device_id: 'dev-02', season_start: '2025-11-01', season_points: 0, alltime_base_points: 0, alltime_bonus_points: 0, is_current_season: true}
 
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # One community never sees another's figures
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: pc1_same_bounds_two_communities_keep_own_windows
+    description: >
+      Two communities each forecast a 2-hour surplus with the same bounds on the same day.
+      Each keeps its own window, with its own community_kwh, from its own latest forecast
+      generation; the _id is the same for both (it hashes only the day and the bounds), so
+      the merge key and the uniqueness check are (community_id, _id).
+    model: rec_flexibility_windows_community
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('meters_gold', 'total_meters_forecast')
+        rows:
+          - {community_id: 'example-rec', timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 1.0, period: 'forecast', generated_at: '2024-06-01 00:00:00'}
+          - {community_id: 'example-rec', timestamp: '2024-06-01 11:00:00', net_exchange_kwh: 1.0, period: 'forecast', generated_at: '2024-06-01 00:00:00'}
+          - {community_id: 'other-rec', timestamp: '2024-06-01 10:00:00', net_exchange_kwh: 4.0, period: 'forecast', generated_at: '2024-05-31 00:00:00'}
+          - {community_id: 'other-rec', timestamp: '2024-06-01 11:00:00', net_exchange_kwh: 4.0, period: 'forecast', generated_at: '2024-05-31 00:00:00'}
+    expect:
+      rows:
+        - {community_id: 'example-rec', window_start: '2024-06-01 10:00:00', window_end: '2024-06-01 12:00:00', community_kwh: "2.00"}
+        - {community_id: 'other-rec', window_start: '2024-06-01 10:00:00', window_end: '2024-06-01 12:00:00', community_kwh: "8.00"}
+
+  - name: pc2_leaderboard_ranks_and_counts_within_one_community
+    description: >
+      Ranks and total_members are computed within one community and season: the top
+      device of each community ranks 1, and each community counts only its own members
+      (every membership device, 0-filled).
+    model: rec_points_leaderboard
+    overrides:
+      macros:
+        rec_season_start: "cast('2025-11-01' as date)"
+    given:
+      - input: ref('rec_participant_points')
+        rows:
+          - {community_id: 'example-rec', device_id: 'ex-00001', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 50, daily_bonus_points: 0, daily_points: 50}
+          - {community_id: 'example-rec', device_id: 'ex-00002', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 10, daily_bonus_points: 0, daily_points: 10}
+          - {community_id: 'other-rec', device_id: 'ex-00003', ts_date: '2025-11-05', season_start: '2025-11-01', daily_settlement_points: 20, daily_bonus_points: 0, daily_points: 20}
+      - input: source('rec_registry_gold', 'rec_device_membership')
+        rows:
+          - {community_id: 'example-rec', device_id: 'ex-00001'}
+          - {community_id: 'example-rec', device_id: 'ex-00002'}
+          - {community_id: 'other-rec', device_id: 'ex-00003'}
+          - {community_id: 'other-rec', device_id: 'ex-00004'}
+    expect:
+      rows:
+        - {community_id: 'example-rec', device_id: 'ex-00001', season_rank: 1, total_members: 2}
+        - {community_id: 'example-rec', device_id: 'ex-00002', season_rank: 2, total_members: 2}
+        - {community_id: 'other-rec', device_id: 'ex-00003', season_rank: 1, total_members: 2}
+        - {community_id: 'other-rec', device_id: 'ex-00004', season_rank: 2, total_members: 2}
+
+  - name: pc3_commitment_settles_on_its_measured_community_budget
+    description: >
+      Two communities share window bounds with different budgets. A commitment whose
+      flexibility-service community is wrong ('com-01') is settled on the budget of the
+      community its device's measurements carry, and the row reports that community.
+      Its actual (3.0 kWh) exceeds no budget of its own community (5.0), so it keeps it;
+      the other community's 1.0 kWh budget would have cut it.
+    model: rec_commitment_settlement
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('silver_flexibility_commitments')
+        rows:
+          - {commitment_id: 'c-01', device_id: 'ex-00001', suggestion_id: 's-01',
+             suggestion_type: 'solar_overproduction', community_id: 'com-01',
+             period_start: '2024-06-01 09:00:00', period_end: '2024-06-01 12:00:00',
+             status: 'committed', reward_points_estimated: 30,
+             committed_at: '2024-06-01 08:00:00', last_updated: '2024-06-01 13:00:00'}
+      - input: ref('rec_settlement_1h')
+        rows:
+          - {community_id: 'example-rec', device_id: 'ex-00001', ts: '2024-06-01 09:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'ex-00001', ts: '2024-06-01 10:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+          - {community_id: 'example-rec', device_id: 'ex-00001', ts: '2024-06-01 11:00:00', consumption_kwh: 1.0, window_start: '2024-06-01 09:00:00'}
+      - input: ref('rec_flexibility_windows')
+        rows:
+          - {community_id: 'example-rec', device_id: 'ex-00001', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 5.0}
+          - {community_id: 'other-rec', device_id: 'ex-00009', window_start: '2024-06-01 09:00:00', window_end: '2024-06-01 12:00:00', community_kwh: 1.0}
+      - input: ref('rec_settlement_points')
+        rows: []
+      - input: ref('rec_flexibility_bonus')
+        rows: []
+    expect:
+      rows:
+        - {commitment_id: 'c-01', community_id: 'example-rec', actual_kwh: 3.0, allocated_kwh: 3.0}

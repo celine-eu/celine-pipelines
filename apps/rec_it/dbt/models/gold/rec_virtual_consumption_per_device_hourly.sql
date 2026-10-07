@@ -3,10 +3,11 @@
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
       'ts',
       'device_id',
-      'rec_id',
+      'community_id',
       'substation_id',
       'consumption_kwh',
       'virtual_consumption_kwh',
@@ -19,7 +20,7 @@ with hourly as (
     select
         date_trunc('hour', ts)          as ts,
         device_id,
-        rec_id,
+        community_id,
         substation_id,
         sum(consumption_kwh)            as consumption_kwh,
         sum(virtual_consumption_kwh)    as virtual_consumption_kwh
@@ -32,20 +33,20 @@ with hourly as (
     )
     {% endif %}
 
-    group by date_trunc('hour', ts), device_id, rec_id, substation_id
+    group by date_trunc('hour', ts), device_id, community_id, substation_id
 )
 
 select
-    md5(device_id || ts::text || rec_id || substation_id)  as _id,
+    md5(device_id || ts::text || substation_id)  as _id,  -- no community: see the 15m model
     ts,
     device_id,
-    rec_id,
+    community_id,
     substation_id,
     consumption_kwh,
     virtual_consumption_kwh,
     case
-        when sum(consumption_kwh) over (partition by ts, rec_id, substation_id) > 0
-        then consumption_kwh / sum(consumption_kwh) over (partition by ts, rec_id, substation_id)
+        when sum(consumption_kwh) over (partition by ts, community_id, substation_id) > 0
+        then consumption_kwh / sum(consumption_kwh) over (partition by ts, community_id, substation_id)
         else 0
     end                         as ratio
 from hourly

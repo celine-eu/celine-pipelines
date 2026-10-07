@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    tables:
+      - name: rec_registry_mirror
+        description: >
+          The registry's active members, one row per (user_id, community_id), replaced
+          wholesale on every run of this app's flow (flows/pipeline.py).

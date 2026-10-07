@@ -23,13 +23,9 @@ temp*
 
 # Local and restricted reference values. `references.md` declares the names and is
 
-# Generated at flow start from REC_ACTIVE_DEVICES so dbt can resolve
-# ref('rec_active_devices'). It holds the private device fleet, and this
-# repository is open source — the flow writes it straight into the working tree
-# (apps/ is bind-mounted into the container), so without this line a `git add -A`
-# after any local or compose run commits the fleet. The code comments in
-# flows/pipeline.py and lib/config.py already assert it is ignored; this is the
-# line that makes that true.
+# The flow used to generate this seed from REC_ACTIVE_DEVICES, holding the private
+# device fleet. The fleet is the registry's membership now and nothing writes the file,
+# but checkouts that ran the old flow still have one: keep it out of git.
 apps/rec_flexibility/dbt/seeds/rec_active_devices.csv
 
 .agents/

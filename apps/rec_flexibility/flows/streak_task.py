@@ -18,8 +18,9 @@ _APP_DIR = Path(__file__).resolve().parent.parent
 if str(_APP_DIR) not in sys.path:
     sys.path.insert(0, str(_APP_DIR))
 
+from lib import meters as mt  # noqa: E402
 from lib import streaks as st  # noqa: E402
-from lib.config import get_active_devices, load_config  # noqa: E402
+from lib.config import load_config  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -77,9 +78,10 @@ def update_streaks_task(cfg: PipelineConfig) -> int:
     """
     yaml_cfg = load_config()
     streak_cfg = yaml_cfg["flexibility_bonus"]["streak"]
-    active_devices = get_active_devices(yaml_cfg) or None
-
     engine = create_engine(_build_db_url(cfg.model_dump()))
+    # The fleet is the registry's membership; every fleet device gets a row (cold start
+    # at level 0), and each row carries the device's community.
+    fleet = mt.load_fleet(engine)
 
     now = pd.Timestamp.now(tz="UTC").normalize()
     week_start = now - pd.Timedelta(days=7)
@@ -100,10 +102,13 @@ def update_streaks_task(cfg: PipelineConfig) -> int:
         decay_per_period=streak_cfg["decay_per_period"],
         max_level=max_level,
         floor_fraction=streak_cfg["floor_fraction"],
-        devices=active_devices,
+        devices=sorted(fleet),
     )
 
     out_df = st.state_to_dataframe(new_state, now)
+    if not out_df.empty:
+        out_df.insert(1, "community_id", out_df["device_id"].map(fleet))
+        out_df = out_df[out_df["community_id"].notna()]
     with engine.begin() as conn:
         conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {GOLD_SCHEMA}"))
         conn.execute(
@@ -111,6 +116,7 @@ def update_streaks_task(cfg: PipelineConfig) -> int:
                 f"""
                 CREATE TABLE IF NOT EXISTS {GOLD_SCHEMA}.{RAW_TABLE} (
                     device_id text primary key,
+                    community_id text not null,
                     level int not null,
                     peak int not null,
                     multiplier float not null,
@@ -120,6 +126,10 @@ def update_streaks_task(cfg: PipelineConfig) -> int:
             )
         )
         conn.execute(text(f"DELETE FROM {GOLD_SCHEMA}.{RAW_TABLE}"))
+        # see baseline_task: the table is rewritten whole, so the column is added empty
+        conn.execute(
+            text(f"ALTER TABLE {GOLD_SCHEMA}.{RAW_TABLE} ADD COLUMN IF NOT EXISTS community_id text NOT NULL")
+        )
         if not out_df.empty:
             out_df.to_sql(RAW_TABLE, conn, schema=GOLD_SCHEMA, if_exists="append", index=False)
 

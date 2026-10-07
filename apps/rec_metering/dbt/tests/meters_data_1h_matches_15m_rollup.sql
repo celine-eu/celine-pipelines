@@ -17,17 +17,19 @@
 with fifteen as (
     select
         device_id,
+        community_id,
         date_trunc('hour', ts) as ts,
         sum(consumption_kwh)   as consumption_kwh,
         sum(production_kwh)    as production_kwh,
         count(*)               as slots
     from {{ ref('meters_data_15m') }}
-    group by device_id, date_trunc('hour', ts)
+    group by device_id, community_id, date_trunc('hour', ts)
 ),
 
 hourly as (
     select
         device_id,
+        community_id,
         ts,
         consumption_kwh,
         production_kwh
@@ -43,8 +45,9 @@ select
     h.production_kwh  as actual_production_kwh
 from hourly h
 join fifteen f
-  on f.device_id = h.device_id
- and f.ts        = h.ts
+  on f.device_id    = h.device_id
+ and f.community_id = h.community_id
+ and f.ts           = h.ts
 where f.slots = 4
   and (
         abs(coalesce(h.consumption_kwh, 0) - coalesce(f.consumption_kwh, 0)) > 1e-6

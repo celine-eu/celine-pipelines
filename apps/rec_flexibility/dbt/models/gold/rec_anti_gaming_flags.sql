@@ -3,8 +3,9 @@
         materialized='incremental',
         unique_key='_id',
         incremental_strategy='merge',
+        on_schema_change='append_new_columns',
         merge_update_columns=[
-            'device_id', 'flag_date', 'flag_type',
+            'device_id', 'community_id', 'flag_date', 'flag_type',
             'metric_value', 'threshold_value', 'severity'
         ]
     )
@@ -17,17 +18,19 @@
 with daily_bonus as (
     select
         device_id,
+        community_id,
         date_trunc('day', window_start)::date as flag_date,
         sum(bonus_points) as daily_points
     from {{ ref('rec_flexibility_bonus') }}
     {% if is_incremental() %}
     where window_start >= date_trunc('day', now() - interval '7 days')
     {% endif %}
-    group by device_id, date_trunc('day', window_start)::date
+    group by device_id, community_id, date_trunc('day', window_start)::date
 ),
 median_30d as (
     select
         db.device_id,
+        db.community_id,
         db.flag_date,
         db.daily_points,
         m.median_30d
@@ -43,6 +46,7 @@ median_30d as (
 spike_flags as (
     select
         device_id,
+        community_id,
         flag_date,
         'L4_DAILY_SPIKE' as flag_type,
         daily_points as metric_value,
@@ -56,6 +60,7 @@ spike_flags as (
 window_caps as (
     select
         device_id,
+        community_id,
         window_start,
         date_trunc('day', window_start)::date as flag_date,
         'L3_WINDOW_CAP' as flag_type,
@@ -66,9 +71,9 @@ window_caps as (
     where bonus_points_raw > bonus_points_capped + 0.001
 )
 select md5(device_id || flag_date::text || flag_type) as _id,
-       device_id, flag_date, flag_type, metric_value, threshold_value, severity
+       device_id, community_id, flag_date, flag_type, metric_value, threshold_value, severity
 from spike_flags
 union all
 select md5(device_id || flag_date::text || flag_type || window_start::text) as _id,
-       device_id, flag_date, flag_type, metric_value, threshold_value, severity
+       device_id, community_id, flag_date, flag_type, metric_value, threshold_value, severity
 from window_caps

@@ -3,10 +3,11 @@
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
       'ts',
       'device_id',
-      'rec_id',
+      'community_id',
       'substation_id',
       'consumption_kwh',
       'virtual_consumption_kwh',
@@ -18,12 +19,14 @@
 with device as (
     select
         m.device_id,
-        r.rec_id,
+        m.community_id,
         r.substation_id,
         m.ts,
         m.consumption_kwh
     from {{ source('rec_metering_gold', 'meters_data_15m') }} m
-    join {{ ref('silver_rec_registry') }} r on m.device_id = r.sensor_id
+    join {{ source('rec_registry_gold', 'rec_device_membership') }} r
+      on  r.device_id    = m.device_id
+      and r.community_id = m.community_id
 
     {% if is_incremental() %}
     where m.ts >= (
@@ -36,7 +39,7 @@ with device as (
 community as (
     select
         ts,
-        rec_id,
+        community_id,
         substation_id,
         total_consumption_kwh,
         self_consumption_kwh as available_kwh
@@ -50,11 +53,14 @@ community as (
     {% endif %}
 )
 
+-- _id leaves the community out: a reading reaches one community, so the key stays
+-- unique, and a slug change needs no re-keying. The in-place migration recomputed the
+-- stored _id with this same formula.
 select
-    md5(d.device_id || d.ts::text || d.rec_id || d.substation_id)  as _id,
+    md5(d.device_id || d.ts::text || d.substation_id)  as _id,
     d.ts,
     d.device_id,
-    d.rec_id,
+    d.community_id,
     d.substation_id,
     d.consumption_kwh,
     case
@@ -70,5 +76,5 @@ select
 from device d
 join community c
     on  d.ts           = c.ts
-    and d.rec_id       = c.rec_id
+    and d.community_id = c.community_id
     and d.substation_id = c.substation_id
