@@ -15,7 +15,11 @@ dependencies = [
     # celine.governance parser. Extras cannot be defaults in Python, so a bare
     # "celine-utils" no longer delivers the runners this repo imports via
     # celine.utils.pipelines.pipeline.
-    "celine-utils[all]>=2.0.0"
+    "celine-utils[all]>=2.6.0",
+    # Not imported here directly: celine-sdk (via celine-utils) verifies tokens
+    # with it. Declared so the lock cannot hold a release below the platform's
+    # floor while the celine-sdk pinned here is older than the one requiring it.
+    "pyjwt>=2.14",
 ]
 
 [dependency-groups]

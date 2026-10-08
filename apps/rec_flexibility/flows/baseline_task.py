@@ -21,7 +21,7 @@ if str(_APP_DIR) not in sys.path:
 
 from lib import baselines as bl  # noqa: E402
 from lib import meters as mt  # noqa: E402
-from lib.config import get_active_devices, load_config  # noqa: E402
+from lib.config import load_config  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
@@ -147,17 +147,17 @@ def compute_baselines_task(cfg: PipelineConfig) -> int:
     yaml_cfg = load_config()
     bl_cfg = yaml_cfg["baseline"]
     ref_cfg = bl_cfg["bonus_reference"]
-    active_devices = get_active_devices(yaml_cfg) or None
-
     engine = create_engine(_build_db_url(cfg.model_dump()))
+    # The fleet is the registry's membership: rec_meters_15m is already scoped to it.
+    fleet = mt.load_fleet(engine)
 
     today_utc = pd.Timestamp.now(tz="UTC").normalize()
 
     history_settlement = _prepare_history(
-        engine, lookback_days=bl_cfg["candidate_days"], devices=active_devices
+        engine, lookback_days=bl_cfg["candidate_days"]
     )
     history_reference = _prepare_history(
-        engine, lookback_days=ref_cfg["lookback_days"], devices=active_devices
+        engine, lookback_days=ref_cfg["lookback_days"]
     )
 
     # v2: M1-only devices use the consumption proxy; everyone else uses behind-meter
@@ -169,7 +169,7 @@ def compute_baselines_task(cfg: PipelineConfig) -> int:
     history_reference = _apply_consumption_basis(history_reference, m1_only, ge_med)
     logger.info(
         "Fleet=%s devices, M1-only=%s: %s",
-        len(active_devices) if active_devices else "all",
+        len(fleet),
         len(m1_only),
         sorted(m1_only),
     )
@@ -213,7 +213,7 @@ def compute_baselines_task(cfg: PipelineConfig) -> int:
     # drive payments and must not change).
     wp_cfg = yaml_cfg["window_promise"]
     history_promise = _prepare_history(
-        engine, lookback_days=wp_cfg["lookback_days"], devices=active_devices
+        engine, lookback_days=wp_cfg["lookback_days"]
     )
     history_promise = _apply_consumption_basis(history_promise, m1_only, ge_med)
     day_counts = history_promise.groupby("device_id")["date"].nunique()
@@ -255,6 +255,9 @@ def compute_baselines_task(cfg: PipelineConfig) -> int:
         return 0
 
     out_df = pd.concat(frames, ignore_index=True)
+    # every row carries the device's community; a device outside the fleet has none
+    out_df.insert(1, "community_id", out_df["device_id"].map(fleet))
+    out_df = out_df[out_df["community_id"].notna()]
 
     with engine.begin() as conn:
         conn.execute(text(f"CREATE SCHEMA IF NOT EXISTS {GOLD_SCHEMA}"))
@@ -263,6 +266,7 @@ def compute_baselines_task(cfg: PipelineConfig) -> int:
                 f"""
                 CREATE TABLE IF NOT EXISTS {GOLD_SCHEMA}.{RAW_TABLE} (
                     device_id text not null,
+                    community_id text not null,
                     baseline_type text not null,
                     slot int not null,
                     is_weekday bool not null,
@@ -274,6 +278,11 @@ def compute_baselines_task(cfg: PipelineConfig) -> int:
             )
         )
         conn.execute(text(f"DELETE FROM {GOLD_SCHEMA}.{RAW_TABLE}"))
+        # A table created before the column existed gains it here, on the now-empty
+        # table: every row is rewritten on every run, so nothing old needs a value.
+        conn.execute(
+            text(f"ALTER TABLE {GOLD_SCHEMA}.{RAW_TABLE} ADD COLUMN IF NOT EXISTS community_id text NOT NULL")
+        )
         out_df.to_sql(RAW_TABLE, conn, schema=GOLD_SCHEMA, if_exists="append", index=False)
 
     logger.info("Wrote %d baseline rows.", len(out_df))

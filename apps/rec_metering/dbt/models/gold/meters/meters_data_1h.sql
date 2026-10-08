@@ -3,7 +3,9 @@
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
+      'community_id',
       'ts',
       'consumption_kwh',
       'production_kwh'
@@ -14,6 +16,7 @@
 with base as (
     select
         device_id,
+        community_id,
         ts,
         consumption_kwh,
         production_kwh
@@ -24,11 +27,12 @@ aggregated as (
     select
         md5(device_id || date_trunc('hour', ts)::text) as _id,  -- unique per device per hour
         device_id,
+        community_id,
         date_trunc('hour', ts) as ts,
         sum(consumption_kwh) as consumption_kwh,
         sum(production_kwh) as production_kwh
     from base
-    group by device_id, date_trunc('hour', ts)
+    group by device_id, community_id, date_trunc('hour', ts)
 ),
 
 last_extracted as (

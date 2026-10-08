@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from lib import config as cfg_mod
 
 
@@ -10,48 +12,22 @@ def test_load_config_returns_required_sections(config_path):
     assert set(cfg.keys()) >= {"baseline", "settlement", "flexibility_bonus", "anti_gaming"}
 
 
-def test_get_active_devices_reads_env_first(monkeypatch):
-    monkeypatch.setenv("REC_ACTIVE_DEVICES", " dev-A, dev-B ,dev-C ")
-    # env wins even when the yaml carries a (legacy/local) list
-    assert cfg_mod.get_active_devices({"fleet": {"active_devices": ["ignored"]}}) == [
-        "dev-A",
-        "dev-B",
-        "dev-C",
-    ]
+def test_the_fleet_is_not_configurable():
+    """The fleet is the registry's membership: no env var, yaml list or seed sets it."""
+    app = Path(cfg_mod.__file__).resolve().parents[1]
+    sources = [*app.glob("flows/*.py"), *app.glob("lib/*.py"), *app.glob("dbt/models/**/*.sql")]
 
-
-def test_get_active_devices_falls_back_to_yaml_when_env_unset(monkeypatch):
-    monkeypatch.delenv("REC_ACTIVE_DEVICES", raising=False)
-    assert cfg_mod.get_active_devices({"fleet": {"active_devices": ["x", "y"]}}) == ["x", "y"]
-
-
-def test_get_active_devices_empty_when_nothing_configured(monkeypatch):
-    monkeypatch.delenv("REC_ACTIVE_DEVICES", raising=False)
-    assert cfg_mod.get_active_devices({}) == []
-    assert cfg_mod.get_active_devices({"fleet": {"active_devices": []}}) == []
+    assert not hasattr(cfg_mod, "get_active_devices")
+    assert "fleet" not in cfg_mod.load_config()
+    for path in sources:
+        text = path.read_text(encoding="utf-8")
+        assert "REC_ACTIVE_DEVICES" not in text, path
+        assert "rec_active_devices" not in text, path
 
 
 def test_committed_config_carries_no_device_ids(config_path):
     """Governance: the committed yaml must not contain private device IDs."""
     assert "c2g-" not in config_path.read_text(encoding="utf-8")
-
-
-def test_write_active_devices_seed(tmp_path):
-    seed_path = tmp_path / "seeds" / "rec_active_devices.csv"
-    n = cfg_mod.write_active_devices_seed(["dev-A", "dev-B"], seed_path)
-    assert n == 2
-    assert seed_path.read_text(encoding="utf-8").splitlines() == [
-        "device_id",
-        "dev-A",
-        "dev-B",
-    ]
-
-
-def test_write_active_devices_seed_empty_fleet_writes_header_only(tmp_path):
-    seed_path = tmp_path / "seeds" / "rec_active_devices.csv"
-    n = cfg_mod.write_active_devices_seed([], seed_path)
-    assert n == 0
-    assert seed_path.read_text(encoding="utf-8").splitlines() == ["device_id"]
 
 
 def test_get_effort_tiers_sorted(config_path):

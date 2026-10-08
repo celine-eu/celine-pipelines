@@ -1,14 +1,15 @@
 {#
-  Run with --full-refresh when:
-  - Stale rows appear (e.g. pre-device_id giant windows)
-  - New columns are added to this model (incremental merge cannot add columns to existing tables)
-  Example: dbt run --full-refresh --select rec_flexibility_windows
+  Never full-refreshed (full_refresh=false below): its history exists only through the
+  daily incremental runs. A new column reaches the existing table through
+  on_schema_change='append_new_columns'; the values of rows stored before it are set
+  once, by the deployment's in-place migration.
 #}
 {{
   config(
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     full_refresh=false,
     merge_update_columns=[
       'ts_date',
@@ -40,8 +41,12 @@
 -- Spec: "flexibility window points v3 design", 2026-07-06, held in the private
 -- deployment repository — not resolvable from this open-source checkout.
 
+-- A device is offered only its own community's windows: its forecast rows carry the
+-- community (the forecasting pipeline sets it from the device's readings), and the cap
+-- below shares one community's community_kwh among that community's devices only.
 with windows as (
     select
+        community_id,
         ts_date,
         window_start,
         window_end,
@@ -59,11 +64,13 @@ with windows as (
 device_forecasts as (
     select
         device_id,
+        community_id,
         ts,
         consumption_kwh
     from (
         select
             f.device_id,
+            f.community_id,
             f.timestamp::timestamp                                    as ts,
             coalesce(f.total_consumption_kwh, f.grid_import_kwh, 0)  as consumption_kwh,
             row_number() over (
@@ -93,6 +100,7 @@ baseline_devices as (
 live_device_windows as (
     select distinct
         df.device_id,
+        w.community_id,
         w.ts_date,
         w.window_start,
         w.window_end,
@@ -100,7 +108,8 @@ live_device_windows as (
         w.confidence
     from windows w
     join device_forecasts df
-      on df.ts >= w.window_start
+      on df.community_id = w.community_id
+     and df.ts >= w.window_start
      and df.ts < w.window_end
 ),
 
@@ -109,6 +118,7 @@ live_device_windows as (
 window_slots as (
     select
         ldw.device_id,
+        ldw.community_id,
         ldw.ts_date,
         ldw.window_start,
         ldw.window_end,
@@ -127,6 +137,7 @@ window_slots as (
 baseline_estimates as (
     select
         ws.device_id,
+        ws.community_id,
         ws.ts_date,
         ws.window_start,
         ws.window_end,
@@ -164,12 +175,13 @@ baseline_estimates as (
      and  bi.slot = extract(hour from ws.slot_ts) * 4
                     + extract(minute from ws.slot_ts)::int / 15
      and  bi.is_weekday = (extract(dow from ws.slot_ts) between 1 and 5)
-    group by ws.device_id, ws.ts_date, ws.window_start, ws.window_end
+    group by ws.device_id, ws.community_id, ws.ts_date, ws.window_start, ws.window_end
 ),
 
 device_windows_baseline as (
     select
         be.device_id,
+        be.community_id,
         be.ts_date,
         be.window_start,
         be.window_end,
@@ -183,7 +195,7 @@ device_windows_baseline as (
               end
         ) * {{ var('calibration_lambda', 1.0) }}                     as estimated_kwh
     from baseline_estimates be
-    left join {{ ref('rec_device_class') }} dc using (device_id)
+    left join {{ ref('rec_device_class') }} dc using (device_id, community_id)
 ),
 
 -- Cold-start fallback: live devices without shift_potential baselines keep the
@@ -191,6 +203,7 @@ device_windows_baseline as (
 device_windows_fallback as (
     select
         ldw.device_id,
+        ldw.community_id,
         ldw.ts_date,
         ldw.window_start,
         ldw.window_end,
@@ -200,33 +213,37 @@ device_windows_fallback as (
     from live_device_windows ldw
     join device_forecasts df
       on df.device_id = ldw.device_id
+     and df.community_id = ldw.community_id
      and df.ts >= ldw.window_start
      and df.ts < ldw.window_end
     where ldw.device_id not in (select device_id from baseline_devices)
-    group by ldw.device_id, ldw.ts_date, ldw.window_start, ldw.window_end
+    group by ldw.device_id, ldw.community_id, ldw.ts_date, ldw.window_start, ldw.window_end
 ),
 
 device_windows as (
-    select device_id, ts_date, window_start, window_end, community_kwh, confidence, estimated_kwh
+    select device_id, community_id, ts_date, window_start, window_end, community_kwh, confidence, estimated_kwh
     from device_windows_baseline
     union all
-    select device_id, ts_date, window_start, window_end, community_kwh, confidence, estimated_kwh
+    select device_id, community_id, ts_date, window_start, window_end, community_kwh, confidence, estimated_kwh
     from device_windows_fallback
 ),
 
--- Proportional cap so the sum of device estimates never exceeds community_kwh.
+-- Proportional cap so the sum of one community's device estimates never exceeds that
+-- community's community_kwh.
 window_totals as (
     select
+        community_id,
         window_start,
         window_end,
         sum(estimated_kwh) as total_device_kwh
     from device_windows
-    group by window_start, window_end
+    group by community_id, window_start, window_end
 )
 
 select
     md5(dw.device_id || dw.ts_date::text || dw.window_start::text || dw.window_end::text)  as _id,
     dw.device_id,
+    dw.community_id,
     dw.ts_date,
     dw.window_start,
     dw.window_end,
@@ -255,5 +272,5 @@ select
     dw.confidence::numeric                                                                  as confidence,
     '{{ var("flexibility_model", "solar_overproduction") }}'::text                          as flexibility_model
 from device_windows dw
-join window_totals wt using (window_start, window_end)
+join window_totals wt using (community_id, window_start, window_end)
 where dw.estimated_kwh > 0

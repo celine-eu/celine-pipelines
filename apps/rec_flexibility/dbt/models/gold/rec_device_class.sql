@@ -14,8 +14,11 @@
 -- the consumption proxy (grid_import + max(0, grid_export_median - grid_export))
 -- for settlement instead of total_consumption_kw.
 
+-- One row per (device_id, community_id): a device normally reports under one
+-- community; consumers join on both.
 select
     device_id,
+    community_id,
     (max(pv_production_kwh) = 0.0) as is_m1_only
 from {{ ref('rec_meters_15m') }}
-group by device_id
+group by device_id, community_id

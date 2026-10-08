@@ -16,10 +16,18 @@ sources:
         description: >
           Community-level hourly production/consumption forecast and actuals.
           net_exchange_kwh > 0 means community solar surplus (good time to shift load).
+          One total per community.
         freshness:
           warn_after: {count: 1, period: hour}
           error_after: {count: 3, period: hour}
         loaded_at_field: generated_at
+        columns:
+          - name: community_id
+            description: >
+              The community the forecast belongs to. A forecast row without one would be
+              mixed into every community's windows and pools.
+            data_tests:
+              - not_null
 
       - name: meters_energy_forecast
         description: >
@@ -29,6 +37,13 @@ sources:
           warn_after: {count: 1, period: hour}
           error_after: {count: 3, period: hour}
         loaded_at_field: generated_at
+        columns:
+          - name: community_id
+            description: >
+              The community the forecast belongs to. A forecast row without one would be
+              mixed into every community's windows and pools.
+            data_tests:
+              - not_null
 
   - name: rec_flexibility_raw
     schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"

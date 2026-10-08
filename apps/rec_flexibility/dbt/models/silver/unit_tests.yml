@@ -15,19 +15,19 @@ unit_tests:
     given:
       - input: source('rec_metering_gold', 'meters_data_15m')
         rows:
-          - {_id: 'both-meters', device_id: 'dev-01', ts: '2026-08-10 12:00:00',
+          - {community_id: 'example-rec', _id: 'both-meters', device_id: 'dev-01', ts: '2026-08-10 12:00:00',
              consumption_kwh: 0.2, production_kwh: 0.5, self_consumed_kwh: 0.3}
-          - {_id: 'm2-only', device_id: 'dev-01', ts: '2026-08-10 12:15:00',
+          - {community_id: 'example-rec', _id: 'm2-only', device_id: 'dev-01', ts: '2026-08-10 12:15:00',
              consumption_kwh: 0.0, production_kwh: 0.0, self_consumed_kwh: 0.8}
-          - {_id: 'm1-zero', device_id: 'dev-01', ts: '2026-08-10 12:30:00',
+          - {community_id: 'example-rec', _id: 'm1-zero', device_id: 'dev-01', ts: '2026-08-10 12:30:00',
              consumption_kwh: 0.0, production_kwh: 0.0, self_consumed_kwh: 0.0}
-          - {_id: 'm1-negative', device_id: 'dev-01', ts: '2026-08-11 01:00:00',
+          - {community_id: 'example-rec', _id: 'm1-negative', device_id: 'dev-01', ts: '2026-08-11 01:00:00',
              consumption_kwh: 0.0, production_kwh: 0.0, self_consumed_kwh: -0.1}
-          - {_id: 'not-active', device_id: 'dev-99', ts: '2026-08-10 12:00:00',
+          - {community_id: 'example-rec', _id: 'not-active', device_id: 'dev-99', ts: '2026-08-10 12:00:00',
              consumption_kwh: 0.2, production_kwh: 0.5, self_consumed_kwh: 0.3}
-      - input: ref('rec_active_devices')
+      - input: source('rec_registry_gold', 'rec_device_membership')
         rows:
-          - {device_id: 'dev-01'}
+          - {community_id: 'example-rec', device_id: 'dev-01'}
     expect:
       rows:
         - {_id: 'both-meters', device_id: 'dev-01', consumption_kwh: 0.2,

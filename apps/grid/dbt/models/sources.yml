@@ -6,14 +6,15 @@ sources:
     description: "Normalized silver grid topology models produced by the DSO-specific pipeline."
     tables:
       - name: silver_grid_ac_line_segment
-        description: "CIM ACLineSegment: MT line segments with vegetation annotation."
+        description: "CIM ACLineSegment: MT line segments with vegetation annotation, stamped with dso_id."
       - name: silver_grid_substation
         description: "CIM Substation: MV/LV substations (voltage_class='mv_lv')."
       - name: silver_grid_geo_tree_strike
         description: >
           Tree-strike exposure spans of the wind_tree_strike LiDAR analysis
           (nomelinea, feederid, sottostazi, comune, tipologia, n_strike,
-          strike_density_km, tier, multiplier, geom EPSG:32632).
+          strike_density_km, tier, multiplier, geom EPSG:32632) and dso_id, the
+          operator the export belongs to.
       - name: silver_grid_geo_thermal_joints
         description: >
           Thermal model of the MT cable joints (giunti): joint_id, comune,

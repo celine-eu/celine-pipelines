@@ -3,9 +3,11 @@
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
       'ts',
       'device_id',
+      'community_id',
       'consumption_kwh',
       'window_start',
       'window_end',
@@ -24,6 +26,7 @@ select
     md5(device_id || date_trunc('hour', ts)::text) as _id,
     date_trunc('hour', ts)                          as ts,
     device_id,
+    community_id,
     sum(consumption_kwh)                            as consumption_kwh,
     -- Carry window context: non-null when any 15m interval in this hour is inside a window.
     -- Window generation constraints ensure at most one window per device per hour.
@@ -37,4 +40,4 @@ from {{ ref('rec_settlement_15m') }}
 where ts >= date_trunc('day', now() - interval '2 days')
 {% endif %}
 
-group by 1, 2, 3
+group by 1, 2, 3, 4

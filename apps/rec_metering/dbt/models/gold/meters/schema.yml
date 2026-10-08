@@ -20,6 +20,13 @@ models:
         description: Device identifier; matches sensor_id in the REC registry.
         data_tests:
           - not_null
+      - name: community_id
+        description: >
+          The measurement's community, carried unchanged from the upstream
+          contract. Not part of _id. The community-scoped readers (the digital twin)
+          filter on it.
+        data_tests:
+          - not_null
       - name: ts
         description: Start of the 15-minute slot.
         data_tests:
@@ -52,6 +59,10 @@ models:
       - name: device_id
         data_tests:
           - not_null
+      - name: community_id
+        description: The community of the 15-minute rows it rolls up.
+        data_tests:
+          - not_null
       - name: ts
         description: Start of the hour.
         data_tests:
@@ -72,6 +83,10 @@ models:
           - unique
           - not_null
       - name: device_id
+        data_tests:
+          - not_null
+      - name: community_id
+        description: The community of the device's latest reading.
         data_tests:
           - not_null
       - name: ts
@@ -105,6 +120,10 @@ models:
         data_tests:
           - not_null
       - name: result_time
+        data_tests:
+          - not_null
+      - name: community_id
+        description: The reading's community, from meters_data_15m.
         data_tests:
           - not_null
       - name: observed_property

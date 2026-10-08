@@ -305,25 +305,25 @@ substation reference layer.
 
 | Kind | Datasets |
 |---|---|
-| sources | `meters_data_15m` (rec_metering, gold); `raw.rec_registry_mirror` (rec_registry); `raw.gse_cabine_primarie` (self-contained Meltano extractor) |
-| silver | `silver_rec_registry`, `silver_gse_cabine_primarie` |
-| gold | `gse_cabine_primarie`, `rec_virtual_consumption_15m`, `rec_virtual_consumption_hourly`, `rec_virtual_consumption_per_device_15m`, `rec_virtual_consumption_per_device_hourly`, `rec_measurements_15m`, `rec_measurements_per_device_15m` |
+| sources | `meters_data_15m` (rec_metering, gold); `rec_device_membership` and `raw.rec_registry_mirror` (rec_registry); `raw.gse_cabine_primarie` (self-contained Meltano extractor) |
+| silver | `silver_gse_cabine_primarie` |
+| gold | `gse_cabine_primarie`, `rec_virtual_consumption_15m`, `rec_virtual_consumption_hourly`, `rec_virtual_consumption_per_device_15m`, `rec_virtual_consumption_per_device_hourly`, `rec_measurements_15m`, `rec_measurements_per_device_15m`, `rec_member_supply_points` |
 
 > **Per-substation netting is correct and must not be "simplified".** The community figure
-> is `least()` per `(ts, rec_id, substation_id)` **and then** summed. Sharing cannot cross
+> is `least()` per `(ts, community_id, substation_id)` **and then** summed. Sharing cannot cross
 > an unconnected *cabina primaria*; netting community-wide would invent energy that
 > physically cannot flow. See
 > the companion's knowledge,
 > which also records the known defect in the hourly model.
 
-> **The netting is only as correct as the substation attribution.** `silver_rec_registry`
-> takes `topology_ids[1]` of the member's area as its `substation_id`. That is right when an
+> **The netting is only as correct as the substation attribution.** `rec_device_membership`
+> (rec_registry) takes `topology_ids[1]` of the member's area as its `substation_id`. That is right when an
 > area lists exactly one `primary_substation` node, whose id is the `cod_ac` of the area's
 > boundary; an area listing several nodes puts all its members under the first. The registry
 > enforces it from schema v0.7 on area writes, topology node writes and bundle import. The
 > mirror carries the area's `boundary_id`, and the singular test
-> `rec_registry_mirror_substation_is_area_boundary` fails on any area breaking it. See
-> `apps/rec_it/README.md`.
+> `rec_registry_mirror_substation_is_area_boundary` (rec_registry) fails on any area breaking
+> it. See `apps/rec_registry/README.md`.
 
 A membership change (meter attached or detached, role or area changed) reaches only the rows
 computed after it: the settlement models are incremental over a short lookback, and
@@ -349,10 +349,9 @@ Without the forecast tables the windows model produces no output — no surplus 
 and the pipeline succeeds with an empty result. That is the expected local behaviour, not
 a failure.
 
-> **The points fleet is a deploy setting, not the registry.** Points, settlement, streaks
-> and the leaderboard are scoped to the devices in `REC_ACTIVE_DEVICES`; a meter attached
-> to a member later earns no points until its device id is added there. Issue:
-> [#8](https://github.com/celine-eu/celine-pipelines/issues/8).
+> **The points fleet is the registry's membership.** Points, settlement, streaks and the
+> leaderboard cover every device of `rec_device_membership` (every role), and every figure
+> computed across devices is computed within one community.
 
 > **The flexibility signal is netted across substations.** There is no join path from this
 > app to `substation_id` at all; a deficit on one *cabina* cancels a surplus on another.

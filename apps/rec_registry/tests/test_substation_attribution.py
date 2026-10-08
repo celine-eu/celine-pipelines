@@ -35,8 +35,8 @@ def _member(user_id: str, area: str | None, status: str = "active") -> dict:
     return member
 
 
-def _bundle(rec_id: str, areas: dict, members: dict) -> dict:
-    return {"community": {"id": rec_id, "areas": areas}, "members": members}
+def _bundle(community_id: str, areas: dict, members: dict) -> dict:
+    return {"community": {"id": community_id, "areas": areas}, "members": members}
 
 
 def _rows_by_user(bundles: list[dict]) -> dict[str, dict]:
@@ -154,9 +154,9 @@ def test_v07_export_yaml_round_trips_through_parse_and_flatten():
 # --- substation_id must equal the area's boundary id ------------------------
 
 
-def _mismatches(areas: dict, members: dict, rec_id: str = "rec-a"):
+def _mismatches(areas: dict, members: dict, community_id: str = "rec-a"):
     return pipeline._substation_mismatches(
-        pipeline._flatten_to_rows([_bundle(rec_id, areas, members)])
+        pipeline._flatten_to_rows([_bundle(community_id, areas, members)])
     )
 
 

@@ -3,9 +3,11 @@
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
       'ts_date',
       'device_id',
+      'community_id',
       'consumption_kwh',
       'co2_avoided_kg',
       'trees_equivalent'
@@ -23,6 +25,7 @@
 with daily as (
     select
         device_id,
+        community_id,
         ts::date                          as ts_date,
         sum(self_consumed_kwh)            as consumption_kwh
     from {{ ref('rec_meters_15m') }}
@@ -31,7 +34,7 @@ with daily as (
     where ts >= date_trunc('day', now() - interval '2 days')
     {% endif %}
 
-    group by device_id, ts::date
+    group by device_id, community_id, ts::date
 ),
 
 factor as (
@@ -43,6 +46,7 @@ factor as (
 select
     md5(d.device_id || d.ts_date::text)                                         as _id,
     d.device_id,
+    d.community_id,
     d.ts_date,
     round(d.consumption_kwh::numeric, 4)                                as consumption_kwh,
     round((d.consumption_kwh * f.kg_co2_per_kwh)::numeric, 3)          as co2_avoided_kg,

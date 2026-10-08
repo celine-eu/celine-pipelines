@@ -1,8 +1,9 @@
 """Prefect task: auto-inject commitments for all devices into all active windows.
 
 TEST-PHASE ONLY. Simulates "every user accepts every suggestion" by inserting
-synthetic commitments into raw.flexibility_commitments_mirror for every
-(device, window) pair. Gated by the AUTO_COMMIT_ENABLED env var (default: false).
+synthetic commitments into raw.flexibility_commitments_mirror for every device and
+every window of the device's own community. Each commitment carries that community.
+Gated by the AUTO_COMMIT_ENABLED env var (default: false).
 
 Remove this task (and its import in pipeline.py) once the flexibility-api is
 deployed and real user commitments flow through the webapp.
@@ -24,7 +25,6 @@ from celine.utils.pipelines.pipeline import PipelineConfig
 logger = logging.getLogger(__name__)
 
 AUTO_COMMIT_ENV = "AUTO_COMMIT_ENABLED"
-AUTO_COMMIT_COMMUNITY_ENV = "AUTO_COMMIT_COMMUNITY_ID"
 _SILVER_SCHEMA = os.environ.get("CELINE_SILVER_SCHEMA", "ds_dev_silver")
 _GOLD_SCHEMA = os.environ.get("CELINE_GOLD_SCHEMA", "ds_dev_gold")
 
@@ -38,23 +38,17 @@ def _build_db_url(cfg: dict[str, Any]) -> str:
 
 @task(name="Auto-commit all devices (test phase)")
 def auto_commit_task(cfg: PipelineConfig) -> int:
-    """Insert commitments for all devices × today's+tomorrow's windows.
+    """Insert commitments for every device × its community's windows of today and tomorrow.
 
     Returns the number of commitments upserted. Skipped entirely when
-    AUTO_COMMIT_ENABLED is not set to "true"/"1". When enabled, the commitments
-    are attributed to the community named by AUTO_COMMIT_COMMUNITY_ID.
+    AUTO_COMMIT_ENABLED is not set to "true"/"1". Each commitment is attributed to
+    the community of its device's readings; no community is read from configuration,
+    because a fleet can span several.
     """
     enabled = os.environ.get(AUTO_COMMIT_ENV, "").lower() in ("true", "1")
     if not enabled:
         logger.info("Auto-commit disabled (%s not set). Skipping.", AUTO_COMMIT_ENV)
         return 0
-
-    community_id = os.environ.get(AUTO_COMMIT_COMMUNITY_ENV, "").strip()
-    if not community_id:
-        raise RuntimeError(
-            f"{AUTO_COMMIT_ENV} is set but {AUTO_COMMIT_COMMUNITY_ENV} is not: "
-            "the synthetic commitments need the community they belong to."
-        )
 
     engine = create_engine(_build_db_url(cfg.model_dump()))
     now = datetime.now(timezone.utc)
@@ -62,14 +56,14 @@ def auto_commit_task(cfg: PipelineConfig) -> int:
     tomorrow = today + timedelta(days=1)
 
     with engine.connect() as conn:
-        # Active fleet = distinct devices in rec_meters_15m (the fleet-scoped view
-        # over ds_dev_gold.meters_data_15m; every device there has an M1 meter).
+        # Fleet = distinct (device, community) in rec_meters_15m (the membership-scoped
+        # view over ds_dev_gold.meters_data_15m; every device there has an M1 meter).
         devices = pd.read_sql(text(
-            f"SELECT DISTINCT device_id FROM {_SILVER_SCHEMA}.rec_meters_15m"
+            f"SELECT DISTINCT device_id, community_id FROM {_SILVER_SCHEMA}.rec_meters_15m"
         ), conn)
 
         windows = pd.read_sql(text(f"""
-            SELECT DISTINCT window_start, window_end
+            SELECT DISTINCT community_id, window_start, window_end
             FROM {_GOLD_SCHEMA}.rec_flexibility_windows
             WHERE ts_date >= :today AND ts_date <= :tomorrow
         """), conn, params={"today": today, "tomorrow": tomorrow})
@@ -80,7 +74,8 @@ def auto_commit_task(cfg: PipelineConfig) -> int:
 
     rows = []
     for _, win in windows.iterrows():
-        for _, dev in devices.iterrows():
+        # a device is committed only to its own community's windows
+        for _, dev in devices[devices["community_id"] == win["community_id"]].iterrows():
             device_id = dev["device_id"]
             ws = win["window_start"]
             we = win["window_end"]
@@ -90,7 +85,7 @@ def auto_commit_task(cfg: PipelineConfig) -> int:
                 "user_id": f"auto-user-{device_id}",
                 "suggestion_id": f"auto-sug-{ws.strftime('%Y%m%d%H%M')}-{we.strftime('%H%M')}",
                 "suggestion_type": "solar_overproduction",
-                "community_id": community_id,
+                "community_id": dev["community_id"],
                 "device_id": device_id,
                 "period_start": ws,
                 "period_end": we,
@@ -120,6 +115,6 @@ def auto_commit_task(cfg: PipelineConfig) -> int:
                         :last_updated)
             """), row)
 
-    logger.info("Auto-committed %d rows (%d devices × %d windows).",
+    logger.info("Auto-committed %d rows (%d devices, %d community windows).",
                 len(rows), len(devices), len(windows))
     return len(rows)

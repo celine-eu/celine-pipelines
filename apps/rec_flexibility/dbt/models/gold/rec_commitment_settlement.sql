@@ -3,7 +3,9 @@
     materialized='incremental',
     unique_key='commitment_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
+      'community_id',
       'status',
       'actual_kwh',
       'allocated_kwh',
@@ -86,15 +88,35 @@ actuals as (
     group by c.commitment_id
 ),
 
--- Community solar budget per window. community_kwh is identical for every device
--- in the same window; collapse to one row per (window_start, window_end).
+-- The community a commitment is settled in: the one its device's measurements carry,
+-- read from the device's own window row. The community the flexibility service sent with
+-- the commitment has been wrong before; it is kept only as the fallback for a
+-- commitment whose device has no window (rejected, no device, DSO flex), and stays
+-- NULL where it is NULL.
+measured_community as (
+    select distinct on (c.commitment_id)
+        c.commitment_id,
+        w.community_id
+    from commitments c
+    join {{ ref('rec_flexibility_windows') }} w
+      on  w.device_id    = c.device_id
+     and  w.window_start = c.period_start
+     and  w.window_end   = c.period_end
+    order by c.commitment_id, w.community_id
+),
+
+-- Community solar budget per window and community. community_kwh is identical for
+-- every device of one community in the same window; collapse to one row per
+-- (community_id, window_start, window_end), so two communities sharing window bounds
+-- keep their own budgets.
 window_budget as (
-    select distinct on (window_start, window_end)
+    select distinct on (community_id, window_start, window_end)
+        community_id,
         window_start,
         window_end,
         community_kwh
     from {{ ref('rec_flexibility_windows') }}
-    order by window_start, window_end
+    order by community_id, window_start, window_end
 ),
 
 -- Total actual_kwh delivered by all active commitments sharing the same suggestion.
@@ -136,10 +158,12 @@ allocated as (
         end as allocated_kwh
     from commitments c
     join actuals a using (commitment_id)
+    left join measured_community mc using (commitment_id)
     left join suggestion_actuals sa
         on  sa.suggestion_id = c.suggestion_id
     left join window_budget wb
-        on  wb.window_start = c.period_start
+        on  wb.community_id = mc.community_id
+        and wb.window_start = c.period_start
         and wb.window_end   = c.period_end
 ),
 
@@ -174,7 +198,7 @@ select
     c.commitment_id,
     c.user_id,
     c.device_id,
-    c.community_id,
+    coalesce(mc.community_id, c.community_id)                            as community_id,
     c.suggestion_type,
     c.period_start,
     c.period_end,
@@ -197,6 +221,7 @@ select
 from commitments c
 join allocated al using (commitment_id)
 join window_settlement ws using (commitment_id)
+left join measured_community mc using (commitment_id)
 left join window_bonus wb
        on wb.device_id     = c.device_id
       and wb.window_start  = c.period_start

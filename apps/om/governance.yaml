@@ -288,6 +288,11 @@ sources:
       RED (>=3 days heatwave). Includes PostGIS geography point.
     license: CC-BY-4.0
     access_level: internal
+    # Weather, no person or organization in it: every organization's members
+    # read every row, on purpose.
+    row_filters:
+      - handler: member_wide
+        binds: organization
     ownership:
       - name: spxl
         type: organization

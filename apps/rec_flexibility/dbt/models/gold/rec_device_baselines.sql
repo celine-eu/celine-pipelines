@@ -2,6 +2,7 @@
 
 select
     device_id,
+    community_id,
     baseline_type,
     slot,
     is_weekday,

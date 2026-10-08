@@ -3,9 +3,11 @@
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
       'ts',
       'device_id',
+      'community_id',
       'consumption_kwh',
       'grid_import_kwh',
       'grid_export_kwh',
@@ -46,6 +48,7 @@ with base as (
     select distinct on (v.device_id, v.ts)
         v.ts,
         v.device_id,
+        v.community_id,
         -- rec_meters_15m values are already kWh per 15-min bucket: pass through
         -- unchanged. Any ×0.25 here would 4×-under-count every downstream figure.
         v.consumption_kwh,
@@ -59,7 +62,8 @@ with base as (
         w.reward_points_estimated as window_reward_points_estimated
     from {{ ref('rec_meters_15m') }} v
     left join {{ ref('rec_flexibility_windows') }} w
-        on  v.device_id = w.device_id
+        on  v.device_id    = w.device_id
+        and v.community_id = w.community_id
         and v.ts >= w.window_start
         and v.ts <  w.window_end
 
@@ -74,6 +78,7 @@ select
     md5(device_id || ts::text)    as _id,
     ts,
     device_id,
+    community_id,
     consumption_kwh,
     grid_import_kwh,
     grid_export_kwh,

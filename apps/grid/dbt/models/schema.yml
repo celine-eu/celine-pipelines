@@ -12,7 +12,7 @@ models:
       tags: ["grid", "daily"]
     columns:
       - name: dso_id
-        description: "UUID of the Distribution System Operator. Foreign key to the dso_registry seed."
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
         tests:
           - not_null
       - name: line_name
@@ -100,6 +100,10 @@ models:
     config:
       tags: ["grid", "daily"]
     columns:
+      - name: dso_id
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
+        tests:
+          - not_null
       - name: segment_id
         tests:
           - not_null
@@ -219,7 +223,7 @@ models:
       tags: ["grid", "daily"]
     columns:
       - name: dso_id
-        description: "UUID of the Distribution System Operator. Foreign key to the dso_registry seed."
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
         tests:
           - not_null
       - name: line_name
@@ -321,7 +325,7 @@ models:
       tags: ["grid", "daily"]
     columns:
       - name: dso_id
-        description: "UUID of the Distribution System Operator."
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
         tests:
           - not_null
       - name: joint_id
@@ -393,7 +397,7 @@ models:
       tags: ["grid", "monthly"]
     columns:
       - name: dso_id
-        description: "UUID of the Distribution System Operator. Foreign key to the dso_registry seed."
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
         tests:
           - not_null
       - name: asset_id
@@ -503,8 +507,12 @@ models:
     config:
       tags: ["grid", "monthly"]
     columns:
+      - name: dso_id
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
+        tests:
+          - not_null
       - name: tile_id
-        description: "Tile identifier: tile_{x}_{y} (0-based from SW corner of extent)"
+        description: "Tile identifier: tile_{x}_{y} (0-based from the SW corner of the operator's extent); unique per dso_id"
         tests:
           - not_null
       - name: tile_x
@@ -520,14 +528,18 @@ models:
 
   - name: grid_tile_grid
     description: >
-      The 5 km x 5 km UTM tile grid over the extent of grid_shapes, shared by
-      grid_tiles and grid_tree_strike_tiles (same tile ids for both layers).
+      The 5 km x 5 km UTM tile grid, one per operator (dso_id) over the extent
+      of its grid_shapes, shared by grid_tiles and grid_tree_strike_tiles (same
+      tile ids for both layers). tile_id is unique per dso_id.
     config:
       tags: ["grid", "monthly"]
     columns:
+      - name: dso_id
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
+        tests:
+          - not_null
       - name: tile_id
         tests:
-          - unique
           - not_null
       - name: tile_geom
         description: "Tile envelope (EPSG:32632)"
@@ -580,6 +592,10 @@ models:
     config:
       tags: ["grid", "monthly"]
     columns:
+      - name: dso_id
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
+        tests:
+          - not_null
       - name: tile_id
         tests:
           - not_null
@@ -595,11 +611,14 @@ models:
     config:
       tags: ["grid", "monthly"]
     columns:
-      - name: tile_id
-        description: "Tile identifier: tile_{x}_{y}"
+      - name: dso_id
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
         tests:
           - not_null
-          - unique
+      - name: tile_id
+        description: "Tile identifier: tile_{x}_{y}; unique per dso_id"
+        tests:
+          - not_null
       - name: tile_x
         description: "0-based column index"
       - name: tile_y
@@ -621,6 +640,10 @@ models:
     config:
       tags: ["grid", "daily"]
     columns:
+      - name: dso_id
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
+        tests:
+          - not_null
       - name: segment_id
         description: "FK to grid_shapes.segment_id — MD5 hash includes municipality, matching grid_shapes grain"
         tests:
@@ -667,7 +690,7 @@ models:
           - accepted_values:
               values: ['wind', 'heat']
       - name: dso_id
-        description: "UUID of the Distribution System Operator."
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
         tests:
           - not_null
       - name: operational_unit
@@ -724,7 +747,7 @@ models:
 
   - name: grid_risks_trendline
     description: >
-      Daily risk percentage indicator per vector.
+      Daily risk percentage indicator per vector and operator (dso_id).
       risk_ratio = (alert+warning) / total_segments (conductor-type-aware denominator).
       day_risk_level: >0.65 ALERT, >0.35 WARNING, else NORMAL.
       Cable joints are excluded from the heat numerator: they have no place in a
@@ -732,6 +755,10 @@ models:
     config:
       tags: ["grid", "daily"]
     columns:
+      - name: dso_id
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
+        tests:
+          - not_null
       - name: date
         description: "Forecast date"
       - name: risk_vector
@@ -758,7 +785,7 @@ models:
       tags: ["grid", "monthly"]
     columns:
       - name: dso_id
-        description: "UUID of the Distribution System Operator. Foreign key to the dso_registry seed."
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
         tests:
           - not_null
       - name: line_name
@@ -782,7 +809,7 @@ models:
       tags: ["grid", "nowcast"]
     columns:
       - name: dso_id
-        description: "UUID of the Distribution System Operator."
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
         tests:
           - not_null
       - name: line_name
@@ -891,7 +918,7 @@ models:
       tags: ["grid", "nowcast"]
     columns:
       - name: dso_id
-        description: "UUID of the Distribution System Operator."
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
         tests:
           - not_null
       - name: joint_id
@@ -926,7 +953,7 @@ models:
       tags: ["grid", "nowcast"]
     columns:
       - name: dso_id
-        description: "UUID of the Distribution System Operator."
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
         tests:
           - not_null
       - name: line_name
@@ -1003,6 +1030,10 @@ models:
     config:
       tags: ["grid", "nowcast"]
     columns:
+      - name: dso_id
+        description: "Organisation alias of the distribution system operator (its Keycloak organisation, e.g. example-dso), stamped in silver. The organization_match row filter column."
+        tests:
+          - not_null
       - name: segment_id
         description: "FK to grid_shapes.segment_id"
         tests:

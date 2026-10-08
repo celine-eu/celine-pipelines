@@ -1,4 +1,4 @@
-{{ config(materialized='view') }}
+{{ config(materialized='view', tags=['rec_it']) }}
 
 {#
     rec_virtual_consumption_per_device_15m, one quantity per row.
@@ -46,7 +46,7 @@ with base as (
         _id,
         ts,
         device_id,
-        rec_id,
+        community_id,
         substation_id,
         consumption_kwh,
         virtual_consumption_kwh
@@ -69,7 +69,7 @@ unpivoted as (
         md5(_id || '|GridImportEnergy')         as observation_id,
         ts                                      as result_time,
         device_id,
-        rec_id,
+        community_id,
         substation_id,
         feature_iri,
         'device/' || device_id                  as sensor_iri,
@@ -94,7 +94,7 @@ unpivoted as (
         md5(_id || '|VirtualConsumedEnergy'),
         ts,
         device_id,
-        rec_id,
+        community_id,
         substation_id,
         feature_iri,
         cast(null as text),

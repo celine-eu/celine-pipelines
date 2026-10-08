@@ -1,8 +1,8 @@
 -- Every member's substation_id must be the id of its area's boundary.
 --
--- silver_rec_registry takes topology_ids[1] as the member's substation_id
--- (cabina primaria), and every rec_virtual_consumption_* model nets shared
--- energy per substation_id. That is right only when the member's area lists
+-- rec_device_membership takes topology_ids[1] as the member's substation_id
+-- (cabina primaria), and every rec_it rec_virtual_consumption_* model nets
+-- shared energy per substation_id. That is right only when the member's area lists
 -- exactly one topology node and that node's id is the cod_ac of the area's GSE
 -- primary-substation boundary (boundary_id, mirrored by apps/rec_registry).
 -- An area listing several nodes puts all its members under the first; a node
@@ -10,14 +10,17 @@
 -- are not in. Neither fails anything downstream: the energy is silently netted
 -- in the wrong place.
 --
--- Failing rows are areas, not members: one row per (rec_id, area) with how many
--- active member rows it holds.
+-- Failing rows are areas, not members: one row per (community_id, area) with how
+-- many active member rows it holds.
 --
 -- Rows with a null boundary_id (areas exported before registry schema v0.7) are
 -- not checked. A mirror table that predates the boundary_id column (the
 -- rec_registry flow adds it on its next run) returns no rows rather than
--- erroring, so this test can ship before the mirror flow is redeployed.
-{{ config(tags=['rec_it']) }}
+-- erroring.
+--
+-- It reads the raw mirror, not rec_device_membership, so members without a meter
+-- are checked too. It runs in this app's dbt build, right after the mirror is
+-- refreshed (it used to live in rec_it).
 
 {%- set has_boundary = false -%}
 {%- if execute -%}
@@ -27,7 +30,7 @@
 
 {% if has_boundary %}
 select
-    rec_id,
+    community_id,
     area,
     boundary_id,
     topology_ids,
@@ -39,10 +42,10 @@ where boundary_id is not null
         cardinality(topology_ids) <> 1
      or topology_ids[1] is distinct from boundary_id
   )
-group by rec_id, area, boundary_id, topology_ids
+group by community_id, area, boundary_id, topology_ids
 {% else %}
 select
-    null::text    as rec_id,
+    null::text    as community_id,
     null::text    as area,
     null::text    as boundary_id,
     null::text[]  as topology_ids,

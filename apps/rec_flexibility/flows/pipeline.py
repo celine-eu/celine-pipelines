@@ -19,16 +19,9 @@ if str(_APP_DIR) not in sys.path:
 from flows.auto_commit_task import auto_commit_task  # noqa: E402
 from flows.baseline_task import compute_baselines_task  # noqa: E402
 from flows.streak_task import update_streaks_task  # noqa: E402
-from lib.config import (  # noqa: E402
-    get_active_devices,
-    load_config,
-    write_active_devices_seed,
-)
 
-# Private fleet seed: generated at flow start from REC_ACTIVE_DEVICES so dbt can resolve
-# ref('rec_active_devices') without the device IDs ever living in git (the CSV is
-# git-ignored). Path is the dbt seeds dir of this app.
-_SEED_PATH = _APP_DIR / "dbt" / "seeds" / "rec_active_devices.csv"
+# The fleet is the registry's membership (rec_registry's rec_device_membership): it is
+# read by the rec_meters_15m view, so no device list is generated or configured here.
 
 _cfg = PipelineConfig()
 _on_running, _on_completion, _on_failure = flow_hooks(_cfg)
@@ -63,21 +56,13 @@ def run_dbt_tests_task(cfg: PipelineConfig):
 def rec_flexibility_flow(config: Dict[str, Any] | None = None):
     cfg = PipelineConfig.model_validate(config or {})
 
-    # Phase 0: materialise the private fleet seed from REC_ACTIVE_DEVICES before any
-    # dbt task parses ref('rec_active_devices'). Runs synchronously at flow start so
-    # the CSV exists prior to seed/silver task submission.
-    n_devices = write_active_devices_seed(get_active_devices(load_config()), _SEED_PATH)
-    if n_devices == 0:
-        print(
-            f"WARNING: {_SEED_PATH.name} written with 0 devices — set "
-            "REC_ACTIVE_DEVICES; fleet scope will resolve to empty."
-        )
-
-    # Phase 1: seed + silver + Python tasks (baselines, streaks) — independent
+    # Phase 1: seed + silver. The Python tasks (baselines, streaks) read the silver
+    # view rec_meters_15m, so they wait for it: after a model change (a column the
+    # view gained, such as community_id) the old view must be replaced first.
     seed = seed_task(cfg)
     silver = transform_silver_layer_task(cfg)
-    baselines = compute_baselines_task(cfg)
-    streaks = update_streaks_task(cfg)
+    baselines = compute_baselines_task(cfg, wait_for=[silver])
+    streaks = update_streaks_task(cfg, wait_for=[silver])
 
     # Phase 2: gold models depend on silver + baselines + streaks
     gold = transform_gold_layer_task(cfg, wait_for=[seed, silver, baselines, streaks])

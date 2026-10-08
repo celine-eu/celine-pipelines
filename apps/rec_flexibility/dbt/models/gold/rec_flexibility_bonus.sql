@@ -3,8 +3,9 @@
         materialized='incremental',
         unique_key='_id',
         incremental_strategy='merge',
+        on_schema_change='append_new_columns',
         merge_update_columns=[
-            'device_id', 'window_start', 'window_end',
+            'device_id', 'community_id', 'window_start', 'window_end',
             'shifted_kwh', 'reference_kwh', 'shift_fraction',
             'shift_effort_mult', 'event_mult', 'accuracy', 'streak_mult',
             'bonus_points_raw', 'bonus_points_capped', 'bonus_points'
@@ -36,8 +37,10 @@ with committed_windows as (
     where status in ('committed', 'settled')
 ),
 windows as (
+    -- the community is the device's window's, i.e. its measurements' (not the one the
+    -- flexibility service sent with the commitment)
     select distinct
-        w.device_id, w.window_start, w.window_end, fw.ts_date, fw.community_kwh
+        w.device_id, fw.community_id, w.window_start, w.window_end, fw.ts_date, fw.community_kwh
     from committed_windows w
     join {{ ref('rec_flexibility_windows') }} fw
       on fw.device_id    = w.device_id
@@ -50,6 +53,7 @@ windows as (
 window_intervals as (
     select
         s.device_id,
+        w.community_id,
         w.window_start,
         w.window_end,
         w.ts_date,
@@ -59,9 +63,10 @@ window_intervals as (
         sum(case when s.is_surplus_interval = 1 then 1 else 0 end) as actual_surplus_intervals
     from windows w
     join {{ ref('rec_settlement_points') }} s
-      on s.device_id = w.device_id
+      on s.device_id    = w.device_id
+     and s.community_id = w.community_id
      and s.ts >= w.window_start and s.ts < w.window_end
-    group by s.device_id, w.window_start, w.window_end, w.ts_date, w.community_kwh
+    group by s.device_id, w.community_id, w.window_start, w.window_end, w.ts_date, w.community_kwh
 ),
 -- Reference baseline integrated over the window. Mirrors gamification/03_flexibility_bonus.ipynb
 -- cell 3: bl_kwh = sum over every 15-min slot inside [window_start, window_end) of the per-slot
@@ -154,6 +159,7 @@ capped as (
 select
     md5(device_id || window_start::text || window_end::text) as _id,
     device_id,
+    community_id,
     window_start,
     window_end,
     shifted_kwh,

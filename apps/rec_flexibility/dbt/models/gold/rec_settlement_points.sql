@@ -3,8 +3,9 @@
         materialized='incremental',
         unique_key='_id',
         incremental_strategy='merge',
+        on_schema_change='append_new_columns',
         merge_update_columns=[
-            'ts', 'device_id', 'consumption_kwh', 'baseline_kwh',
+            'ts', 'device_id', 'community_id', 'consumption_kwh', 'baseline_kwh',
             'is_m1_only', 'grid_import_kwh', 'grid_export_kwh',
             'effort_ratio', 'effort_multiplier',
             'comm_grid_export_kwh', 'comm_grid_import_kwh',
@@ -34,11 +35,16 @@
 -- ds_dev_gold.meters_data_15m via rec_meters_15m/rec_settlement_15m — no unit
 -- conversion anywhere. Exception (grain, not unit): total_meters_forecast is an
 -- HOURLY source, so its kWh are split evenly across the four 15-min slots (÷4).
+--
+-- Per community: the community grid import sums one community's devices, the grid
+-- export is that community's own forecast 'actual' rows, and the deficit pool is shared
+-- among that community's devices only.
 
 with intervals as (
     select
         s.ts,
         s.device_id,
+        s.community_id,
         s.grid_import_kwh,
         s.grid_export_kwh,
         s.total_consumption_kwh,
@@ -63,7 +69,8 @@ classed as (
         end as consumption_kwh
     from intervals i
     left join {{ ref('rec_device_class') }} dc
-      on dc.device_id = i.device_id
+      on dc.device_id    = i.device_id
+     and dc.community_id = i.community_id
     left join {{ ref('rec_device_baselines') }} gem
       on gem.device_id = i.device_id
      and gem.slot = i.slot
@@ -85,26 +92,29 @@ community as (
     -- Community grid import = Σ per-device grid import (NOT the reward basis). Pairs with
     -- the forecast grid export below to define the grid-based surplus.
     select
+        community_id,
         ts,
         sum(grid_import_kwh) as comm_grid_import_kwh
     from intervals
-    group by ts
+    group by community_id, ts
 ),
 production as (
     -- total_meters_forecast.production_kwh is hourly kWh (forecast tables use correct
     -- _kwh suffixes). Split per 15-min slot = hourly / 4. period='actual' gives the
     -- realised community grid export; forecast rows are ignored here.
     select
+        t.community_id,
         date_trunc('hour', t.timestamp::timestamp) as ts_hour,
         avg(t.production_kwh) / 4.0 as comm_grid_export_kwh_15m
     from {{ source('meters_gold', 'total_meters_forecast') }} t
     where t.period = 'actual'
-    group by date_trunc('hour', t.timestamp::timestamp)
+    group by t.community_id, date_trunc('hour', t.timestamp::timestamp)
 ),
 joined as (
     select
         wb.ts,
         wb.device_id,
+        wb.community_id,
         wb.is_m1_only,
         wb.grid_import_kwh,
         wb.grid_export_kwh,
@@ -124,8 +134,10 @@ joined as (
             else wb.consumption_kwh / nullif(wb.baseline_kwh, 0)
         end as effort_ratio
     from with_baseline wb
-    left join community c using (ts)
-    left join production p on p.ts_hour = date_trunc('hour', wb.ts)
+    left join community c using (community_id, ts)
+    left join production p
+      on p.community_id = wb.community_id
+     and p.ts_hour      = date_trunc('hour', wb.ts)
 ),
 with_effort as (
     select
@@ -150,7 +162,7 @@ points_calc as (
             else 0
         end as effort_adjusted_points,
         sum(ln(1 + we.consumption_kwh) * we.effort_multiplier)
-            over (partition by we.ts) as ts_log_weighted_total
+            over (partition by we.community_id, we.ts) as ts_log_weighted_total
     from with_effort we
 ),
 deficit_share as (
@@ -171,6 +183,7 @@ select
     md5(device_id || ts::text) as _id,
     ts,
     device_id,
+    community_id,
     consumption_kwh,
     baseline_kwh,
     is_m1_only,

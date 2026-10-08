@@ -70,7 +70,7 @@ def test_no_active_member_still_empties_the_mirror(monkeypatch):
 def test_rows_replace_the_mirror_in_one_transaction(monkeypatch):
     row = {
         "user_id": "ex-00001",
-        "rec_id": "example-rec",
+        "community_id": "example-rec",
         "area": "north",
         "role": "consumer",
         "member_type": "person",

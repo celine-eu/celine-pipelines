@@ -37,7 +37,7 @@ Normalises the raw API mirror: casts all timestamps to `timestamptz`, computes `
 
 #### `rec_meters_15m`
 
-Analysis-ready 15-min meter view over `ds_dev_gold.meters_data_15m`, scoped to the active fleet (`rec_active_devices` seed). Reconstructs `pv_production_kwh = self_consumed_kwh + production_kwh` and clips `self_consumed_kwh` at ≥0 (upstream stores it unclipped); exposes `consumption_kwh`, `production_kwh (= grid export)`, `pv_production_kwh`, `self_consumed_kwh`, `total_consumption_kwh`. All values are kWh per 15-min bucket, passed through with no unit conversion. Materialized as a view.
+Analysis-ready 15-min meter view over `ds_dev_gold.meters_data_15m`, scoped to the fleet: the registry's membership (`rec_device_membership` from `rec_registry`, every role), joined on `(device_id, community_id)`. Every downstream model carries the reading's `community_id`, and every figure computed across devices (windows, confidence, cap, pool, ranks, budgets, community totals) is computed within one community. Reconstructs `pv_production_kwh = self_consumed_kwh + production_kwh` and clips `self_consumed_kwh` at ≥0 (upstream stores it unclipped); exposes `consumption_kwh`, `production_kwh (= grid export)`, `pv_production_kwh`, `self_consumed_kwh`, `total_consumption_kwh`. All values are kWh per 15-min bucket, passed through with no unit conversion. Materialized as a view.
 
 ### Gold
 
@@ -196,4 +196,4 @@ Serves with cron `*/15 * * * *` (every 15 minutes) in dev mode. The Python tasks
 
 All tunable parameters live in `flexibility_config.yaml` (shared with `src/notebooks/gamification/`). Edit the YAML, not the code, to retune baselines, effort tiers, bonus multipliers, streak decay, and anti-gaming thresholds.
 
-**The points fleet is a deploy setting, not the registry.** Points, settlement, streaks and the leaderboard are scoped to the devices in `REC_ACTIVE_DEVICES` (comma-separated; `fleet.active_devices` in the YAML is a local-dev fallback that ships empty), written to the `rec_active_devices` seed at flow start. A meter attached to a member in the registry after the fleet was set earns no points until its device id is added to that setting and the flow runs again. Issue: [#8](https://github.com/celine-eu/celine-pipelines/issues/8).
+**The points fleet is the registry's membership.** Points, settlement, streaks and the leaderboard cover every device of `rec_device_membership` (every role), per community; a meter attached to a member in the registry enters the fleet on the next `rec_registry` and `rec_flexibility` runs. Nothing in the deploy values or the YAML sets it.

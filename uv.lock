@@ -234,6 +234,7 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "celine-utils", extra = ["all"] },
+    { name = "pyjwt" },
 ]
 
 [package.dev-dependencies]
@@ -243,7 +244,10 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "celine-utils", extras = ["all"], specifier = ">=2.0.0" }]
+requires-dist = [
+    { name = "celine-utils", extras = ["all"], specifier = ">=2.6.0" },
+    { name = "pyjwt", specifier = ">=2.14" },
+]
 
 [package.metadata.requires-dev]
 dev = [
@@ -263,7 +267,7 @@ wheels = [
 
 [[package]]
 name = "celine-sdk"
-version = "1.15.0"
+version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiomqtt" },
@@ -278,23 +282,23 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3d/e5/5d6911a07e1376b29ee487b25f935e1c4c2844a30fef9d488349fa8c8e77/celine_sdk-1.15.0.tar.gz", hash = "sha256:34d7ed9b0b548c9e98b12312bbb652b542eece4ed5a20a795f3919ef26946cb7", size = 196112, upload-time = "2026-08-13T05:26:47.811Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/18/f6/1029383ce24bd2be13a6a97bb905311266c8ebf25793201ace361aed767d/celine_sdk-2.0.0.tar.gz", hash = "sha256:4166ac7681022abeb277e068d5180d65452babc5ccd9c9ece289ae29d51781b2", size = 416028, upload-time = "2026-10-05T18:32:07.506Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/68/b0/24472786f53630fd86bd1db90a90d4ee7cf2d75ebe873c06ff0e8ad66fc0/celine_sdk-1.15.0-py3-none-any.whl", hash = "sha256:2fec8f78a4b1a2dc002c195daac164719871422470131881f2bdce47314e8b6d", size = 524668, upload-time = "2026-08-13T05:26:46.368Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/6d/d87808af433abc6eff51230510a8ba262ddd1e43e0aa420b1e5f633fbc46/celine_sdk-2.0.0-py3-none-any.whl", hash = "sha256:6aa2a452d92ede114ec0e188cd2f2b0ed7365be08488ae49509b48262a2b392a", size = 856299, upload-time = "2026-10-05T18:32:05.774Z" },
 ]
 
 [[package]]
 name = "celine-utils"
-version = "2.4.0"
+version = "2.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonschema" },
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ef/6f/6d28770bbb6fdbd65ee080f667bbac0cc4e07ed054c73027b72c30ea82f9/celine_utils-2.4.0.tar.gz", hash = "sha256:b47595f73d66cc303bb48e88b87f842e1d49c32fa3b5a07fe15e37aedf849cb9", size = 105832, upload-time = "2026-08-18T05:02:22.478Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/17/af/c02f9ad5466554d68324a2d2223bd074f2a586aa51aec5f723185bf906d5/celine_utils-2.6.0.tar.gz", hash = "sha256:9d7b457034ee9dba6defbe45aae403f83db66f849aee0895625307ac1b1afa52", size = 122785, upload-time = "2026-10-06T05:23:43.825Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/7e/12dd9501360240972d8ed97f4945ae804d8f5f4a033363f24afdc16ca703/celine_utils-2.4.0-py3-none-any.whl", hash = "sha256:f7fb574d6df6e9d57e91fc103959d2b4156c6abbe8c862f2bb40060c5142235e", size = 99587, upload-time = "2026-08-18T05:02:21.137Z" },
+    { url = "https://files.pythonhosted.org/packages/2d/bb/a67ce3f085d3bb96eb3bc3581ece128aed17d90d3c94b859c925fc959f82/celine_utils-2.6.0-py3-none-any.whl", hash = "sha256:aff9884cf52cf473586c920cc2d3a0c68c0d7163266d96d54a71cc4421ff023d", size = 107307, upload-time = "2026-10-06T05:23:42.324Z" },
 ]
 
 [package.optional-dependencies]
@@ -2039,11 +2043,11 @@ wheels = [
 
 [[package]]
 name = "pyjwt"
-version = "2.11.0"
+version = "2.15.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/5c/5a/b46fa56bf322901eee5b0454a34343cdbdae202cd421775a8ee4e42fd519/pyjwt-2.11.0.tar.gz", hash = "sha256:35f95c1f0fbe5d5ba6e43f00271c275f7a1a4db1dab27bf708073b75318ea623", size = 98019, upload-time = "2026-01-30T19:59:55.694Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/ea/5194e52748b0da83d71e082d75496eaec6e58f419f5e184786ded517e6a9/pyjwt-2.15.1.tar.gz", hash = "sha256:4f259e80cdfb6b3fc18a7de51fd1ef9ec79652f25019bae68975ca2468a34df8", size = 121252, upload-time = "2026-09-28T18:40:42.598Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/6f/01/c26ce75ba460d5cd503da9e13b21a33804d38c2165dec7b716d06b13010c/pyjwt-2.11.0-py3-none-any.whl", hash = "sha256:94a6bde30eb5c8e04fee991062b534071fd1439ef58d2adc9ccb823e7bcd0469", size = 28224, upload-time = "2026-01-30T19:59:54.539Z" },
+    { url = "https://files.pythonhosted.org/packages/50/ca/44de4e75f8aadc457f0634be3b542815078ded46dca30efb960edeecad6e/pyjwt-2.15.1-py3-none-any.whl", hash = "sha256:42d59d631f7768a1028a64c7ff581a9bf7519804daf91fc5b6c56e30eec5e193", size = 33860, upload-time = "2026-09-28T18:40:41.429Z" },
 ]
 
 [[package]]

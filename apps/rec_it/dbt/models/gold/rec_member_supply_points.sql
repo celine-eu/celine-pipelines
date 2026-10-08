@@ -9,13 +9,13 @@
 -- The list a community hands its distributor is exactly this dataset read under
 -- the offer naming that distributor.
 --
--- A view, for the reason `silver_rec_registry` is one: the mirror is replaced
+-- A view, for the reason `rec_device_membership` is one: the mirror is replaced
 -- wholesale, and a table snapshot of it would silently keep an old cohort.
-{{ config(materialized='view') }}
+{{ config(materialized='view', tags=['rec_it']) }}
 
 select
     user_id,
-    rec_id,
+    community_id,
     unnest(delivery_point_ids) as pod_code,
     last_updated
 from {{ source('raw', 'rec_registry_mirror') }}

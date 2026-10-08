@@ -3,21 +3,24 @@ REC Registry mirror pipeline.
 
 Fetches all registered RECs from the CELINE REC Registry API via the SDK,
 flattens member/sensor data, and writes it into raw.rec_registry_mirror —
-a full-replace table (TRUNCATE + INSERT in one transaction) that dbt pipelines
-can use as a stable source of truth for community membership and asset metadata.
+a full-replace table (TRUNCATE + INSERT in one transaction) — then builds this
+app's dbt layer on it: the view rec_device_membership, the one place the other
+REC apps read membership from, and the tests that fail the run on a sensor listed
+twice in one community or an area whose substation is not its boundary.
 
-One row per active member (user_id PK).  sensor_ids, delivery_point_ids, and
+One row per active member and community (PRIMARY KEY (user_id, community_id));
+community_id is the bundle's community.id, the community's slug.  sensor_ids, delivery_point_ids, and
 topology_ids are stored as Postgres text[] arrays.  Members with status other
 than 'active' are excluded, and delivery_point_ids lists only the points in
 service: a delivery point flagged `active: false` is left out.
 
 boundary_id carries the id of the member's area's boundary (registry schema
 v0.7: `area.boundary.id`, the area's GSE primary-substation `cod_ac`); it is
-null for an area without a boundary.  rec_it takes topology_ids[1] as the
-member's substation_id, which is right only when the area lists exactly one
-node, equal to boundary_id.  The flow flags every area breaking that (it does
-not refuse the export), and rec_it's singular test
-`rec_registry_mirror_substation_is_area_boundary` fails on it.
+null for an area without a boundary.  rec_device_membership takes
+topology_ids[1] as the member's substation_id, which is right only when the area
+lists exactly one node, equal to boundary_id.  The flow flags every area breaking
+that (it does not refuse the export), and this app's singular test
+`rec_registry_mirror_substation_is_area_boundary` fails the dbt build on it.
 
 Schedule: every 5 minutes.
 """
@@ -38,6 +41,7 @@ from celine.sdk.rec_registry.client import RecRegistryAdminClient
 from celine.utils.pipelines.pipeline import (
     DEV_MODE,
     PipelineConfig,
+    dbt_run,
     PipelineTaskResult,
     PipelineStatus,
 )
@@ -53,7 +57,7 @@ CREATE SCHEMA IF NOT EXISTS raw;
 
 CREATE TABLE IF NOT EXISTS raw.rec_registry_mirror (
     user_id             text        NOT NULL,
-    rec_id              text        NOT NULL,
+    community_id        text        NOT NULL,
     area                text,
     role                text,
     member_type         text,
@@ -61,14 +65,14 @@ CREATE TABLE IF NOT EXISTS raw.rec_registry_mirror (
     delivery_point_ids  text[]      NOT NULL DEFAULT '{}',
     sensor_ids          text[]      NOT NULL DEFAULT '{}',
     last_updated        timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (user_id, rec_id)
+    PRIMARY KEY (user_id, community_id)
 );
 
 -- Added after the table was first deployed: tables created earlier get it here.
 ALTER TABLE raw.rec_registry_mirror ADD COLUMN IF NOT EXISTS boundary_id text;
 
-CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_rec_id
-    ON raw.rec_registry_mirror (rec_id);
+CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_community_id
+    ON raw.rec_registry_mirror (community_id);
 
 CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_area
     ON raw.rec_registry_mirror (area);
@@ -175,15 +179,15 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
     points flagged `active: false` (the member keeps its row).
 
     Columns produced:
-      user_id, rec_id, area, role, member_type,
+      user_id, community_id, area, role, member_type,
       topology_ids, delivery_point_ids, sensor_ids, boundary_id
     """
     rows: list[dict[str, Any]] = []
 
     for bundle in bundles:
         community = bundle.get("community", {})
-        rec_id = community.get("id")
-        if not rec_id:
+        community_id = community.get("id")
+        if not community_id:
             logger.warning("Bundle has no community.id — skipping")
             continue
 
@@ -194,14 +198,14 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
             status = member.get("status")
             if status != "active":
                 logger.debug(
-                    "Skipping member %s in %s (status=%s)", member_key, rec_id, status
+                    "Skipping member %s in %s (status=%s)", member_key, community_id, status
                 )
                 continue
 
             user_id = member.get("user_id")
             if not user_id:
                 logger.warning(
-                    "Member %s in %s has no user_id — skipping", member_key, rec_id
+                    "Member %s in %s has no user_id — skipping", member_key, community_id
                 )
                 continue
 
@@ -221,7 +225,7 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
             rows.append(
                 {
                     "user_id": user_id,
-                    "rec_id": rec_id,
+                    "community_id": community_id,
                     "area": area_key,
                     "role": member.get("role"),
                     "member_type": member.get("type"),
@@ -237,10 +241,9 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _substation_mismatches(rows: list[dict[str, Any]]) -> list[tuple[str, str]]:
     """
-    The (rec_id, area) pairs whose mirror rows would get the wrong substation.
+    The (community_id, area) pairs whose mirror rows would get the wrong substation.
 
-    rec_it's silver_rec_registry takes topology_ids[1] as a member's
-    substation_id.  For a row whose area has a boundary, that is right only when
+    rec_device_membership takes topology_ids[1] as a member's substation_id.  For a row whose area has a boundary, that is right only when
     the area lists exactly one topology node and that node's id is the
     boundary id.  Rows without a boundary_id (areas exported before registry
     schema v0.7) are not checked.
@@ -255,7 +258,7 @@ def _substation_mismatches(rows: list[dict[str, Any]]) -> list[tuple[str, str]]:
             continue
         topology_ids = row.get("topology_ids") or []
         if len(topology_ids) != 1 or topology_ids[0] != boundary_id:
-            bad.add((row["rec_id"], row.get("area") or ""))
+            bad.add((row["community_id"], row.get("area") or ""))
     return sorted(bad)
 
 
@@ -310,7 +313,7 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
     tuples = [
         (
             r["user_id"],
-            r["rec_id"],
+            r["community_id"],
             r["area"],
             r["role"],
             r["member_type"],
@@ -335,7 +338,7 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
                     cur,
                     """
                     INSERT INTO raw.rec_registry_mirror
-                        (user_id, rec_id, area, role, member_type,
+                        (user_id, community_id, area, role, member_type,
                          topology_ids, delivery_point_ids, sensor_ids, boundary_id,
                          last_updated)
                     VALUES %s
@@ -364,18 +367,29 @@ def check_substations(rows: list[dict[str, Any]]) -> PipelineTaskResult:
     such areas since schema v0.7, so a hit means data written before that.
     """
     mismatches = _substation_mismatches(rows)
-    for rec_id, area in mismatches:
+    for community_id, area in mismatches:
         logger.warning(
             "Area %s in %s: substation_id (topology_ids[1]) is not the area's "
             "boundary id, or the area lists other than one node",
             area,
-            rec_id,
+            community_id,
         )
     return PipelineTaskResult(
         command="check_substations",
         status=PipelineStatus.COMPLETED,
         details={"areas_mismatched": len(mismatches)},
     )
+
+
+@task(name="Build membership")
+def build_membership(cfg: PipelineConfig) -> PipelineTaskResult:
+    """
+    Build the dbt layer on the fresh mirror: the view rec_device_membership and
+    its tests. A sensor listed twice in one community, or an area whose
+    substation is not its boundary, fails the run here; the listing is fixed in
+    the registry, never deduplicated downstream.
+    """
+    return dbt_run("build", cfg)
 
 
 # ---------------------------------------------------------------------------
@@ -391,6 +405,7 @@ def rec_registry_flow(config: dict[str, Any] | None = None) -> dict:
       2. Fetch all active REC members from the registry API
       3. Flag areas whose substation_id would not be their boundary id
       4. Truncate + re-insert into raw.rec_registry_mirror
+      5. Build rec_device_membership and run its tests
     """
     cfg = PipelineConfig.model_validate(config or {})
 
@@ -399,6 +414,7 @@ def rec_registry_flow(config: dict[str, Any] | None = None) -> dict:
     rows = fetch_registry(cfg)
     result["substations"] = check_substations(rows)
     result["mirror"] = mirror_to_db(rows, cfg)
+    result["membership"] = build_membership(cfg)
 
     return result
 

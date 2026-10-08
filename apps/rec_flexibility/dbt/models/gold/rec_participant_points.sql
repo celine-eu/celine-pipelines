@@ -3,10 +3,12 @@
     materialized='incremental',
     unique_key='_id',
     incremental_strategy='merge',
+    on_schema_change='append_new_columns',
     merge_update_columns=[
       'ts_date',
       'season_start',
       'device_id',
+      'community_id',
       'daily_consumption_kwh',
       'daily_settlement_points',
       'daily_bonus_points',
@@ -30,6 +32,7 @@
 with settlement as (
     select
         device_id,
+        community_id,
         ts::date as ts_date,
         sum(settlement_points) as total_settlement_points,
         sum(consumption_kwh)   as daily_consumption_kwh
@@ -37,22 +40,24 @@ with settlement as (
     {% if is_incremental() %}
     where ts >= date_trunc('day', now() - interval '2 days')
     {% endif %}
-    group by device_id, ts::date
+    group by device_id, community_id, ts::date
 ),
 bonus as (
     select
         device_id,
+        community_id,
         date_trunc('day', window_start)::date as ts_date,
         sum(bonus_points) as daily_bonus_points
     from {{ ref('rec_flexibility_bonus') }}
     {% if is_incremental() %}
     where window_start >= date_trunc('day', now() - interval '2 days')
     {% endif %}
-    group by device_id, date_trunc('day', window_start)::date
+    group by device_id, community_id, date_trunc('day', window_start)::date
 )
 select
     md5(st.device_id || st.ts_date::text)                           as _id,
     st.device_id,
+    st.community_id,
     st.ts_date,
     {{ rec_season_start('st.ts_date') }}                            as season_start,
     st.daily_consumption_kwh,
@@ -61,4 +66,4 @@ select
       coalesce(round(st.total_settlement_points)::int, 0)
     + coalesce(b.daily_bonus_points, 0)::int                        as daily_points
 from settlement st
-left join bonus b using (device_id, ts_date)
+left join bonus b using (device_id, community_id, ts_date)

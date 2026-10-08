@@ -202,17 +202,8 @@ cd ../rec_flexibility
 source <(uv run celine-utils pipeline run envs)
 uv run pytest tests -q
 
-# The private fleet seed is generated at flow start and is not in the repository.
-# Without it dbt cannot even parse this app. Set REC_ACTIVE_DEVICES first — an
-# empty fleet parses but fails at run time with `operator does not exist:
-# text = integer`, because dbt types an empty seed column as integer.
-uv run python -c "
-import sys; sys.path.insert(0, '.')
-from pathlib import Path
-from lib.config import get_active_devices, load_config, write_active_devices_seed
-print(write_active_devices_seed(get_active_devices(load_config()), Path('dbt/seeds/rec_active_devices.csv')))
-"
-
+# The fleet is rec_registry's rec_device_membership: build rec_registry first
+# (its flow, or `dbt build` in apps/rec_registry on a loaded mirror).
 dbt build                                  # unit + generic + singular, all layers
 ```
 
@@ -301,12 +292,11 @@ tests; regenerate with `dbt ls --resource-type test` inside an app.
 | `rec_it` | yes | 1 | — | — |
 | `pv_estimation`, `pv_detection` | source-level only | — | — | — |
 | `copernicus`, `dwd`, `osm`, `overture`, `owm`, `trentino_rooftops` | **none** | — | — | — |
-| `rec_registry` | no dbt project | — | — | yes |
+| `rec_registry` | yes | 2 | — | yes |
 | `rec_flexibility_commitments` | no dbt project | — | — | — |
 
-\* `rec_flexibility` has by far the largest suite in the repository, and **none of the dbt
-half runs on a fresh checkout** until the private fleet seed is generated — see the
-cascade above. Concluding it is untested is the usual mistake.
+\* `rec_flexibility` has by far the largest suite in the repository; its dbt half needs
+`rec_device_membership` (rec_registry) to exist — see the cascade above.
 
 The unstarted apps are the backlog, roughly in value order: `owm` (19 models, and the
 second weather-contract producer), then the geospatial three, then `copernicus`.
