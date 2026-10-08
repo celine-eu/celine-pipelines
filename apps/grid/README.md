@@ -232,7 +232,7 @@ all-NORMAL heat vector for those dates rather than failing or falling back to an
 
 ## Flow (`flows/pipeline.py`)
 
-`grid-resilience-flow` runs two tasks in sequence: **Transform Gold Layer** (`dbt run --select tag:daily`) followed by **Test grid models**. Schedule is configured in `flows/config.yaml`: cron `0 8 * * *` (daily at 08:00 UTC), after the Open-Meteo wind, heat **and soil** pipelines complete.
+`grid-resilience-flow` runs two tasks in sequence: **Transform Gold Layer** (`dbt run --select tag:daily`) followed by **Test grid models**. Schedule is configured in `flows/config.yaml`: cron `15 8 * * *` (daily at 08:15 UTC), after the Open-Meteo wind (08:00 run), heat **and soil** pipelines complete.
 
 `flows/pipeline_nowcasting.py` runs `tag:nowcast` every 15 minutes.
 

@@ -1,7 +1,9 @@
 schedule:
   name: grid-resilience-daily
-  # Run after om wind + heat pipelines (which run at 06:00 UTC)
-  cron: "0 8 * * *"
+  # Run after the 08:00 om wind run (~4-5 min), om heat (07:30) and om soil (07:45),
+  # so the daily wind risk uses the newest forecast. At 08:00 it raced om wind
+  # and read the 04:00 forecast instead.
+  cron: "15 8 * * *"
 
 dbt:
   project_dir: "../dbt"
