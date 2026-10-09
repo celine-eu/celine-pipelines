@@ -1,0 +1,59 @@
+version: 2
+
+unit_tests:
+  - name: wind_nowcast_uses_nearest_fresh_mt_anemometer_within_10km
+    description: >
+      The wind nowcast reads MeteoTrentino station observations (om-observations
+      was switched off in July 2026, which left grid_wind_risks_now empty). Only
+      46 of ~107 MT stations carry an anemometer, so the search radius is 10 km
+      (84% of overhead segments covered, close to the old Open-Meteo 5 km grid).
+      A station with no wind reading, or whose last wind reading is older than
+      3 hours, must not shadow a farther station that does report wind.
+      L1 is 8 km from T_WIND (gust excess 9 m/s, WARNING), 1 km from T_NOWIND
+      (no anemometer) and 100 m from T_STALE (4 h old). L2 is 25 km from any
+      station and gets no nowcast.
+    model: grid_wind_risks_now
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: source('grid_silver', 'silver_grid_ac_line_segment')
+        format: sql
+        rows: |
+          select 'dso-1'::text as dso_id, null::text as asset_id, line_name::varchar,
+                 null::varchar as feeder_id, null::varchar as parent_substation_name,
+                 null::varchar as operational_unit, 'Trento'::varchar as municipality,
+                 'overhead'::varchar as conductor_type, 100.0::float as length_m,
+                 false as is_vegetated_zone, null::float as elevation_start_m,
+                 null::float as elevation_end_m, 'low'::text as strike_tree_tier,
+                 null::float as strike_tree_multiplier, null::float as strike_density_per_km,
+                 null::text as thermal_scadacontr, null::text as thermal_tier,
+                 null::float as thermal_margin_c, null::float as thermal_theta_max_c,
+                 null::text as thermal_insulation, ST_GeomFromText(wkt, 32632) as geom,
+                 null::timestamp as _sdc_extracted_at
+          from (values
+            ('L1', 'LINESTRING(671948 5104010, 672048 5104010)'),
+            ('L2', 'LINESTRING(688948 5104010, 689048 5104010)')
+          ) as t(line_name, wkt)
+      - input: source('mt_gold', 'mt_stations')
+        rows:
+          - {code: 'T_WIND',   latitude: 46.07,     longitude: 11.12}
+          - {code: 'T_NOWIND', latitude: 46.068286, longitude: 11.210449}
+          - {code: 'T_STALE',  latitude: 46.068061, longitude: 11.222078}
+      - input: source('mt_silver', 'mt_station_observations')
+        format: sql
+        rows: |
+          select 'T_WIND'::text as station_code, now() - interval '15 minutes' as observed_at,
+                 null::float as air_temperature_c, null::float as precipitation_mm,
+                 3.0::float as wind_speed_ms, 270.0::float as wind_direction_deg, 12.0::float as wind_gust_ms,
+                 null::float as global_radiation_wm2, null::float as relative_humidity_pct, null::float as snow_depth_cm
+          union all
+          select 'T_WIND', now() - interval '30 minutes', null, null, 1.0, 270.0, 2.0, null, null, null
+          union all
+          select 'T_NOWIND', now() - interval '15 minutes', 12.0, null, null, null, null, null, null, null
+          union all
+          select 'T_STALE', now() - interval '4 hours', null, null, 2.0, 90.0, 20.0, null, null, null
+    expect:
+      rows:
+        - {line_name: 'L1', risk_level: 'WARNING', gust_excess: 9.0,
+           wind_speed_max: 3.0, wind_gusts_max: 12.0}

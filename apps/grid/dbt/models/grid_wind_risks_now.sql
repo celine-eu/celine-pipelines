@@ -8,31 +8,43 @@
 {#
     Wind risk per MT overhead line segment from real-time observations (nowcasting).
 
-    Same logic as grid_wind_risks but sourced from om_obs_15min
-    instead of om_wind_gusts forecasts.
+    Same logic as grid_wind_risks but sourced from MeteoTrentino station
+    observations instead of om_wind_gusts forecasts.
 
     Source: silver_grid_ac_line_segment (conductor_type != underground_cable).
-    Observations: om_obs_15min (spatial join ≤ 5 km, nearest station, most recent).
+    Observations: mt_station_observations, latest reading per station from the
+    last 3 hours that carries both wind speed and gust (only ~46 of ~107 MT
+    stations have an anemometer). Spatial join ≤ 10 km to the nearest such
+    station: 5 km would leave over half of the overhead segments uncovered.
     Gust excess thresholds: WARNING >= 7.62 m/s, ALERT >= 12.46 m/s.
+    These were calibrated on ICON-D2 forecast gust excess; a single 15-minute
+    station reading (gust minus mean speed) is not the same quantity and the
+    thresholds are due a recalibration once MT wind history has accumulated.
 
     Escalation: WARNING → ALERT when strike_tree_tier = 'high' (tree-strike analysis); NORMAL never escalates.
 #}
 
 {% set seg = source('grid_silver', 'silver_grid_ac_line_segment') %}
-{% set obs = source('om_obs', 'om_obs_15min') %}
+{% set obs = source('mt_silver', 'mt_station_observations') %}
+{% set stations = source('mt_gold', 'mt_stations') %}
 
 with recent_obs as (
 
-    select distinct on (lat, lon)
-        lat,
-        lon,
-        geoposition,
-        wind_speed_ms,
-        wind_gusts_ms,
-        datetime as observed_at
-    from {{ obs }}
-    where datetime >= now() - interval '3 hours'
-    order by lat, lon, datetime desc
+    select distinct on (o.station_code)
+        o.station_code,
+        ST_Transform(
+            ST_SetSRID(ST_MakePoint(st.longitude, st.latitude), 4326),
+            32632
+        ) as geom,
+        o.wind_speed_ms,
+        o.wind_gust_ms as wind_gusts_ms,
+        o.observed_at
+    from {{ obs }} o
+    join {{ stations }} st on st.code = o.station_code
+    where o.observed_at >= now() - interval '3 hours'
+      and o.wind_speed_ms is not null
+      and o.wind_gust_ms is not null
+    order by o.station_code, o.observed_at desc
 
 ),
 
@@ -57,13 +69,10 @@ with_dist as (
         o.wind_speed_ms,
         o.wind_gusts_ms,
         (o.wind_gusts_ms - o.wind_speed_ms) as gust_excess,
-        ST_Distance(
-            s.geom,
-            ST_Transform(o.geoposition::geometry, 32632)
-        ) as dist_m
+        ST_Distance(s.geom, o.geom) as dist_m
     from {{ seg }} s
     left join recent_obs o
-        on ST_DWithin(ST_Transform(o.geoposition::geometry, 32632), s.geom, 5000)
+        on ST_DWithin(o.geom, s.geom, 10000)
     where s.conductor_type != 'underground_cable'
 
 ),

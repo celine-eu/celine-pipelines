@@ -59,12 +59,19 @@ sources:
           soil_status 'GREEN' | 'ORANGE'). Grain: one row per point per date;
           rows with soil_data_complete false carry no status.
 
-  - name: om_obs
+  - name: mt_silver
     schema: "{{ env_var('CELINE_SILVER_SCHEMA', 'ds_dev_silver') }}"
-    description: "Open-Meteo observations (produced by celine-pipelines)."
+    description: "MeteoTrentino station observations (produced by the mt app)."
     tables:
-      - name: om_obs_15min
-        description: "15-minute weather observations per grid point (temp, wind, precipitation)."
+      - name: mt_station_observations
+        description: "15-minute station observations, one row per (station_code, observed_at); wind columns are null for stations without an anemometer."
+
+  - name: mt_gold
+    schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
+    description: "MeteoTrentino station registry (produced by the mt app)."
+    tables:
+      - name: mt_stations
+        description: "Active MeteoTrentino stations with WGS84 latitude/longitude."
 
   - name: heat_obs
     schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"

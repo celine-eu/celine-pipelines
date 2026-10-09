@@ -802,8 +802,9 @@ models:
   - name: grid_wind_risks_now
     description: >
       Wind risk per MT overhead line segment from real-time observations (nowcasting).
-      Same logic as grid_wind_risks but sourced from om_obs_15min.
-      Nearest observation within 5 km, most recent reading (3-hour window).
+      Same logic as grid_wind_risks but sourced from MeteoTrentino station
+      observations (mt_station_observations). Nearest station with an
+      anemometer within 10 km, its most recent wind reading (3-hour window).
       Gust excess thresholds: WARNING >= 7.62 m/s, ALERT >= 12.46 m/s.
     config:
       tags: ["grid", "nowcast"]
