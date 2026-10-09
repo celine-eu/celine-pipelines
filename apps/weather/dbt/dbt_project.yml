@@ -24,6 +24,12 @@ seeds:
   energy_community:
     +schema: staging
     weather_locations:
+      # Always drop and recreate rather than truncate. A plain `dbt seed` keeps
+      # the existing table's columns, so adding a column to the CSV fails the
+      # insert on every environment seeded before the change (0.3.0 shipped
+      # `elevation_m` this way). The seed is tiny and fully owned by the CSV;
+      # the cascade drops `stg_weather_alerts`, which the staging step rebuilds.
+      +full_refresh: true
       # Typed explicitly rather than inferred. `elevation_m` is optional — a
       # location that does not declare one still matches, it just cannot break a
       # coordinate tie — so most rows may be blank, and dbt-postgres infers an
