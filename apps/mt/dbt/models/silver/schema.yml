@@ -45,8 +45,9 @@ models:
   - name: mt_station_observations
     description: >
       Station observations, one row per (station, instant). Incremental merge;
-      timestamps are converted from Europe/Rome wall-clock to timestamptz at
-      this layer, so everything downstream is absolute.
+      timestamps arrive in solar time with an explicit +01:00 offset all year
+      and are cast to timestamptz honouring that offset (not read as
+      Europe/Rome wall-clock), so everything downstream is absolute.
     columns:
       - name: station_code
         data_tests:

@@ -6,7 +6,7 @@
 
 select
     station_code,
-    (cast(timestamp as timestamp) at time zone 'Europe/Rome') as observed_at,
+    cast(timestamp as timestamptz) as observed_at,
     cast(air_temperature_c     as float)       as air_temperature_c,
     cast(precipitation_mm      as float)       as precipitation_mm,
     cast(wind_speed_ms         as float)       as wind_speed_ms,
@@ -18,7 +18,7 @@ select
 from {{ ref('stg_mt_station_observations') }}
 
 {% if is_incremental() %}
-where (cast(timestamp as timestamp) at time zone 'Europe/Rome') > (
+where cast(timestamp as timestamptz) > (
     select coalesce(max(observed_at), '1900-01-01'::timestamptz) - interval '7 days'
     from {{ this }}
 )

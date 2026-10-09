@@ -1,0 +1,23 @@
+version: 2
+
+unit_tests:
+  - name: observed_at_honours_the_solar_time_offset
+    description: >
+      MeteoTrentino timestamps are solar time with an explicit +01:00 offset all
+      year round. Dropping that offset and reading the wall-clock as Europe/Rome
+      stored every summer reading one hour early (12:00+01 landed at 10:00 UTC
+      instead of 11:00 UTC), which shifted the heat nowcast and the 3-hour wind
+      nowcast window. The offset the API sends is authoritative, in both seasons.
+    model: mt_station_observations
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('stg_mt_station_observations')
+        rows:
+          - {station_code: 'T0129', timestamp: '2026-10-07T12:00:00+01:00'}
+          - {station_code: 'T0129', timestamp: '2026-01-15T12:00:00+01:00'}
+    expect:
+      rows:
+        - {station_code: 'T0129', observed_at: '2026-10-07 11:00:00+00'}
+        - {station_code: 'T0129', observed_at: '2026-01-15 11:00:00+00'}
