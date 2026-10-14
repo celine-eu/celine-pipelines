@@ -66,8 +66,8 @@ sources:
     # The gold pass-through of exactly this data is
     # `datasets.ds_dev_gold.om_weather_hourly_view`, which exists for the
     # dashboards. That is where a catalogue consumer of hourly weather belongs,
-    # and it is why this stays false rather than moving to the view: nothing
-    # asked for the view to be published either.
+    # and it is why this stays false: the digital twin's irradiance fetcher,
+    # which read this table, now reads the view.
     expose: false
     dataspace:
       expose: false
@@ -398,6 +398,13 @@ sources:
       Direct pass-through from silver layer.
     license: CC-BY-4.0
     access_level: internal
+    # Weather, no person or organization in it: every organization's members
+    # read every row, on purpose. Without a row filter an `internal` dataset
+    # admits no organization reader at all, and the fetcher below runs with
+    # the participant's own token.
+    row_filters:
+      - handler: member_wide
+        binds: organization
     ownership:
       - name: spxl
         type: organization
@@ -405,6 +412,62 @@ sources:
         type: consortium
     source_system: Open-Meteo
     tags: [open-meteo, weather, hourly, superset, gold]
+    # In the catalogue because something asks for it: the digital twin's
+    # `weather_irradiance_hourly` fetcher, behind the assistant's weather
+    # forecast and the webapp's weather API. It read the silver table until
+    # that was withdrawn under the gold-only rule (2026-09-20). Sharing over
+    # the dataspace is a separate decision and nothing has asked for it.
+    expose: true
+    dataspace:
+      expose: false
+      medallion: gold
+    dcat:
+      publisher_uri: https://celine-eu.github.io
+
+  # ---------------------------------------------------------------------------
+  # EXTRAS — what the weather facade's primary provider (mt) does not publish
+  # ---------------------------------------------------------------------------
+  # Read in-database by the `weather` facade, never through the catalogue:
+  # nothing asks for them there, so they are not exposed.
+
+  datasets.ds_dev_gold.om_weather_current_extras:
+    title: "Open-Meteo Current Humidity, UV and Cloud Cover (Gold)"
+    description: >
+      Latest Open-Meteo current conditions per location (best-match model):
+      relative humidity, UV index and cloud cover. Fills the gaps of the
+      weather facade's current conditions.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, weather, current, uv, humidity, gold]
+    dataspace:
+      expose: false
+      medallion: gold
+    dcat:
+      publisher_uri: https://celine-eu.github.io
+
+  datasets.ds_dev_gold.om_weather_daily_extras:
+    title: "Open-Meteo Daily UV, Sunrise and Sunset (Gold)"
+    description: >
+      Open-Meteo daily values per location, seven days ahead (best-match
+      model): maximum UV index, sunrise and sunset. Fills the gaps of the
+      weather facade's daily forecast.
+    license: CC-BY-4.0
+    access_level: internal
+    ownership:
+      - name: spxl
+        type: organization
+      - name: celine
+        type: consortium
+    source_system: Open-Meteo
+    documentation_url: https://open-meteo.com/en/docs
+    tags: [open-meteo, weather, daily, uv, sun, gold]
     dataspace:
       expose: false
       medallion: gold

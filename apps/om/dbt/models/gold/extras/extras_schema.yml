@@ -1,0 +1,91 @@
+version: 2
+
+models:
+  - name: om_weather_current_extras
+    description: >
+      The latest Open-Meteo current conditions per location, for the variables
+      the weather facade's primary provider (mt) does not publish: relative
+      humidity, UV index and cloud cover. Best-match model, refreshed with the
+      main om flow.
+    config:
+      tags: ["weather"]
+    columns:
+      - name: location_name
+        description: "Location name from tap-openmeteo"
+        tests:
+          - not_null
+          - unique
+      - name: lat
+        description: "Latitude of the Open-Meteo grid cell (WGS84)"
+      - name: lon
+        description: "Longitude of the Open-Meteo grid cell (WGS84)"
+      - name: observed_at
+        description: "Time of the reading (UTC)"
+        tests:
+          - not_null
+      - name: humidity_pct
+        description: "Relative humidity at 2 m (%)"
+      - name: uv_index
+        description: "UV index"
+      - name: cloud_cover_pct
+        description: "Total cloud cover (%)"
+
+  - name: om_weather_daily_extras
+    description: >
+      Open-Meteo daily values per location for the variables the weather
+      facade's primary provider (mt) does not publish: the day's maximum UV
+      index, sunrise and sunset. Best-match model, refreshed with the main om
+      flow.
+    config:
+      tags: ["weather"]
+    columns:
+      - name: location_name
+        description: "Location name from tap-openmeteo"
+        tests:
+          - not_null
+      - name: lat
+        description: "Latitude of the Open-Meteo grid cell (WGS84)"
+      - name: lon
+        description: "Longitude of the Open-Meteo grid cell (WGS84)"
+      - name: forecast_date
+        description: "Calendar date (Europe/Rome)"
+        tests:
+          - not_null
+      - name: uv_index_max
+        description: "Maximum UV index of the day"
+      - name: sunrise
+        description: "Sunrise (UTC)"
+      - name: sunset
+        description: "Sunset (UTC)"
+
+unit_tests:
+
+  - name: current_extras_keep_only_the_latest_reading_per_location
+    description: >
+      Raw readings accumulate one per run; the gold table answers "now", so
+      only the newest reading of each location survives.
+    model: om_weather_current_extras
+    given:
+      - input: ref('stg_om_weather_current')
+        rows:
+          - {location_name: 'Folgaria', lat: 45.9, lon: 11.15, observed_at: '2026-10-14 03:15:00+00', humidity_pct: 90, uv_index: 0, cloud_cover_pct: 100}
+          - {location_name: 'Folgaria', lat: 45.9, lon: 11.15, observed_at: '2026-10-14 09:15:00+00', humidity_pct: 61, uv_index: 2.95, cloud_cover_pct: 0}
+    expect:
+      rows:
+        - {location_name: 'Folgaria', observed_at: '2026-10-14 09:15:00+00', humidity_pct: 61, uv_index: 2.95, cloud_cover_pct: 0}
+
+  - name: daily_extras_keep_one_row_per_location_and_date
+    description: >
+      The tap re-sends the same seven days every run; one row per location and
+      date reaches gold.
+    model: om_weather_daily_extras
+    given:
+      - input: ref('stg_om_weather_daily')
+        rows:
+          - {location_name: 'Folgaria', lat: 45.9, lon: 11.15, forecast_date: '2026-10-14', uv_index_max: 3.75, sunrise: '2026-10-14 05:30:00+00', sunset: '2026-10-14 16:31:00+00', extracted_at: '2026-10-14 00:00:00'}
+          - {location_name: 'Folgaria', lat: 45.9, lon: 11.15, forecast_date: '2026-10-14', uv_index_max: 3.5, sunrise: '2026-10-14 05:30:00+00', sunset: '2026-10-14 16:31:00+00', extracted_at: '2026-10-14 06:00:00'}
+          - {location_name: 'Folgaria', lat: 45.9, lon: 11.15, forecast_date: '2026-10-15', uv_index_max: 3.55, sunrise: '2026-10-15 05:31:00+00', sunset: '2026-10-15 16:29:00+00', extracted_at: '2026-10-14 06:00:00'}
+    expect:
+      rows:
+        - {location_name: 'Folgaria', forecast_date: '2026-10-14', uv_index_max: 3.5}
+        - {location_name: 'Folgaria', forecast_date: '2026-10-15', uv_index_max: 3.55}

@@ -1,0 +1,75 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: raw
+    config:
+      tags: ["weather"]
+    tables:
+      - name: om_weather_current
+        description: >
+          Current conditions from tap-openmeteo-extras (best-match model):
+          relative humidity, UV index and cloud cover for each configured
+          location. One row per location and reading time.
+        columns:
+          - name: time
+            description: "Reading time, naive Europe/Rome"
+            tests:
+              - not_null
+          - name: location_name
+            description: "Location name from tap-openmeteo"
+      - name: om_weather_daily
+        description: >
+          Daily values from tap-openmeteo-extras (best-match model): maximum UV
+          index, sunrise and sunset, seven days ahead. One row per location and
+          date, upserted every run.
+        columns:
+          - name: date
+            description: "Calendar date (Europe/Rome)"
+            tests:
+              - not_null
+          - name: location_name
+            description: "Location name from tap-openmeteo"
+
+models:
+  - name: stg_om_weather_current
+    description: >
+      Staging view: casts the extras current readings and anchors the naive
+      Europe/Rome reading time to UTC.
+    config:
+      tags: ["weather"]
+
+  - name: stg_om_weather_daily
+    description: >
+      Staging view: casts the extras daily values and anchors the naive
+      Europe/Rome sunrise and sunset to UTC.
+    config:
+      tags: ["weather"]
+
+unit_tests:
+
+  - name: current_reading_time_is_anchored_to_europe_rome
+    description: >
+      Open-Meteo answers in the requested timezone without an offset: 11:15 in
+      Folgaria in October (CEST) is 09:15 UTC.
+    model: stg_om_weather_current
+    given:
+      - input: source('raw', 'om_weather_current')
+        rows:
+          - {location_name: 'Folgaria', latitude: 45.902485, longitude: 11.151106, time: '2026-10-14 11:15:00', relative_humidity_2m: 61, uv_index: 2.95, cloud_cover: 0}
+    expect:
+      rows:
+        - {location_name: 'Folgaria', observed_at: '2026-10-14 09:15:00+00', humidity_pct: 61, uv_index: 2.95, cloud_cover_pct: 0}
+
+  - name: sunrise_and_sunset_are_anchored_to_europe_rome
+    description: >
+      Same offset-free local times as the current reading; 07:30 and 18:31 in
+      October are 05:30 and 16:31 UTC.
+    model: stg_om_weather_daily
+    given:
+      - input: source('raw', 'om_weather_daily')
+        rows:
+          - {location_name: 'Folgaria', latitude: 45.902485, longitude: 11.151106, date: '2026-10-14', uv_index_max: 3.75, sunrise: '2026-10-14 07:30:00', sunset: '2026-10-14 18:31:00'}
+    expect:
+      rows:
+        - {location_name: 'Folgaria', forecast_date: '2026-10-14', uv_index_max: 3.75, sunrise: '2026-10-14 05:30:00+00', sunset: '2026-10-14 16:31:00+00'}

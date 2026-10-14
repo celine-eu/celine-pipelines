@@ -41,6 +41,33 @@ plugins:
         streams_to_sync:
           - weather_hourly
 
+    # The variables the weather facade's primary provider (mt) does not
+    # publish: humidity, UV, cloud cover, sunrise and sunset. Open-Meteo's
+    # best-match model, not icon_seamless: ICON returns no UV index. Two calls
+    # per run (current + daily), riding the main om schedule.
+    - name: tap-openmeteo-extras
+      inherit_from: tap-openmeteo
+      config:
+        models: []
+        current_variables:
+          - relative_humidity_2m
+          - uv_index
+          - cloud_cover
+        daily_variables:
+          - uv_index_max
+          - sunrise
+          - sunset
+        streams_to_sync:
+          - weather_current
+          - weather_daily
+        # raw.weather_current / raw.weather_daily are generic names; keep the
+        # provider in the table name, as raw.om_weather_* does elsewhere.
+        stream_maps:
+          weather_current:
+            __alias__: om_weather_current
+          weather_daily:
+            __alias__: om_weather_daily
+
   loaders:
     - name: target-postgres
       variant: meltanolabs
@@ -57,3 +84,4 @@ jobs:
   - name: import
     tasks:
       - tap-openmeteo target-postgres
+      - tap-openmeteo-extras target-postgres
