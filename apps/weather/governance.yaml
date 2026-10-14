@@ -36,6 +36,14 @@ depends_on:
   - dataset: datasets.*_gold.weather__forecast_daily
   - dataset: datasets.*_gold.weather__alerts
   - dataset: datasets.*_gold.weather__current
+  - dataset: datasets.*_gold.om_weather_current_extras
+    description: >
+      Not a contract table: Open-Meteo's humidity, UV and cloud cover, filling
+      what the provider leaves null in weather_current.
+  - dataset: datasets.*_gold.om_weather_daily_extras
+    description: >
+      Not a contract table: Open-Meteo's daily UV maximum, sunrise and sunset
+      for weather_current and weather_forecast_daily.
 
 sources:
   # ---------------------------------------------------------------------------

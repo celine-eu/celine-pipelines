@@ -1,0 +1,102 @@
+version: 2
+
+unit_tests:
+
+  # ---------------------------------------------------------------------------
+  # weather_current — Open-Meteo extras fill what the provider does not publish
+  # ---------------------------------------------------------------------------
+
+  - name: current_fills_station_gaps_from_open_meteo
+    description: >
+      Folgaria's mt station reports temperature only. Humidity, cloud cover
+      and UV come from Open-Meteo's current extras, sunrise and sunset from
+      the daily extras row of the observation's local day.
+    model: weather_current
+    given:
+      - input: ref('weather_locations')
+        rows:
+          - {location_id: 'it_folgaria', provider: 'mt', location_name: 'Folgaria', lat: 45.9167, lon: 11.1667, elevation_m: 1166}
+      - input: ref('stg_weather_current')
+        rows:
+          - {provider: 'mt', station_id: 'T0210', station_name: 'Folgaria', lat: 45.9133, lon: 11.1689, elevation_m: 1121, observed_at: '2026-10-14 08:15:00+00', temperature_c: 11.2, humidity_pct: null, cloud_cover_pct: null}
+      - input: ref('stg_om_weather_current_extras')
+        rows:
+          - {location_name: 'Folgaria', lat: 45.902485, lon: 11.151106, observed_at: '2026-10-14 09:15:00+00', humidity_pct: 61, uv_index: 2.95, cloud_cover_pct: 0}
+      - input: ref('stg_om_weather_daily_extras')
+        rows:
+          - {location_name: 'Folgaria', lat: 45.902485, lon: 11.151106, forecast_date: '2026-10-13', uv_index_max: 3.9, sunrise: '2026-10-13 05:29:00+00', sunset: '2026-10-13 16:33:00+00'}
+          - {location_name: 'Folgaria', lat: 45.902485, lon: 11.151106, forecast_date: '2026-10-14', uv_index_max: 3.75, sunrise: '2026-10-14 05:30:00+00', sunset: '2026-10-14 16:31:00+00'}
+    expect:
+      rows:
+        - {location_id: 'it_folgaria', temperature_c: 11.2, humidity_pct: 61, cloud_cover_pct: 0, uv_index: 2.95, sunrise: '2026-10-14 05:30:00+00', sunset: '2026-10-14 16:31:00+00'}
+
+  - name: current_keeps_measured_station_humidity
+    description: >
+      A measured value beats a modelled one: Open-Meteo only fills a gap.
+    model: weather_current
+    given:
+      - input: ref('weather_locations')
+        rows:
+          - {location_id: 'it_folgaria', provider: 'mt', location_name: 'Folgaria', lat: 45.9167, lon: 11.1667, elevation_m: 1166}
+      - input: ref('stg_weather_current')
+        rows:
+          - {provider: 'mt', station_id: 'T0210', station_name: 'Folgaria', lat: 45.9133, lon: 11.1689, elevation_m: 1121, observed_at: '2026-10-14 08:15:00+00', temperature_c: 11.2, humidity_pct: 80, cloud_cover_pct: null}
+      - input: ref('stg_om_weather_current_extras')
+        rows:
+          - {location_name: 'Folgaria', lat: 45.902485, lon: 11.151106, observed_at: '2026-10-14 09:15:00+00', humidity_pct: 61, uv_index: 2.95, cloud_cover_pct: 0}
+      - input: ref('stg_om_weather_daily_extras')
+        rows: []
+    expect:
+      rows:
+        - {location_id: 'it_folgaria', humidity_pct: 80, uv_index: 2.95}
+
+  - name: current_extras_stay_near_their_point
+    description: >
+      The extras are fetched for Folgaria only; Valencia must not inherit
+      Folgaria's UV just because it is the only extras row there is.
+    model: weather_current
+    given:
+      - input: ref('weather_locations')
+        rows:
+          - {location_id: 'es_valencia', provider: 'owm', location_name: 'Valencia', lat: 39.6752377, lon: -0.2047335, elevation_m: null}
+      - input: ref('stg_weather_current')
+        rows:
+          - {provider: 'owm', station_id: 'es_valencia', station_name: 'Valencia', lat: 39.6752377, lon: -0.2047335, elevation_m: null, observed_at: '2026-10-14 08:00:00+00', temperature_c: 22.0, humidity_pct: 55, cloud_cover_pct: 10}
+      - input: ref('stg_om_weather_current_extras')
+        rows:
+          - {location_name: 'Folgaria', lat: 45.902485, lon: 11.151106, observed_at: '2026-10-14 09:15:00+00', humidity_pct: 61, uv_index: 2.95, cloud_cover_pct: 0}
+      - input: ref('stg_om_weather_daily_extras')
+        rows:
+          - {location_name: 'Folgaria', lat: 45.902485, lon: 11.151106, forecast_date: '2026-10-14', uv_index_max: 3.75, sunrise: '2026-10-14 05:30:00+00', sunset: '2026-10-14 16:31:00+00'}
+    expect:
+      rows:
+        - {location_id: 'es_valencia', humidity_pct: 55, cloud_cover_pct: 10, uv_index: null, sunrise: null, sunset: null}
+
+  # ---------------------------------------------------------------------------
+  # weather_forecast_daily — UV maximum and the sun from Open-Meteo
+  # ---------------------------------------------------------------------------
+
+  - name: daily_takes_uv_max_and_sun_times_by_date
+    description: >
+      mt publishes no UV and no sun times. Each forecast day takes the extras
+      row of the same date; a day the extras do not cover stays null.
+    model: weather_forecast_daily
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('weather_locations')
+        rows:
+          - {location_id: 'it_folgaria', provider: 'mt', location_name: 'Folgaria', lat: 45.9167, lon: 11.1667, elevation_m: 1166}
+      - input: ref('stg_weather_forecast_daily')
+        rows:
+          - {provider: 'mt', location_id: 'folgaria', lat: 45.9167, lon: 11.1667, elevation_m: 1166, forecast_date: '2026-10-14', temperature_max_c: 16, sunrise: null, sunset: null}
+          - {provider: 'mt', location_id: 'folgaria', lat: 45.9167, lon: 11.1667, elevation_m: 1166, forecast_date: '2026-10-25', temperature_max_c: 12, sunrise: null, sunset: null}
+      - input: ref('stg_om_weather_daily_extras')
+        rows:
+          - {location_name: 'Folgaria', lat: 45.902485, lon: 11.151106, forecast_date: '2026-10-14', uv_index_max: 3.75, sunrise: '2026-10-14 05:30:00+00', sunset: '2026-10-14 16:31:00+00'}
+          - {location_name: 'Folgaria', lat: 45.902485, lon: 11.151106, forecast_date: '2026-10-15', uv_index_max: 3.55, sunrise: '2026-10-15 05:31:00+00', sunset: '2026-10-15 16:29:00+00'}
+    expect:
+      rows:
+        - {location_id: 'it_folgaria', forecast_date: '2026-10-14', uv_index_max: 3.75, sunrise: '2026-10-14 05:30:00+00', sunset: '2026-10-14 16:31:00+00'}
+        - {location_id: 'it_folgaria', forecast_date: '2026-10-25', uv_index_max: null, sunrise: null, sunset: null}

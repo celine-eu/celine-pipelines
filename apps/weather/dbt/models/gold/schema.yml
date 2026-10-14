@@ -51,6 +51,12 @@ models:
           Elevation of the provider point that won the match — not the seed's
           requested elevation. Consumers need it to know which altitude the
           forecast is actually for, since a coordinate can carry several.
+      - name: sunrise
+        description: The provider's, or Open-Meteo's where the provider has none (UTC).
+      - name: sunset
+        description: The provider's, or Open-Meteo's where the provider has none (UTC).
+      - name: uv_index_max
+        description: Maximum UV index of the day, from Open-Meteo. Null where no extras point is within 0.1 degrees.
 
   - name: weather_current
     description: >
@@ -79,6 +85,16 @@ models:
           Elevation of the provider point that won the match — not the seed's
           requested elevation. Consumers need it to know which altitude the
           forecast is actually for, since a coordinate can carry several.
+      - name: humidity_pct
+        description: The station's, or Open-Meteo's where the station measures none.
+      - name: cloud_cover_pct
+        description: The station's, or Open-Meteo's where the station reports none.
+      - name: uv_index
+        description: Current UV index, from Open-Meteo. Null where no extras point is within 0.1 degrees.
+      - name: sunrise
+        description: Sunrise of the observation's local day, from Open-Meteo (UTC).
+      - name: sunset
+        description: Sunset of the observation's local day, from Open-Meteo (UTC).
 
   - name: weather_alerts_active
     description: >

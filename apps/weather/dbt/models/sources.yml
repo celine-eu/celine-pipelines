@@ -26,3 +26,18 @@ sources:
           area-based and are assigned to locations by provider, not by distance.
       - name: weather__current
         description: "Current observations, all providers merged. Requires lat, lon, elevation_m."
+
+  - name: om_extras
+    schema: "{{ env_var('CELINE_GOLD_SCHEMA', 'ds_dev_gold') }}"
+    database: datasets
+    description: >
+      Open-Meteo values the contract providers do not publish (om pipeline,
+      best-match model): current humidity, UV and cloud cover, and daily UV
+      maximum, sunrise and sunset. Not a contract table — a provider's row
+      always wins where it has a value; these only fill its gaps. Carries
+      `lat` and `lon` of the Open-Meteo grid cell, no elevation.
+    tables:
+      - name: om_weather_current_extras
+        description: "Latest current reading per Open-Meteo location."
+      - name: om_weather_daily_extras
+        description: "One row per Open-Meteo location and date, seven days ahead."

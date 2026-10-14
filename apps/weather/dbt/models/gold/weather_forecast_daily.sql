@@ -48,25 +48,55 @@ ranked as (
     join locations loc
         on abs(src.lat - loc.lat) < 0.1
         and abs(src.lon - loc.lon) < 0.1
+),
+
+{#
+    Open-Meteo's daily extras add the UV maximum, which no provider publishes,
+    and fill sunrise and sunset where the provider leaves them null (mt does).
+    Matched by date and by the same 0.1-degree radius as the provider rows.
+#}
+
+daily_extras as (
+    select
+        loc.location_id,
+        ex.forecast_date,
+        ex.uv_index_max,
+        ex.sunrise,
+        ex.sunset,
+        row_number() over (
+            partition by loc.location_id, ex.forecast_date
+            order by
+                (abs(ex.lat - loc.lat) + abs(ex.lon - loc.lon)),
+                ex.location_name
+        ) as rn
+    from {{ ref('stg_om_weather_daily_extras') }} ex
+    join locations loc
+        on abs(ex.lat - loc.lat) < 0.1
+        and abs(ex.lon - loc.lon) < 0.1
 )
 
 select
-    location_id,
-    provider,
-    forecast_date,
-    elevation_m,
-    temperature_c,
-    temperature_min_c,
-    temperature_max_c,
-    precipitation_mm,
-    precipitation_probability_pct,
-    wind_speed_ms,
-    wind_gust_ms,
-    wind_direction_deg,
-    cloud_cover_pct,
-    sky_condition,
-    snow_cm,
-    sunrise,
-    sunset
-from ranked
-where rn = 1
+    r.location_id,
+    r.provider,
+    r.forecast_date,
+    r.elevation_m,
+    r.temperature_c,
+    r.temperature_min_c,
+    r.temperature_max_c,
+    r.precipitation_mm,
+    r.precipitation_probability_pct,
+    r.wind_speed_ms,
+    r.wind_gust_ms,
+    r.wind_direction_deg,
+    r.cloud_cover_pct,
+    r.sky_condition,
+    r.snow_cm,
+    coalesce(r.sunrise, de.sunrise) as sunrise,
+    coalesce(r.sunset, de.sunset)   as sunset,
+    de.uv_index_max
+from ranked r
+left join daily_extras de
+    on de.location_id = r.location_id
+    and de.forecast_date = r.forecast_date
+    and de.rn = 1
+where r.rn = 1
