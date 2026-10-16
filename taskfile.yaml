@@ -12,6 +12,11 @@ tasks:
     cmds:
       - docker compose build
 
+  db:mark-local:
+    desc: Mark the local datasets database as `celine:env=local` (refuses a database marked otherwise)
+    cmds:
+      - docker compose exec -T datasets-db sh -s < scripts/db-mark-local.sh
+
   create-worker-pool:
     cmds:
       - docker compose exec -it prefect-server prefect work-pool create celine --type docker || true

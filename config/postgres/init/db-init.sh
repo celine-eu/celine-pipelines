@@ -6,6 +6,10 @@ psql -v ON_ERROR_STOP=1 --username "${POSTGRES_USER}" > /dev/null <<-EOSQL
   CREATE EXTENSION IF NOT EXISTS postgis CASCADE;
   CREATE EXTENSION IF NOT EXISTS postgis_topology CASCADE;
 
+  -- Environment marker, read by tools that copy between environments
+  -- (an existing volume: task db:mark-local)
+  COMMENT ON DATABASE "${POSTGRES_DB}" IS 'celine:env=local';
+
   -- Create Meltano database
   CREATE DATABASE meltano;
 
