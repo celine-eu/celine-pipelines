@@ -58,7 +58,7 @@ sources:
     tags: [weather, alerts, gold, folgaria]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -93,7 +93,7 @@ sources:
     tags: [weather, current, gold, folgaria]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -128,7 +128,7 @@ sources:
     tags: [weather, daily, forecast, gold, folgaria]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -163,7 +163,7 @@ sources:
     tags: [weather, hourly, forecast, gold, folgaria]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -198,7 +198,7 @@ sources:
     tags: [weather, minutely, forecast, gold, folgaria]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -232,7 +232,7 @@ sources:
     tags: [weather, alerts, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -266,7 +266,7 @@ sources:
     tags: [weather, foi, gold, derived]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -300,7 +300,7 @@ sources:
     tags: [weather, observations, current, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -333,7 +333,7 @@ sources:
     tags: [weather, observations, daily, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -366,7 +366,7 @@ sources:
     tags: [weather, observations, hourly, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -399,7 +399,7 @@ sources:
     tags: [weather, observations, minutely, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -432,7 +432,7 @@ sources:
     tags: [weather, observations, gold, wide]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -465,7 +465,7 @@ sources:
     tags: [weather, metadata, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false

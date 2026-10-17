@@ -133,6 +133,9 @@ sources:
         args:
           column: pod_code
           key_type: pod
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       expose: false

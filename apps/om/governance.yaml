@@ -293,6 +293,9 @@ sources:
     row_filters:
       - handler: member_wide
         binds: organization
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     ownership:
       - name: spxl
         type: organization
@@ -303,7 +306,7 @@ sources:
     tags: [open-meteo, heat, risk, trentino, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -405,6 +408,9 @@ sources:
     row_filters:
       - handler: member_wide
         binds: organization
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     ownership:
       - name: spxl
         type: organization

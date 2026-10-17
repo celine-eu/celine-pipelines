@@ -58,7 +58,7 @@ sources:
     tags: [dwd, icon-d2, wind, gusts, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false

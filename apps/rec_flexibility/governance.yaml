@@ -73,6 +73,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [IncentiveCalculation]
@@ -95,6 +98,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [IncentiveCalculation]
@@ -109,6 +115,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
@@ -126,6 +135,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
@@ -140,6 +152,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
@@ -165,6 +180,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [FlexibilityResearch]
@@ -188,9 +206,12 @@ sources:
         binds: organization
         args:
           column: community_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     dataspace:
       purpose: [FlexibilityResearch]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -202,6 +223,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
@@ -216,6 +240,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
@@ -241,6 +268,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [IncentiveCalculation]
@@ -256,6 +286,9 @@ sources:
         binds: organization
         args:
           column: community_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     dataspace:
       purpose: [EnergyCommunityOperation]
       expose: false

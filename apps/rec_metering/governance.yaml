@@ -55,6 +55,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       expose: false
@@ -111,6 +114,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       expose: false
@@ -124,6 +130,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       expose: false

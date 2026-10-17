@@ -226,16 +226,30 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      - handler: allow_all
+        binds: organization
     expose: true
+    dataspace:
+      expose: false
 ```
 
-Two rules are load-bearing:
+Four rules are load-bearing:
 
 - **Each pipeline lists only the datasets it produces.** A dataset declared in two
   `governance.yaml` files has two answers to "who owns this", and nothing reconciles them.
 - **A dataset with `row_filters` must keep the filtered column.** `dataset-api` applies
   whatever filters a dataset's own entry declares and never compares two datasets; a view
   that dropped the column would be served **unfiltered** rather than failing.
+- **Every exposed, non-`open` dataset states both row-policy layers.** A filter's `binds`
+  is its layer — `person` (whose rows) or `organization` (which organization's rows) — and
+  a layer left undeclared is refused at query time. `allow_all` / `deny_all` state a layer
+  without narrowing by a column; they must say which with `binds`.
+- **Nothing here offers a dataset into the dataspace.** `dataspace.expose` is `false` in
+  every file of this repository; a deployment opts a dataset in, one at a time, through its
+  own overlay.
+
+`celine-governance validate apps/` (celine-utils) checks these files the way a deployment
+will serve them.
 
 The full schema is published at
 [the `governance.schema.json` published by `celine-utils`](https://celine-eu.github.io/schema/) and

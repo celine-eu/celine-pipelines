@@ -77,9 +77,12 @@ sources:
         binds: organization
         args:
           column: community_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     dataspace:
       purpose: [IncentiveCalculation]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -112,6 +115,9 @@ sources:
         binds: organization
         args:
           column: community_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     dataspace:
       purpose: [IncentiveCalculation]
       expose: false
@@ -134,6 +140,9 @@ sources:
       - handler: direct_user_match
         args:
           column: user_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       expose: false
@@ -157,6 +166,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [IncentiveCalculation]
@@ -203,6 +215,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [IncentiveCalculation]

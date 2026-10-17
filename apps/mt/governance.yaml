@@ -377,7 +377,7 @@ sources:
     tags: [meteotrentino, observations, current, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -413,7 +413,7 @@ sources:
     tags: [meteotrentino, stations, network, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -449,7 +449,7 @@ sources:
     tags: [meteotrentino, alerts, active, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -486,7 +486,7 @@ sources:
     tags: [meteotrentino, forecast, hourly, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false
@@ -523,7 +523,7 @@ sources:
     tags: [meteotrentino, forecast, daily, gold]
     expose: true
     dataspace:
-      expose: true
+      expose: false
       medallion: gold
       contract_required: false
       consent_required: false

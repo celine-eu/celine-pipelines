@@ -110,6 +110,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Secondary Substations — Map Layer (Gold)"
     description: >
       Map-ready GeoJSON for secondary substations (CIM `Substation`), derived from the
@@ -136,7 +139,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -150,6 +153,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Grid Topology Reference Values (Gold)"
     description: >
       The distinct substations, lines, operational units and municipalities present in the
@@ -160,7 +166,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -174,6 +180,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Grid Asset Geometry — Lines and Substations (Gold)"
     description: >
       A unified CIM asset registry carrying geometry only, combining `ACLineSegment`,
@@ -189,7 +198,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -203,6 +212,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Grid Shape Tile Assignment (Gold)"
     description: >
       A 5 km x 5 km UTM tiling (EPSG:32632) over the extent of the grid shapes, assigning
@@ -213,7 +225,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -236,6 +248,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Tree-strike Exposure Spans (Gold)"
     description: >
       The overhead spans of the tree-strike LiDAR analysis as a static map overlay, one
@@ -247,7 +262,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -261,6 +276,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Tree-strike Span Tile Index (Gold)"
     description: >
       Tile-to-span mapping on the shared 5 km grid, so the overlay is loaded per
@@ -269,7 +287,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -283,6 +301,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Grid Tile Index (Gold)"
     description: >
       One row per tile of the 5 km x 5 km grid, with its bounding box and the number of grid
@@ -292,7 +313,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridMonitoring]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -306,6 +327,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Grid Wind and Heat Risk by Segment (Gold)"
     description: >
       Wind and heat risk levels per grid asset and day, merged into one table and restricted
@@ -320,7 +344,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -334,6 +358,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Grid Risk Exposure in km by Tratta and Operational Unit (Gold)"
     description: >
       Length-weighted wind and heat risk exposure per tratta (line × municipality × conductor
@@ -347,7 +374,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -361,6 +388,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Grid Wind and Heat Risk by Segment and 8-hour Window (Gold)"
     description: >
       Intra-day companion of grid_risks: WARNING and ALERT levels per grid segment and
@@ -371,7 +401,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -385,6 +415,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Daily Grid Risk Ratio by Vector (Gold)"
     description: >
       The share of the relevant network at risk per day and risk vector, as (alert + warning)
@@ -394,7 +427,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
@@ -433,6 +466,9 @@ sources:
         args:
           org_type: dso
           column: dso_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     title: "Grid Wind and Heat Risk — Nowcast (Gold)"
     description: >
       The observation-based counterpart of the daily risk table: the same segment, vector,
@@ -441,7 +477,7 @@ sources:
     expose: true
     dataspace:
       purpose: [GridResilience]
-      expose: true
+      expose: false
       medallion: gold
       contract_required: true
       consent_required: false
