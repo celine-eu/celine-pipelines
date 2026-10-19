@@ -9,7 +9,7 @@ tasks:
   governance:validate:
     desc: "Validate every apps/*/governance.yaml strictly (OWNERS=<owners.yaml> also resolves ownership)"
     vars:
-      CELINE_UTILS: '{{.CELINE_UTILS | default "2.7.0"}}'
+      CELINE_UTILS: '{{.CELINE_UTILS | default "2.8.0"}}'
     cmds:
       - uvx --from "celine-utils=={{.CELINE_UTILS}}" celine-governance validate --strict apps{{if .OWNERS}} --owners "{{.OWNERS}}"{{end}}
 
