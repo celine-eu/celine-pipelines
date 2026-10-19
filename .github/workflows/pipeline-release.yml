@@ -17,6 +17,17 @@ permissions:
   packages: write
 
 jobs:
+  # The governance gate runs before any image is built: a governance file the platform
+  # would refuse never ships inside an image (rules 1–5; the owners rule needs a
+  # registry this repository does not hold). Same command as `task governance:validate`.
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v5
+      - name: celine-governance validate --strict
+        run: uvx --from "celine-utils==2.7.0" celine-governance validate --strict apps
+
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -56,7 +67,7 @@ jobs:
           echo "apps_json=$APPS_JSON" >> $GITHUB_OUTPUT
 
   build-base:
-    needs: detect-changes
+    needs: [governance, detect-changes]
     if: needs.detect-changes.outputs.base_changed == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -83,7 +94,7 @@ jobs:
           docker push ${IMAGE}:latest
 
   build-apps:
-    needs: detect-changes
+    needs: [governance, detect-changes]
     if: fromJson(needs.detect-changes.outputs.apps_json)[0] != null
     runs-on: ubuntu-latest
 

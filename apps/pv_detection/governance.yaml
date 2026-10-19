@@ -69,9 +69,13 @@ sources:
     title: "PV Detected Installations"
     description: >
       Buildings with detected PV installations, enriched with Overture building
-      geometry and metadata. Exposed for energy community planning.
+      geometry and metadata. For energy community planning.
     tags: [pv_detection, energy_planning]
-    expose: true
+    # Not exposed: a development output, never deployed, and it declares no row
+    # policy — exposed, the deny default would refuse it anyway, and the strict
+    # governance gate fails on it. Expose it again together with both row-policy
+    # layers (`binds: person` and `binds: organization`).
+    expose: false
     dataspace:
       expose: false
       medallion: gold

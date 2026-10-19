@@ -1,6 +1,18 @@
 version: "3"
 
 tasks:
+  # The governance gate. Strict: a warning — an
+  # unknown key included — fails. `celine-governance` is celine-utils' thin core, run
+  # pinned through uvx so the check does not depend on the pipeline images' pin.
+  # `OWNERS=<owners.yaml>` adds the owners rule, against a registry naming every owner
+  # these files name. Never pass two registries: aliases collide and the first wins.
+  governance:validate:
+    desc: "Validate every apps/*/governance.yaml strictly (OWNERS=<owners.yaml> also resolves ownership)"
+    vars:
+      CELINE_UTILS: '{{.CELINE_UTILS | default "2.7.0"}}'
+    cmds:
+      - uvx --from "celine-utils=={{.CELINE_UTILS}}" celine-governance validate --strict apps{{if .OWNERS}} --owners "{{.OWNERS}}"{{end}}
+
   setup:
     desc: Setup
     cmds:

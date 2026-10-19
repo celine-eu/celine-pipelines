@@ -1,0 +1,21 @@
+name: Governance
+
+# The same gate as the `governance` job of pipeline-release.yml, on pull requests, so a
+# governance file the platform would refuse is caught before it is merged.
+on:
+  pull_request:
+    paths:
+      - "apps/**/governance*.yaml"
+      - ".github/workflows/governance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  governance:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v5
+      - name: celine-governance validate --strict
+        run: uvx --from "celine-utils==2.7.0" celine-governance validate --strict apps

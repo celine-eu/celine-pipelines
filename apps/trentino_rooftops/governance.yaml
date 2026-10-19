@@ -205,7 +205,8 @@ sources:
         type: project
     source_system: CELINE
     tags: [pv, gold, trentino, buildings, suitability]
-    expose: true
+    # A local result, not offered: nothing reads it through the catalogue.
+    expose: false
     dataspace:
       expose: false
       medallion: gold
