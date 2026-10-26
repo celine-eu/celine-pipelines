@@ -309,11 +309,12 @@ models:
       - name: device_id
         data_tests:
           # Rejected commitments arrive from flexibility-api with NULL device_id
-          # (decline path skips DT resolution); they are kept for acceptance-rate
-          # analytics, so the invariant only holds for non-rejected rows.
+          # (decline path skips DT resolution) and cancelled ones never settle; both
+          # are kept for acceptance-rate analytics, so the invariant only holds for
+          # settleable rows. A committed row without a device can never settle.
           - not_null:
               config:
-                where: "status != 'rejected'"
+                where: "status in ('committed', 'settled')"
       - name: actual_kwh
         data_tests:
           - not_null

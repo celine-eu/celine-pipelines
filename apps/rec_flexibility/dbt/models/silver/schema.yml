@@ -48,9 +48,10 @@ models:
         data_tests:
           # flexibility-api persists declined suggestions as status=rejected WITHOUT
           # resolving community_id/device_id (no DT call) — NULL is their contract.
+          # Cancelled rows never settle either, so only settleable rows must carry one.
           - not_null:
               config:
-                where: "status != 'rejected'"
+                where: "status in ('committed', 'settled')"
       - name: status
         data_tests:
           - not_null
