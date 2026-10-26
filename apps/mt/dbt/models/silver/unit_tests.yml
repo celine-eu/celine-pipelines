@@ -61,3 +61,48 @@ unit_tests:
     expect:
       rows:
         - {location_id: 'L1', forecast_at: '2026-10-28 03:00:00+00', temperature_c: 3}
+
+  - name: an_hourly_forecast_is_refreshed_until_it_happens
+    description: >
+      The increment used to be bounded by the forecast instant
+      (forecast_at > max(forecast_at) - 3 days), so a forecast entered silver when it
+      was 3–6 days ahead and later extractions for it were dropped: tomorrow's figures
+      were days old, and the instants shifted by the 2026-10-25 clock change were never
+      replaced. The staging view already bounds by extraction time.
+    model: mt_forecasts_hourly
+    overrides:
+      macros:
+        is_incremental: true
+    given:
+      - input: this
+        rows:
+          - {location_id: 'L1', forecast_at: '2026-10-31 21:00:00+00', temperature_c: 5}
+      - input: ref('stg_mt_forecasts_hourly')
+        rows:
+          - {location_id: 'L1', forecast_timestamp: '2026-10-27T00:00:00+00:00', temperature: 7, _sdc_extracted_at: '2026-10-26 09:50:00'}
+    expect:
+      rows:
+        - {location_id: 'L1', forecast_at: '2026-10-27 00:00:00+00', temperature_c: 7}
+
+  - name: a_naive_forecast_instant_is_stepped_from_its_extraction_day
+    description: >
+      tap-meteotrentino <= 0.5.5 stepped the API's start (00:00Z of the extraction day,
+      written as a Europe/Rome wall clock) by elapsed minutes on the wall clock. Read
+      as Europe/Rome, every instant after a clock change was off by an hour: the
+      2026-10-23 extraction put 2026-10-27 00:00Z at 01:00Z. Elapsed time from the
+      extraction day's midnight gives the instant back.
+    model: mt_forecasts_hourly
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('stg_mt_forecasts_hourly')
+        rows:
+          - {location_id: 'L1', forecast_timestamp: '2026-10-27T02:00:00', temperature: 4, _sdc_extracted_at: '2026-10-23 23:27:00'}
+          - {location_id: 'L1', forecast_timestamp: '2026-10-25T05:00:00', temperature: 6, _sdc_extracted_at: '2026-10-25 23:27:00'}
+          - {location_id: 'L1', forecast_timestamp: '2026-10-26T04:00:00', temperature: 8, _sdc_extracted_at: '2026-10-26 09:27:00'}
+    expect:
+      rows:
+        - {location_id: 'L1', forecast_at: '2026-10-27 00:00:00+00', temperature_c: 4}
+        - {location_id: 'L1', forecast_at: '2026-10-25 03:00:00+00', temperature_c: 6}
+        - {location_id: 'L1', forecast_at: '2026-10-26 03:00:00+00', temperature_c: 8}

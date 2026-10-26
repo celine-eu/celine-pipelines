@@ -14,7 +14,7 @@ select distinct on (location_id, forecast_at) *
 from (
     select
         location_id,
-        {{ mt_forecast_instant('forecast_timestamp') }} as forecast_at,
+        {{ mt_forecast_instant('forecast_timestamp', '_sdc_extracted_at') }} as forecast_at,
         cast(interval_minutes    as integer)     as interval_minutes,
         cast(temperature         as float)       as temperature_c,
         cast(temperature_maximum as float)       as temperature_max_c,
@@ -33,7 +33,7 @@ from (
     from {{ ref('stg_mt_forecasts_daily') }}
 
     {% if is_incremental() %}
-    where {{ mt_forecast_instant('forecast_timestamp') }} > (
+    where {{ mt_forecast_instant('forecast_timestamp', '_sdc_extracted_at') }} > (
         select coalesce(max(forecast_at), '1900-01-01'::timestamptz) - interval '7 days'
         from {{ this }}
     )

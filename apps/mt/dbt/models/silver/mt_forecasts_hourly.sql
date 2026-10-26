@@ -8,13 +8,17 @@
 {#
     Raw holds both timestamp forms (see mt_forecast_instant) inside the staging
     window, so one instant can arrive twice: keep the most recent extraction.
+
+    No incremental filter on the forecast instant: the staging view already bounds
+    by extraction time, and bounding by instant froze each forecast at the first
+    extraction that reached it, 3-6 days ahead.
 #}
 
 select distinct on (location_id, forecast_at) *
 from (
     select
         location_id,
-        {{ mt_forecast_instant('forecast_timestamp') }} as forecast_at,
+        {{ mt_forecast_instant('forecast_timestamp', '_sdc_extracted_at') }} as forecast_at,
         cast(interval_minutes    as integer)     as interval_minutes,
         cast(temperature         as float)       as temperature_c,
         cast(rain_fall           as float)       as rain_fall_mm,
@@ -29,12 +33,5 @@ from (
         cast(sunshine_duration   as float)       as sunshine_duration_min,
         _sdc_extracted_at                        as extracted_at
     from {{ ref('stg_mt_forecasts_hourly') }}
-
-    {% if is_incremental() %}
-    where {{ mt_forecast_instant('forecast_timestamp') }} > (
-        select coalesce(max(forecast_at), '1900-01-01'::timestamptz) - interval '3 days'
-        from {{ this }}
-    )
-    {% endif %}
 ) f
 order by location_id, forecast_at, extracted_at desc nulls last
