@@ -9,7 +9,7 @@ plugins:
     - name: tap-meteotrentino
       namespace: tap_meteotrentino
       variant: celine-eu
-      pip_url: tap-meteotrentino>=0.5.5
+      pip_url: tap-meteotrentino>=0.5.6
       capabilities:
         - discover
         - catalog
