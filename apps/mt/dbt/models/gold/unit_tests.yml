@@ -1,0 +1,30 @@
+version: 2
+
+unit_tests:
+  - name: a_forecast_day_is_one_row_however_many_instants_name_it
+    description: >
+      Silver keys daily forecasts on the instant, and a clock change left two instants
+      for the same day (00:00Z and 01:00Z, from extractions a day apart), which made
+      the contract merge fail with "MERGE command cannot affect row a second time".
+      The contract keeps the most recently extracted row per day; rows stored before
+      extracted_at existed (null) lose to any row that has it.
+    model: mt_weather_forecast_daily
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('mt_forecasts_daily')
+        rows:
+          - {location_id: 'L1', forecast_at: '2099-10-27 01:00:00+00', temperature_c: 1, extracted_at: null}
+          - {location_id: 'L1', forecast_at: '2099-10-27 00:00:00+00', temperature_c: 2, extracted_at: '2099-10-26 08:27:00'}
+          - {location_id: 'L1', forecast_at: '2099-10-28 01:00:00+00', temperature_c: 3, extracted_at: '2099-10-25 23:27:00'}
+          - {location_id: 'L1', forecast_at: '2099-10-28 00:00:00+00', temperature_c: 4, extracted_at: '2099-10-26 08:27:00'}
+      - input: ref('mt_forecast_locations')
+        rows:
+          - {location_id: 'L1', name_en: 'Trento', latitude: 46.07, longitude: 11.12, elevation_m: 200}
+      - input: ref('mt_sky_conditions')
+        rows: []
+    expect:
+      rows:
+        - {location_id: 'L1', forecast_date: '2099-10-27', temperature_c: 2}
+        - {location_id: 'L1', forecast_date: '2099-10-28', temperature_c: 4}

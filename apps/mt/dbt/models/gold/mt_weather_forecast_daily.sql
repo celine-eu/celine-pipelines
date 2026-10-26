@@ -11,9 +11,13 @@
     consumed by the weather pipeline. One row per (location_id, forecast_date).
 
     sky_condition is resolved to name_eng via mt_sky_conditions lookup.
+
+    Silver keys on the instant, and a clock change can leave two instants for one
+    day (tap-meteotrentino <= 0.5.5 stepped a naive wall clock). Keep the most
+    recently extracted; rows stored before extracted_at existed sort last.
 #}
 
-select
+select distinct on (f.location_id, f.forecast_at::date)
     'mt'::text                          as provider,
     f.location_id::text                 as location_id,
     l.name_en                           as location_name,
@@ -39,3 +43,4 @@ from {{ ref('mt_forecasts_daily') }} f
 join {{ ref('mt_forecast_locations') }} l on l.location_id = f.location_id
 left join {{ ref('mt_sky_conditions') }} sc on lower(sc.id) = lower(f.sky_condition)
 where f.forecast_at >= now() - interval '1 hour'
+order by f.location_id, f.forecast_at::date, f.extracted_at desc nulls last, f.forecast_at

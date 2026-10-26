@@ -21,3 +21,43 @@ unit_tests:
       rows:
         - {station_code: 'T0129', observed_at: '2026-10-07 11:00:00+00'}
         - {station_code: 'T0129', observed_at: '2026-01-15 11:00:00+00'}
+
+  - name: a_forecast_instant_is_read_from_either_timestamp_form
+    description: >
+      Up to tap-meteotrentino 0.5.5 forecast timestamps are a naive Europe/Rome wall
+      clock, stepped by fixed minutes from the API's start, so across a clock change
+      the same day arrives as T02:00 and T01:00. Later tap versions emit an explicit
+      offset. Both forms land in the 7-day staging window at once: an offset is
+      authoritative, a naive value is Europe/Rome, and two raw rows for the same
+      instant collapse to the most recently extracted one so the merge sees one row.
+    model: mt_forecasts_daily
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('stg_mt_forecasts_daily')
+        rows:
+          - {location_id: 'L1', forecast_timestamp: '2026-10-24T02:00:00', temperature: 1, _sdc_extracted_at: '2026-10-23 23:27:00'}
+          - {location_id: 'L1', forecast_timestamp: '2026-10-28T00:00:00+00:00', temperature: 3, _sdc_extracted_at: '2026-10-27 08:27:00'}
+          - {location_id: 'L1', forecast_timestamp: '2026-10-28T01:00:00', temperature: 2, _sdc_extracted_at: '2026-10-26 08:27:00'}
+    expect:
+      rows:
+        - {location_id: 'L1', forecast_at: '2026-10-24 00:00:00+00', temperature_c: 1, extracted_at: '2026-10-23 23:27:00'}
+        - {location_id: 'L1', forecast_at: '2026-10-28 00:00:00+00', temperature_c: 3, extracted_at: '2026-10-27 08:27:00'}
+
+  - name: an_hourly_forecast_instant_is_read_from_either_timestamp_form
+    description: >
+      Same two timestamp forms as the daily stream; see
+      a_forecast_instant_is_read_from_either_timestamp_form.
+    model: mt_forecasts_hourly
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('stg_mt_forecasts_hourly')
+        rows:
+          - {location_id: 'L1', forecast_timestamp: '2026-10-28T03:00:00+00:00', temperature: 3, _sdc_extracted_at: '2026-10-27 08:27:00'}
+          - {location_id: 'L1', forecast_timestamp: '2026-10-28T04:00:00', temperature: 2, _sdc_extracted_at: '2026-10-26 08:27:00'}
+    expect:
+      rows:
+        - {location_id: 'L1', forecast_at: '2026-10-28 03:00:00+00', temperature_c: 3}
