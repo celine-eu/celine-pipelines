@@ -5,4 +5,3 @@ sources:
     schema: raw
     tables:
       - name: gse_cabine_primarie
-      - name: rec_registry_mirror

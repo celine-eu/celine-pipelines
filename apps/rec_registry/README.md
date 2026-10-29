@@ -4,7 +4,7 @@
 
 The **REC Registry pipeline** mirrors community membership data from the **CELINE REC Registry API** into a PostgreSQL raw table, then builds `rec_device_membership`, the one model every other REC app reads membership from.
 
-It performs a **full-replace refresh every 5 minutes**, providing a stable source of active members, their grid areas, topology nodes, delivery points, and meter sensors. An export with no active member empties the table, so a community whose last active member is suspended leaves no row behind.
+It performs a **full-replace refresh every 5 minutes**, providing a stable source of active members, their grid areas, topology nodes and meter sensors. Supply points (POD codes) are not mirrored: their only reader, `rec_it`'s `rec_member_supply_points`, was retired. An export with no active member empties the table, so a community whose last active member is suspended leaves no row behind.
 
 ---
 
@@ -19,7 +19,7 @@ License: Proprietary.
 ## Output datasets
 
 - **RAW**
-  - `rec_registry_mirror` — full-replace mirror of active community members (one row per user/community pair). An export with no active member empties it: the last active member of a community suspended leaves no row behind. Columns: `user_id`, `community_id` (the bundle's `community.id`, the community's slug, carried unchanged), `area` (the member's area key), `role`, `member_type`, `topology_ids` (text[], the node ids listed by the member's area), `delivery_point_ids` (text[], the member's delivery points in service: a point flagged `active: false` in the registry is left out, an unflagged one counts as active), `sensor_ids` (text[], the `sensor_id` of each meter asset), `boundary_id` (the id of the member's area's boundary, `area.boundary.id` in registry schema v0.7: the `cod_ac` of its GSE primary substation; null when the area has no boundary), `last_updated`. Primary key `(user_id, community_id)`. The column was named `rec_id` before; the table is created only when missing and never altered, so a deployment upgrading from it drops the table once and the next run recreates it. `boundary_id` was added after the table was first deployed; the flow adds it to an existing table (`ADD COLUMN IF NOT EXISTS`) on its next run, and rows keep a null value until the registry exports a boundary for their area.
+  - `rec_registry_mirror` — full-replace mirror of active community members (one row per user/community pair). An export with no active member empties it: the last active member of a community suspended leaves no row behind. Columns: `user_id`, `community_id` (the bundle's `community.id`, the community's slug, carried unchanged), `area` (the member's area key), `role`, `member_type`, `topology_ids` (text[], the node ids listed by the member's area), `sensor_ids` (text[], the `sensor_id` of each meter asset), `boundary_id` (the id of the member's area's boundary, `area.boundary.id` in registry schema v0.7: the `cod_ac` of its GSE primary substation; null when the area has no boundary), `last_updated`. Primary key `(user_id, community_id)`. The column was named `rec_id` before; the table is created only when missing and never altered, so a deployment upgrading from it drops the table once and the next run recreates it. `boundary_id` was added after the table was first deployed; the flow adds it to an existing table (`ADD COLUMN IF NOT EXISTS`) on its next run, and rows keep a null value until the registry exports a boundary for their area. `delivery_point_ids` was removed the same way: the flow drops it from an existing table (`DROP COLUMN IF EXISTS`). **Drop the retired view first** (`DROP VIEW IF EXISTS <gold schema>.rec_member_supply_points`): dbt does not remove a view whose model was deleted, and Postgres refuses to drop a column a view still reads, so the flow fails until the view is gone.
 
 Every community the registry exports lands in the same table, keyed by `community_id`. A sensor listed on two active members appears in two rows, and downstream models would count it twice: the `rec_device_membership_unique_per_community` test fails the run on it (below). The registry refuses that case at the source (`409 sensor_held`: one active holder per sensor id across every community, from rec-registry 1.6.0); a pair stored before then stays until it is fixed, and the registry's `duplicate-sensors` command lists them.
 
@@ -47,7 +47,7 @@ The flow runs `dbt build` right after the mirror is replaced. `rec_device_member
 
 ## Tests
 
-Pure-Python tests of the flatten (inactive members and inactive delivery points left out), the table replace and the substation check, on synthetic bundles (no database, no registry):
+Pure-Python tests of the flatten (inactive members left out, no supply point mirrored), the table replace and the substation check, on synthetic bundles (no database, no registry):
 
 ```bash
 uv run pytest apps/rec_registry/tests -q

@@ -75,7 +75,6 @@ def test_rows_replace_the_mirror_in_one_transaction(monkeypatch):
         "role": "consumer",
         "member_type": "person",
         "topology_ids": ["AC000E00001"],
-        "delivery_point_ids": ["dp-ex-00001"],
         "sensor_ids": ["sensor-ex-00001"],
         "boundary_id": "AC000E00001",
     }

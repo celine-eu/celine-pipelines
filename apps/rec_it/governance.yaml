@@ -28,11 +28,6 @@ depends_on:
     description: >
       REC membership by device, published by `rec_registry` in this repository:
       the population every virtual-consumption model computes over.
-  - dataset: datasets.raw.rec_registry_mirror
-    description: >
-      The registry mirror, read by `rec_member_supply_points` for members' supply
-      points. Mirrored into `raw` by `rec_registry` in this repository — it
-      mirrors a private service, which is what makes it look external.
 
 sources:
   # ---------------------------------------------------------------------------
@@ -121,33 +116,6 @@ sources:
     dataspace:
       purpose: [IncentiveCalculation]
       expose: false
-
-  # Every active member's supply points (POD codes), one row each. A member's POD
-  # is personal data, so the dataset is consent-gated per member: read through a
-  # dataspace, it returns only the members who consented to the offer the query
-  # runs under — the list a community hands the party that offer names. Which
-  # offer that is belongs to the deployment's governance, not to this file, so no
-  # purpose is declared here.
-  datasets.ds_dev_gold.rec_member_supply_points:
-    title: "REC member supply points"
-    description: >
-      One row per active REC member and supply point (POD code), derived from the
-      REC Registry mirror. Consent-gated per member: a dataspace query returns only
-      the members who consented to the sharing offer it runs under.
-    classification: pii
-    tags: [rec, members, supply-points, gold]
-    row_filters:
-      - handler: direct_user_match
-        args:
-          column: user_id
-      # Narrowed per person above; the organization layer admits every row.
-      - handler: allow_all
-        binds: organization
-    expose: true
-    dataspace:
-      expose: false
-      medallion: gold
-      consent_required: true
 
   datasets.ds_dev_gold.rec_virtual_consumption_per_device_15m: &rec_per_device_15m
     title: "Member Virtual Consumption, 15-minute (Gold)"

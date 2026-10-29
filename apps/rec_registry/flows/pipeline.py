@@ -9,10 +9,10 @@ REC apps read membership from, and the tests that fail the run on a sensor liste
 twice in one community or an area whose substation is not its boundary.
 
 One row per active member and community (PRIMARY KEY (user_id, community_id));
-community_id is the bundle's community.id, the community's slug.  sensor_ids, delivery_point_ids, and
+community_id is the bundle's community.id, the community's slug.  sensor_ids and
 topology_ids are stored as Postgres text[] arrays.  Members with status other
-than 'active' are excluded, and delivery_point_ids lists only the points in
-service: a delivery point flagged `active: false` is left out.
+than 'active' are excluded.  Supply points (POD codes) are not mirrored: their
+only reader, rec_it's rec_member_supply_points, was retired.
 
 boundary_id carries the id of the member's area's boundary (registry schema
 v0.7: `area.boundary.id`, the area's GSE primary-substation `cod_ac`); it is
@@ -62,7 +62,6 @@ CREATE TABLE IF NOT EXISTS raw.rec_registry_mirror (
     role                text,
     member_type         text,
     topology_ids        text[]      NOT NULL DEFAULT '{}',
-    delivery_point_ids  text[]      NOT NULL DEFAULT '{}',
     sensor_ids          text[]      NOT NULL DEFAULT '{}',
     last_updated        timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (user_id, community_id)
@@ -70,6 +69,10 @@ CREATE TABLE IF NOT EXISTS raw.rec_registry_mirror (
 
 -- Added after the table was first deployed: tables created earlier get it here.
 ALTER TABLE raw.rec_registry_mirror ADD COLUMN IF NOT EXISTS boundary_id text;
+
+-- Supply points are no longer mirrored: tables created earlier lose the column (and
+-- its index with it).
+ALTER TABLE raw.rec_registry_mirror DROP COLUMN IF EXISTS delivery_point_ids;
 
 CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_community_id
     ON raw.rec_registry_mirror (community_id);
@@ -82,9 +85,6 @@ CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_role
 
 CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_sensor_ids
     ON raw.rec_registry_mirror USING gin (sensor_ids);
-
-CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_delivery_point_ids
-    ON raw.rec_registry_mirror USING gin (delivery_point_ids);
 """
 
 
@@ -155,32 +155,15 @@ def _area_boundary_id(area_data: Any) -> str | None:
     return boundary_id
 
 
-def _live_delivery_point_ids(points: Any) -> list[str]:
-    """The ids of a member's delivery points that are in service.
-
-    A point with `active: false` is a supply point no longer in service and is
-    left out: `rec_it`'s `rec_member_supply_points` unnests these ids into the
-    list a community hands its distributor, and a retired POD there asks the
-    distributor to release readings against a dead supply point.  The flag
-    defaults to true in the registry model, so a point without it is live.
-    """
-    return [
-        dp["id"]
-        for dp in points or []
-        if dp.get("id") and dp.get("active") is not False
-    ]
-
-
 def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Flatten community bundles into one row per active member.
 
-    Members whose status is not 'active' are skipped, and so are delivery
-    points flagged `active: false` (the member keeps its row).
+    Members whose status is not 'active' are skipped.
 
     Columns produced:
       user_id, community_id, area, role, member_type,
-      topology_ids, delivery_point_ids, sensor_ids, boundary_id
+      topology_ids, sensor_ids, boundary_id
     """
     rows: list[dict[str, Any]] = []
 
@@ -213,10 +196,6 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
             area_data: dict = areas.get(area_key, {}) if area_key else {}
             topology_ids: list[str] = area_data.get("topology") or []
 
-            delivery_point_ids: list[str] = _live_delivery_point_ids(
-                member.get("delivery_points")
-            )
-
             meter_assets: dict = member.get("assets", {}).get("meter", {})
             sensor_ids: list[str] = [
                 m["sensor_id"] for m in meter_assets.values() if m.get("sensor_id")
@@ -230,7 +209,6 @@ def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "role": member.get("role"),
                     "member_type": member.get("type"),
                     "topology_ids": topology_ids,
-                    "delivery_point_ids": delivery_point_ids,
                     "sensor_ids": sensor_ids,
                     "boundary_id": _area_boundary_id(area_data),
                 }
@@ -318,7 +296,6 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
             r["role"],
             r["member_type"],
             r["topology_ids"],
-            r["delivery_point_ids"],
             r["sensor_ids"],
             r.get("boundary_id"),
         )
@@ -339,12 +316,12 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
                     """
                     INSERT INTO raw.rec_registry_mirror
                         (user_id, community_id, area, role, member_type,
-                         topology_ids, delivery_point_ids, sensor_ids, boundary_id,
+                         topology_ids, sensor_ids, boundary_id,
                          last_updated)
                     VALUES %s
                     """,
                     tuples,
-                    template="(%s, %s, %s, %s, %s, %s, %s, %s, %s, now())",
+                    template="(%s, %s, %s, %s, %s, %s, %s, %s, now())",
                     page_size=500,
                 )
         conn.commit()

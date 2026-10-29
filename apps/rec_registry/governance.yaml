@@ -43,8 +43,8 @@ sources:
       CELINE REC Registry API. Refreshed every 5 minutes via a Prefect pipeline.
       One row per member and community (user_id, community_id), carrying the
       community's slug as community_id, grid area,
-      topology node references, the IDs of the delivery points in service
-      (a point flagged inactive is left out), and meter sensor IDs.
+      topology node references and meter sensor IDs. Supply points (POD
+      codes) are not mirrored.
       Intended as a stable raw source for dbt pipelines computing virtual
       self-consumption, billing, and community analytics.
       Access requires membership in a CELINE Renewable Energy Community;

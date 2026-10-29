@@ -305,9 +305,9 @@ substation reference layer.
 
 | Kind | Datasets |
 |---|---|
-| sources | `meters_data_15m` (rec_metering, gold); `rec_device_membership` and `raw.rec_registry_mirror` (rec_registry); `raw.gse_cabine_primarie` (self-contained Meltano extractor) |
+| sources | `meters_data_15m` (rec_metering, gold); `rec_device_membership` (rec_registry); `raw.gse_cabine_primarie` (self-contained Meltano extractor) |
 | silver | `silver_gse_cabine_primarie` |
-| gold | `gse_cabine_primarie`, `rec_virtual_consumption_15m`, `rec_virtual_consumption_hourly`, `rec_virtual_consumption_per_device_15m`, `rec_virtual_consumption_per_device_hourly`, `rec_measurements_15m`, `rec_measurements_per_device_15m`, `rec_member_supply_points` |
+| gold | `gse_cabine_primarie`, `rec_virtual_consumption_15m`, `rec_virtual_consumption_hourly`, `rec_virtual_consumption_per_device_15m`, `rec_virtual_consumption_per_device_hourly`, `rec_measurements_15m`, `rec_measurements_per_device_15m` |
 
 > **Per-substation netting is correct and must not be "simplified".** The community figure
 > is `least()` per `(ts, community_id, substation_id)` **and then** summed. Sharing cannot cross
@@ -360,8 +360,7 @@ a failure.
 
 Full-replace mirror of the CELINE REC Registry API into `raw.rec_registry_mirror`, every
 5 minutes. One row per user/community pair of an active member: area, role, member type,
-topology nodes, the area's boundary id, delivery points in service (a point flagged
-`active: false` is left out), meter sensors. Python-only; no dbt,
+topology nodes, the area's boundary id, meter sensors; no supply points. Python-only; no dbt,
 no Meltano. OIDC-authenticated. Each run logs the areas whose `topology_ids[1]` is not their
 boundary id (it flags them; it does not refuse the export).
 
