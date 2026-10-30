@@ -1,0 +1,17 @@
+version: 2
+
+# Its own file and source name: models/silver/sources.yml already declares a
+# source `raw`, and dbt refuses one source name in two files.
+sources:
+  - name: raw_mirror_refresh
+    schema: raw
+    description: >
+      Run markers of the raw mirrors, one row per mirror: when its flow last
+      replaced it, and with how many rows. Written by the mirror flow in the same
+      transaction as the replace, so it moves on every successful run, an empty
+      export included.
+    tables:
+      - name: mirror_refresh
+        description: >
+          mirror (the raw table's name, primary key), refreshed_at, rows. Written
+          today by apps/rec_flexibility_commitments for flexibility_commitments_mirror.

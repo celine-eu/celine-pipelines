@@ -373,9 +373,18 @@ boundary id (it flags them; it does not refuse the export).
 
 ## `rec_flexibility_commitments` — commitments mirror
 
-90-day sliding mirror of the CELINE Flexibility API into
-`raw.flexibility_commitments_mirror`, every 15 minutes, tracking status evolution
-(accepted, settled, rejected, cancelled). Python-only. OIDC-authenticated.
+90-day sliding mirror of the CELINE Flexibility API's commitment export
+(`GET /api/commitments/export`) into `raw.flexibility_commitments_mirror`, every 15
+minutes, with each commitment's current status (accepted, settled, rejected, cancelled).
+Python-only. OIDC-authenticated. Each run also upserts its row in `raw.mirror_refresh`
+(`refreshed_at`, `rows`), which `rec_flexibility`'s `flexibility_commitments_mirror_is_fresh`
+test reads.
+
+> **The mirror equals the export's window, the empty window included.** Each run deletes
+> every row and inserts the fetched ones, with the marker, in one transaction: a commitment
+> the export no longer lists leaves the mirror, and an export with no commitment empties
+> it while the marker still moves. A fetch that fails raises before the mirror is touched,
+> and the previous rows and marker stay.
 
 ---
 

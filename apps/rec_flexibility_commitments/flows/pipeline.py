@@ -1,14 +1,28 @@
 """
 Flexibility commitments mirror pipeline.
 
-Fetches all flexibility commitments from the CELINE Flexibility API via the SDK
-and writes them into raw.flexibility_commitments_mirror — a 90-day sliding window
-table that dbt pipelines use for settlement analytics, gamification, and acceptance
-rate tracking.
+Fetches the flexibility commitments of the last 90 days from the CELINE Flexibility
+API (`GET /api/commitments/export?created_after=<now - 90 days>`) via the SDK and
+writes them into raw.flexibility_commitments_mirror — a 90-day sliding window table
+that dbt pipelines use for settlement analytics, gamification, and acceptance rate
+tracking.
 
-Write strategy: DELETE rows older than 90 days, then upsert the fetched records.
-Unlike rec_registry (full-replace), we upsert because commitment status evolves
-after creation (committed → settled) and we never want to lose an open commitment.
+Write strategy: the mirror equals the export's window.  Each run deletes every row
+and inserts the fetched ones, in one transaction (as rec_registry,
+celine-eu/celine-pipelines#7): the window is replaced, so a commitment the export
+no longer lists leaves the mirror, and anything older than the window is pruned
+with it.  An empty export empties the mirror.  The fetched rows carry the current
+status (committed → settled), so nothing is lost by not upserting.
+
+The same transaction upserts this mirror's row in raw.mirror_refresh (mirror,
+refreshed_at, rows): last_updated cannot tell a stopped flow from an empty export,
+the marker can.  rec_flexibility's test `flexibility_commitments_mirror_is_fresh`
+reads it.
+
+A fetch that fails raises before the mirror is touched, and the previous rows and
+marker stay: the SDK client raises on any status but 200 and on a body that is not
+a list (held by tests/test_a_failed_export_raises.py), and the replace runs in its
+own task on the fetched rows only.
 
 Schedule: every 15 minutes.
 """
@@ -16,23 +30,21 @@ Schedule: every 15 minutes.
 import asyncio
 import logging
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import psycopg2
 import psycopg2.extras
-import yaml
-from prefect import flow, task
-
-from celine.sdk.auth import OidcClientCredentialsProvider
+from celine.sdk.auth import OidcClientCredentialsProvider, TokenProvider
 from celine.sdk.flexibility.client import FlexibilityAdminClient
 from celine.utils.pipelines.pipeline import (
     DEV_MODE,
     PipelineConfig,
-    PipelineTaskResult,
     PipelineStatus,
+    PipelineTaskResult,
 )
+from prefect import flow, task
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +53,9 @@ os.environ.setdefault("APP_NAME", "rec_flexibility_commitments")
 script_dir = Path(__file__).parent
 
 _WINDOW_DAYS = 90
+
+# This mirror's key in raw.mirror_refresh.
+_MIRROR = "flexibility_commitments_mirror"
 
 _DDL = """
 CREATE SCHEMA IF NOT EXISTS raw;
@@ -81,6 +96,14 @@ CREATE INDEX IF NOT EXISTS ix_flex_mirror_committed_at
 
 CREATE INDEX IF NOT EXISTS ix_flex_mirror_period_start
     ON raw.flexibility_commitments_mirror (period_start);
+
+-- One row per mirror: when its last run replaced it, and with how many rows.
+-- Shared by the raw mirrors; each flow upserts its own row.
+CREATE TABLE IF NOT EXISTS raw.mirror_refresh (
+    mirror          text        PRIMARY KEY,
+    refreshed_at    timestamptz NOT NULL,
+    rows            int         NOT NULL
+);
 """
 
 
@@ -103,6 +126,19 @@ def _flexibility_url() -> str:
     return os.getenv("CELINE_FLEXIBILITY_API_URL", "http://host.docker.internal:8017")
 
 
+async def _export_commitments(
+    base_url: str, token_provider: TokenProvider, created_after: datetime
+) -> list[dict[str, Any]]:
+    """GET /api/commitments/export since created_after, as row dicts.
+
+    A refused or failed request, or a body that is not a list, raises: the SDK
+    client raises on any status but 200, so the mirror is left as it was.
+    """
+    client = FlexibilityAdminClient(base_url=base_url, token_provider=token_provider)
+    commitments = await client.export_commitments(created_after=created_after)
+    return [c.model_dump() for c in commitments]
+
+
 async def _fetch_commitments(
     cfg: PipelineConfig, created_after: datetime
 ) -> list[dict[str, Any]]:
@@ -120,12 +156,7 @@ async def _fetch_commitments(
         scope=oidc.scope,
         verify_ssl=oidc.verify_ssl,
     )
-    client = FlexibilityAdminClient(
-        base_url=_flexibility_url(),
-        token_provider=provider,
-    )
-    commitments = await client.export_commitments(created_after=created_after)
-    return [c.model_dump() for c in commitments]
+    return await _export_commitments(_flexibility_url(), provider, created_after)
 
 
 def _to_tuples(rows: list[dict[str, Any]]) -> list[tuple]:
@@ -142,7 +173,7 @@ def _to_tuples(rows: list[dict[str, Any]]) -> list[tuple]:
             r["committed_at"],
             r.get("settled_at"),
             r.get("reminded_at"),
-            str(r["status"]),           # generated enum → str
+            str(r["status"]),  # generated enum → str
             r["reward_points_estimated"],
             r.get("reward_points_actual"),
         )
@@ -157,7 +188,8 @@ def _to_tuples(rows: list[dict[str, Any]]) -> list[tuple]:
 
 @task(name="Ensure raw table", retries=2, retry_delay_seconds=30)
 def ensure_table(cfg: PipelineConfig) -> PipelineTaskResult:
-    """Create raw.flexibility_commitments_mirror and its indexes if they don't exist."""
+    """Create raw.flexibility_commitments_mirror, its indexes and raw.mirror_refresh
+    if they don't exist."""
     with _db_conn(cfg) as conn:
         with conn.cursor() as cur:
             cur.execute(_DDL)
@@ -167,28 +199,34 @@ def ensure_table(cfg: PipelineConfig) -> PipelineTaskResult:
     return PipelineTaskResult(command="ensure_table", status=PipelineStatus.COMPLETED)
 
 
-@task(name="Fetch and mirror commitments", retries=3, retry_delay_seconds=60)
-def mirror_to_db(cfg: PipelineConfig) -> PipelineTaskResult:
-    """Fetch commitments from flexibility-api and upsert into the raw mirror.
+@task(name="Fetch commitments", retries=3, retry_delay_seconds=60)
+def fetch_commitments(cfg: PipelineConfig) -> list[dict[str, Any]]:
+    """Fetch every commitment of the 90-day window from flexibility-api.
 
-    1. Fetch all commitments within the 90-day sliding window.
-    2. Delete rows older than 90 days (expired window).
-    3. Upsert fresh rows — updates status, settled_at, reward_points_actual
-       which evolve after commitment creation.
+    Raises on a failed export, so the replace below never runs on it.
     """
-    created_after = datetime.now(timezone.utc) - timedelta(days=_WINDOW_DAYS)
+    created_after = datetime.now(UTC) - timedelta(days=_WINDOW_DAYS)
     rows = asyncio.run(_fetch_commitments(cfg, created_after))
     logger.info("Fetched %d commitment rows from flexibility-api", len(rows))
+    return rows
+
+
+@task(name="Mirror to raw table", retries=2, retry_delay_seconds=30)
+def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTaskResult:
+    """
+    Atomically replace raw.flexibility_commitments_mirror with the fetched rows
+    and record the run in raw.mirror_refresh: DELETE + bulk INSERT + marker
+    upsert in a single transaction.
+
+    **An empty row list still replaces the table**: the export lists every
+    commitment of the window, so one it no longer lists is gone upstream.  The
+    DELETE has no WHERE: rows in the window are replaced, older ones pruned.
+    """
     tuples = _to_tuples(rows)
 
     with _db_conn(cfg) as conn:
         with conn.cursor() as cur:
-            # Prune expired rows
-            cur.execute(
-                "DELETE FROM raw.flexibility_commitments_mirror "
-                "WHERE committed_at < now() - interval '%s days'",
-                (_WINDOW_DAYS,),
-            )
+            cur.execute("DELETE FROM raw.flexibility_commitments_mirror")
             deleted = cur.rowcount
 
             if tuples:
@@ -203,12 +241,6 @@ def mirror_to_db(cfg: PipelineConfig) -> PipelineTaskResult:
                         status, reward_points_estimated, reward_points_actual,
                         last_updated
                     ) VALUES %s
-                    ON CONFLICT (id) DO UPDATE SET
-                        status                  = EXCLUDED.status,
-                        settled_at              = EXCLUDED.settled_at,
-                        reminded_at             = EXCLUDED.reminded_at,
-                        reward_points_actual    = EXCLUDED.reward_points_actual,
-                        last_updated            = now()
                     """,
                     tuples,
                     template=(
@@ -216,17 +248,28 @@ def mirror_to_db(cfg: PipelineConfig) -> PipelineTaskResult:
                     ),
                     page_size=500,
                 )
+
+            cur.execute(
+                """
+                INSERT INTO raw.mirror_refresh (mirror, refreshed_at, rows)
+                VALUES (%s, now(), %s)
+                ON CONFLICT (mirror) DO UPDATE SET
+                    refreshed_at = EXCLUDED.refreshed_at,
+                    rows         = EXCLUDED.rows
+                """,
+                (_MIRROR, len(tuples)),
+            )
         conn.commit()
 
     logger.info(
-        "flexibility_commitments_mirror: %d pruned, %d upserted",
+        "flexibility_commitments_mirror: %d deleted, %d inserted",
         deleted,
         len(tuples),
     )
     return PipelineTaskResult(
         command="mirror_to_db",
         status=PipelineStatus.COMPLETED,
-        details={"rows_upserted": len(tuples), "rows_pruned": deleted},
+        details={"rows_inserted": len(tuples)},
     )
 
 
@@ -239,15 +282,17 @@ def mirror_to_db(cfg: PipelineConfig) -> PipelineTaskResult:
 def rec_flexibility_commitments_flow(config: dict[str, Any] | None = None) -> dict:
     """
     Flexibility commitments mirror pipeline:
-      1. Ensure raw table + indexes exist
+      1. Ensure raw tables + indexes exist
       2. Fetch all commitments within the 90-day window from flexibility-api
-      3. Prune expired rows + upsert fresh rows into raw.flexibility_commitments_mirror
+      3. Replace raw.flexibility_commitments_mirror with them and mark the run
+         in raw.mirror_refresh, in one transaction
     """
     cfg = PipelineConfig.model_validate(config or {})
 
     result: dict = {"status": "success"}
     result["ensure_table"] = ensure_table(cfg)
-    result["mirror"] = mirror_to_db(cfg)
+    rows = fetch_commitments(cfg)
+    result["mirror"] = mirror_to_db(rows, cfg)
 
     return result
 

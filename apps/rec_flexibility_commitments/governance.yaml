@@ -42,8 +42,10 @@ sources:
       90-day sliding window mirror of all flexibility commitments from the
       CELINE Flexibility API, including accepted, settled, rejected, and
       cancelled statuses. Refreshed every 15 minutes via a Prefect pipeline.
-      One row per commitment (id PK). Upserted on each run so that status
-      transitions (committed → settled) are reflected without data loss.
+      One row per commitment (id PK). Each run replaces the table with the
+      export's 90-day window in one transaction, so it carries the current status
+      (committed → settled) and an empty export empties it; the run is recorded
+      in raw.mirror_refresh.
       Intended as a raw source for dbt pipelines computing settlement analytics,
       gamification, and acceptance rate metrics.
       Access requires membership in a CELINE Renewable Energy Community;
@@ -57,4 +59,27 @@ sources:
       expose: false
       medallion: bronze
       contract_required: true
+      consent_required: false
+
+  # ---------------------------------------------------------------------------
+  # RAW - run markers of the raw mirrors
+  # ---------------------------------------------------------------------------
+
+  datasets.raw.mirror_refresh:
+    title: "Raw Mirror Refresh Markers"
+    description: >
+      One row per raw mirror (mirror, refreshed_at, rows): when its flow last
+      replaced it and with how many rows, written in the same transaction as the
+      replace. Lets freshness be measured when an export is legitimately empty.
+      Created and written by this pipeline for flexibility_commitments_mirror;
+      other mirror flows may upsert their own row. Holds table names, times and
+      counts only, no personal data.
+    access_level: internal
+    classification: green
+    tags: [raw, mirror, freshness]
+    retention_days: null
+    dataspace:
+      expose: false
+      medallion: bronze
+      contract_required: false
       consent_required: false
