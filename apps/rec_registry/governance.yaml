@@ -39,12 +39,13 @@ sources:
   datasets.raw.rec_registry_mirror:
     title: "REC Registry Member Mirror (Raw)"
     description: >
-      Full-replace mirror of all active community members registered in the
-      CELINE REC Registry API. Refreshed every 5 minutes via a Prefect pipeline.
-      One row per member and community (user_id, community_id), carrying the
-      community's slug as community_id, grid area,
-      topology node references and meter sensor IDs. Supply points (POD
-      codes) are not mirrored.
+      Full-replace mirror of every community member registered in the
+      CELINE REC Registry API, read from its member export, which names no
+      member. Refreshed every 5 minutes via a Prefect pipeline.
+      One row per member and community (member_key, community_id), carrying the
+      community's slug as community_id, grid area, role, member type, status,
+      topology node references and meter sensor IDs. No user id, name, e-mail,
+      DID or supply point (POD code).
       Intended as a stable raw source for dbt pipelines computing virtual
       self-consumption, billing, and community analytics.
       Access requires membership in a CELINE Renewable Energy Community;

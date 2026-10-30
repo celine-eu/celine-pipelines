@@ -1,55 +1,50 @@
 """The mirror carries each area's boundary id, and flags areas whose
 substation_id (topology_ids[1], as rec_it reads it) is not that boundary id.
 
-Synthetic bundles only: AC000E0000x codes, no real community or member.
+Synthetic exports only: AC000E0000x codes, no real community or member.
 """
 
 from __future__ import annotations
 
-import yaml
-from flows import pipeline
+import json
 
-SOURCE = "gse_cabine_primarie"
+from flows import pipeline
 
 
 def _area(boundary_id: str | None, topology: list[str] | None) -> dict:
-    area: dict = {"name": "Area"}
-    if boundary_id is not None:
-        area["boundary"] = {"source": SOURCE, "id": boundary_id}
-    if topology is not None:
-        area["topology"] = topology
-    return area
+    return {"boundary_id": boundary_id, "topology_ids": topology}
 
 
-def _member(user_id: str, area: str | None, status: str = "active") -> dict:
-    member: dict = {
-        "user_id": user_id,
-        "status": status,
+def _member(key: str, area: str | None, status: str = "active") -> dict:
+    return {
+        "key": key,
+        "area": area,
         "role": "consumer",
         "type": "person",
-        "delivery_points": [{"id": f"dp-{user_id}"}],
-        "assets": {"meter": {"m1": {"sensor_id": f"sensor-{user_id}"}}},
+        "status": status,
+        "sensor_ids": [f"sensor-{key}"],
     }
-    if area is not None:
-        member["area"] = area
-    return member
 
 
-def _bundle(community_id: str, areas: dict, members: dict) -> dict:
-    return {"community": {"id": community_id, "areas": areas}, "members": members}
+def _community(community_id: str, areas: dict, members: dict) -> dict:
+    return {
+        "community": community_id,
+        "areas": areas,
+        "members": list(members.values()),
+    }
 
 
-def _rows_by_user(bundles: list[dict]) -> dict[str, dict]:
-    return {r["user_id"]: r for r in pipeline._flatten_to_rows(bundles)}
+def _rows_by_member(communities: list[dict]) -> dict[str, dict]:
+    return {r["member_key"]: r for r in pipeline._flatten_to_rows(communities)}
 
 
 # --- the boundary id is carried into the mirror -----------------------------
 
 
 def test_row_carries_its_areas_boundary_id():
-    rows = _rows_by_user(
+    rows = _rows_by_member(
         [
-            _bundle(
+            _community(
                 "rec-a",
                 {"north": _area("AC000E00001", ["AC000E00001"])},
                 {"m1": _member("u1", "north")},
@@ -61,9 +56,9 @@ def test_row_carries_its_areas_boundary_id():
 
 
 def test_area_without_boundary_mirrors_a_null_boundary_id():
-    rows = _rows_by_user(
+    rows = _rows_by_member(
         [
-            _bundle(
+            _community(
                 "rec-a",
                 {"legacy": _area(None, ["n1", "n2"])},
                 {"m1": _member("u1", "legacy")},
@@ -75,75 +70,71 @@ def test_area_without_boundary_mirrors_a_null_boundary_id():
 
 
 def test_member_without_area_or_with_unknown_area_has_no_boundary():
-    rows = _rows_by_user(
+    rows = _rows_by_member(
         [
-            _bundle(
+            _community(
                 "rec-a",
                 {"north": _area("AC000E00001", ["AC000E00001"])},
                 {"m1": _member("u1", None), "m2": _member("u2", "gone")},
             )
         ]
     )
-    for user in ("u1", "u2"):
-        assert rows[user]["boundary_id"] is None
-        assert rows[user]["topology_ids"] == []
+    for member in ("u1", "u2"):
+        assert rows[member]["boundary_id"] is None
+        assert rows[member]["topology_ids"] == []
 
 
-def test_malformed_boundaries_are_treated_as_absent():
-    for boundary in (
-        None,
-        [],
-        "AC000E00001",
-        {"source": SOURCE},
-        {"id": "  "},
-        {"id": 7},
-    ):
-        area = {"name": "x", "boundary": boundary, "topology": ["AC000E00001"]}
-        rows = _rows_by_user(
-            [_bundle("rec-a", {"x": area}, {"m1": _member("u1", "x")})]
+def test_malformed_boundary_ids_are_treated_as_absent():
+    for boundary_id in (None, "", "  ", 7, [], {"id": "AC000E00001"}):
+        area = {"boundary_id": boundary_id, "topology_ids": ["AC000E00001"]}
+        rows = _rows_by_member(
+            [_community("rec-a", {"x": area}, {"m1": _member("u1", "x")})]
         )
-        assert rows["u1"]["boundary_id"] is None, boundary
+        assert rows["u1"]["boundary_id"] is None, boundary_id
 
 
 def test_null_topology_mirrors_an_empty_list():
-    area = {
-        "name": "x",
-        "boundary": {"source": SOURCE, "id": "AC000E00001"},
-        "topology": None,
-    }
-    rows = _rows_by_user([_bundle("rec-a", {"x": area}, {"m1": _member("u1", "x")})])
+    area = _area("AC000E00001", None)
+    rows = _rows_by_member(
+        [_community("rec-a", {"x": area}, {"m1": _member("u1", "x")})]
+    )
     assert rows["u1"]["topology_ids"] == []
 
 
-def test_inactive_members_are_still_skipped():
-    rows = _rows_by_user(
+def test_inactive_members_are_mirrored_with_their_status():
+    rows = _rows_by_member(
         [
-            _bundle(
+            _community(
                 "rec-a",
                 {"north": _area("AC000E00001", ["AC000E00001"])},
                 {"m1": _member("u1", "north", status="suspended")},
             )
         ]
     )
-    assert rows == {}
+    assert rows["u1"]["status"] == "suspended"
+    assert rows["u1"]["boundary_id"] == "AC000E00001"
 
 
-def test_v07_export_yaml_round_trips_through_parse_and_flatten():
-    text = yaml.safe_dump_all(
-        [
-            _bundle(
-                "rec-a",
-                {"north": _area("AC000E00001", ["AC000E00001"])},
-                {"m1": _member("u1", "north")},
-            ),
-            _bundle(
-                "rec-b",
-                {"south": _area("AC000E00002", ["AC000E00002"])},
-                {"m1": _member("u2", "south")},
-            ),
-        ]
+def test_member_export_json_round_trips_through_parse_and_flatten():
+    payload = json.loads(
+        json.dumps(
+            {
+                "communities": [
+                    _community(
+                        "rec-a",
+                        {"north": _area("AC000E00001", ["AC000E00001"])},
+                        {"m1": _member("u1", "north")},
+                    ),
+                    _community(
+                        "rec-b",
+                        {"south": _area("AC000E00002", ["AC000E00002"])},
+                        {"m1": _member("u2", "south")},
+                    ),
+                ]
+            }
+        )
     )
-    rows = _rows_by_user(pipeline._parse_bundles(text))
+    rows = _rows_by_member(pipeline._parse_export(payload))
     assert {u: r["boundary_id"] for u, r in rows.items()} == {
         "u1": "AC000E00001",
         "u2": "AC000E00002",
@@ -156,7 +147,7 @@ def test_v07_export_yaml_round_trips_through_parse_and_flatten():
 
 def _mismatches(areas: dict, members: dict, community_id: str = "rec-a"):
     return pipeline._substation_mismatches(
-        pipeline._flatten_to_rows([_bundle(community_id, areas, members)])
+        pipeline._flatten_to_rows([_community(community_id, areas, members)])
     )
 
 
@@ -211,16 +202,27 @@ def test_rows_without_a_boundary_are_not_checked():
     )
 
 
+def test_an_area_holding_only_inactive_members_is_not_checked():
+    """As before the status was mirrored: only active members are netted downstream."""
+    assert (
+        _mismatches(
+            {"north": _area("AC000E00001", ["AC000E00002"])},
+            {"m1": _member("u1", "north", status="suspended")},
+        )
+        == []
+    )
+
+
 def test_each_offending_area_is_reported_once_and_names_no_member():
     result = pipeline._substation_mismatches(
         pipeline._flatten_to_rows(
             [
-                _bundle(
+                _community(
                     "rec-b",
                     {"x": _area("AC000E00003", ["AC000E00004"])},
                     {"m1": _member("u1", "x"), "m2": _member("u2", "x")},
                 ),
-                _bundle(
+                _community(
                     "rec-a",
                     {
                         "y": _area("AC000E00001", ["AC000E00001", "AC000E00002"]),
@@ -233,14 +235,14 @@ def test_each_offending_area_is_reported_once_and_names_no_member():
     )
     assert result == [("rec-a", "y"), ("rec-b", "x")]
     flat = repr(result)
-    for member_value in ("u1", "u2", "u3", "u4", "sensor-", "dp-"):
+    for member_value in ("u1", "u2", "u3", "u4", "sensor-"):
         assert member_value not in flat
 
 
 def test_check_task_flags_but_does_not_refuse(caplog):
     rows = pipeline._flatten_to_rows(
         [
-            _bundle(
+            _community(
                 "rec-a",
                 {
                     "bad": _area("AC000E00001", ["AC000E00002"]),
@@ -256,7 +258,7 @@ def test_check_task_flags_but_does_not_refuse(caplog):
     assert result.details == {"areas_mismatched": 1}
     logged = caplog.text
     assert "bad" in logged and "rec-a" in logged
-    for member_value in ("u1", "u2", "sensor-", "dp-"):
+    for member_value in ("u1", "u2", "sensor-"):
         assert member_value not in logged
 
 

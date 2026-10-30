@@ -11,7 +11,8 @@
 -- in the wrong place.
 --
 -- Failing rows are areas, not members: one row per (community_id, area) with how
--- many active member rows it holds.
+-- many active member rows it holds. Inactive members (mirrored with their status) are
+-- not netted downstream, so they are not checked.
 --
 -- Rows with a null boundary_id (areas exported before registry schema v0.7) are
 -- not checked. A mirror table that predates the boundary_id column (the
@@ -37,7 +38,8 @@ select
     topology_ids[1]  as substation_id,
     count(*)         as member_rows
 from {{ source('raw', 'rec_registry_mirror') }}
-where boundary_id is not null
+where status = 'active'
+  and boundary_id is not null
   and (
         cardinality(topology_ids) <> 1
      or topology_ids[1] is distinct from boundary_id

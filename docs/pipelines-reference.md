@@ -358,15 +358,17 @@ a failure.
 
 ## `rec_registry` — registry mirror
 
-Full-replace mirror of the CELINE REC Registry API into `raw.rec_registry_mirror`, every
-5 minutes. One row per user/community pair of an active member: area, role, member type,
-topology nodes, the area's boundary id, meter sensors; no supply points. Python-only; no dbt,
+Full-replace mirror of the CELINE REC Registry API's member export
+(`GET /admin/export/members`) into `raw.rec_registry_mirror`, every 5 minutes. One row per
+member/community pair, whatever the member's status: area, role, member type, status,
+topology nodes, the area's boundary id, meter sensors; no user id, name, e-mail or supply
+points. Python-only; no dbt,
 no Meltano. OIDC-authenticated. Each run logs the areas whose `topology_ids[1]` is not their
 boundary id (it flags them; it does not refuse the export).
 
-> **The mirror always equals the export's active members, the empty set included.** When
-> the export holds no active member the table is emptied, so a suspended last member stops
-> feeding `rec_it`. A fetch that fails or returns an empty export raises before the mirror
+> **The mirror always equals the export's members, the empty set included.** A suspended
+> member is mirrored as suspended and `rec_device_membership` keeps active members only, so
+> it stops feeding `rec_it`; an export with no member empties the table. A fetch that fails or returns an empty export raises before the mirror
 > is touched, and the previous rows stay.
 
 ## `rec_flexibility_commitments` — commitments mirror

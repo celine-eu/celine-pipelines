@@ -3,9 +3,10 @@
 Its only reader, rec_it's `rec_member_supply_points`, was retired: no sharing
 offer was bound to it any more, and no service read it. A POD code is a stable
 identifier of a household's supply point, so with no reader it is not mirrored,
-and a table created before the retirement loses the column.
+and a table created before the retirement loses the column. The member export the
+flow reads carries none; were one to appear, it would still not be mirrored.
 
-Synthetic bundles only: placeholder PODs, no real community or member.
+Synthetic exports only: placeholder PODs, no real community or member.
 """
 
 from __future__ import annotations
@@ -13,28 +14,28 @@ from __future__ import annotations
 from flows import pipeline
 
 
-def _bundle(points: list[dict]) -> list[dict]:
+def _export(points: list[dict]) -> list[dict]:
     return [
         {
-            "community": {"id": "example-rec", "areas": {}},
-            "members": {
-                "ex-00001": {
-                    "user_id": "ex-00001",
-                    "status": "active",
+            "community": "example-rec",
+            "areas": {},
+            "members": [
+                {
+                    "key": "ex-00001",
+                    "area": None,
                     "role": "consumer",
                     "type": "person",
+                    "status": "active",
                     "delivery_points": points,
-                    "assets": {"meter": {"m1": {"sensor_id": "sensor-ex-00001"}}},
+                    "sensor_ids": ["sensor-ex-00001"],
                 }
-            },
+            ],
         }
     ]
 
 
 def test_a_member_with_supply_points_mirrors_none_of_them():
-    rows = pipeline._flatten_to_rows(
-        _bundle([{"id": "IT001E00000001", "type": "pod"}])
-    )
+    rows = pipeline._flatten_to_rows(_export([{"id": "IT001E00000001", "type": "pod"}]))
 
     assert len(rows) == 1
     assert "delivery_point_ids" not in rows[0]
@@ -42,7 +43,7 @@ def test_a_member_with_supply_points_mirrors_none_of_them():
 
 
 def test_the_member_keeps_its_row_and_its_sensors():
-    rows = pipeline._flatten_to_rows(_bundle([]))
+    rows = pipeline._flatten_to_rows(_export([]))
 
     assert [r["sensor_ids"] for r in rows] == [["sensor-ex-00001"]]
 
@@ -79,7 +80,7 @@ def test_the_insert_names_no_supply_point_column(monkeypatch):
         "execute_values",
         lambda cur, sql, values, **kw: statements.append(sql),
     )
-    rows = pipeline._flatten_to_rows(_bundle([{"id": "IT001E00000001"}]))
+    rows = pipeline._flatten_to_rows(_export([{"id": "IT001E00000001"}]))
 
     pipeline.mirror_to_db.fn(rows, cfg=None)
 

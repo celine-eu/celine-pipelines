@@ -8,7 +8,8 @@
 -- registry lists under two communities appears once under each, and does not copy a
 -- reading into the second.
 --
--- No user_id: who the member is stays in the mirror.
+-- No member identity: the mirror holds none (the registry's member export, REQ-0100).
+-- The mirror lists every member with its status; only active ones are kept here.
 --
 -- substation_id is topology_ids[1], right only when an area lists exactly one node
 -- equal to its boundary; tests/rec_registry_mirror_substation_is_area_boundary.sql fails
@@ -27,4 +28,5 @@ select
     -- CIM: Substation (cabina primaria)
     topology_ids[1]     as substation_id
 from {{ source('raw', 'rec_registry_mirror') }}
-where cardinality(sensor_ids) > 0
+where status = 'active'
+  and cardinality(sensor_ids) > 0

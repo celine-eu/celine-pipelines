@@ -1,22 +1,24 @@
 """
 REC Registry mirror pipeline.
 
-Fetches all registered RECs from the CELINE REC Registry API via the SDK,
-flattens member/sensor data, and writes it into raw.rec_registry_mirror —
+Fetches the member export of every community from the CELINE REC Registry API
+(`GET /admin/export/members`, REQ-0100: membership without member identity),
+flattens it, and writes it into raw.rec_registry_mirror —
 a full-replace table (TRUNCATE + INSERT in one transaction) — then builds this
 app's dbt layer on it: the view rec_device_membership, the one place the other
 REC apps read membership from, and the tests that fail the run on a sensor listed
 twice in one community or an area whose substation is not its boundary.
 
-One row per active member and community (PRIMARY KEY (user_id, community_id));
-community_id is the bundle's community.id, the community's slug.  sensor_ids and
-topology_ids are stored as Postgres text[] arrays.  Members with status other
-than 'active' are excluded.  Supply points (POD codes) are not mirrored: their
-only reader, rec_it's rec_member_supply_points, was retired.
+One row per member and community (PRIMARY KEY (member_key, community_id)),
+whatever the member's status: the export lists inactive members with their
+status, the mirror carries it, and rec_device_membership keeps the active ones.
+community_id is the export's community key, the community's slug.  sensor_ids
+and topology_ids are stored as Postgres text[] arrays.  No user id, name, e-mail,
+DID or supply point (POD code): the export carries none.
 
 boundary_id carries the id of the member's area's boundary (registry schema
-v0.7: `area.boundary.id`, the area's GSE primary-substation `cod_ac`); it is
-null for an area without a boundary.  rec_device_membership takes
+v0.7: the area's GSE primary-substation `cod_ac`); it is null for an area
+without a boundary.  rec_device_membership takes
 topology_ids[1] as the member's substation_id, which is right only when the area
 lists exactly one node, equal to boundary_id.  The flow flags every area breaking
 that (it does not refuse the export), and this app's singular test
@@ -31,20 +33,18 @@ import os
 from pathlib import Path
 from typing import Any
 
+import httpx
 import psycopg2
 import psycopg2.extras
-import yaml
-from prefect import flow, task
-
-from celine.sdk.auth import OidcClientCredentialsProvider
-from celine.sdk.rec_registry.client import RecRegistryAdminClient
+from celine.sdk.auth import OidcClientCredentialsProvider, TokenProvider
 from celine.utils.pipelines.pipeline import (
     DEV_MODE,
     PipelineConfig,
-    dbt_run,
-    PipelineTaskResult,
     PipelineStatus,
+    PipelineTaskResult,
+    dbt_run,
 )
+from prefect import flow, task
 
 logger = logging.getLogger(__name__)
 
@@ -56,16 +56,36 @@ _DDL = """
 CREATE SCHEMA IF NOT EXISTS raw;
 
 CREATE TABLE IF NOT EXISTS raw.rec_registry_mirror (
-    user_id             text        NOT NULL,
+    member_key          text        NOT NULL,
     community_id        text        NOT NULL,
     area                text,
     role                text,
     member_type         text,
+    status              text        NOT NULL,
     topology_ids        text[]      NOT NULL DEFAULT '{}',
     sensor_ids          text[]      NOT NULL DEFAULT '{}',
     last_updated        timestamptz NOT NULL DEFAULT now(),
-    PRIMARY KEY (user_id, community_id)
+    PRIMARY KEY (member_key, community_id)
 );
+
+-- Keyed by user_id before the member export: a table created earlier keeps its rows
+-- and primary key under the new name until this run's replace rewrites them.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_schema = 'raw' AND table_name = 'rec_registry_mirror'
+          AND column_name = 'user_id'
+    ) THEN
+        ALTER TABLE raw.rec_registry_mirror RENAME COLUMN user_id TO member_key;
+    END IF;
+END $$;
+
+-- The rows of a table created before the status was mirrored were all active
+-- members: they get that status, and later inserts must name theirs.
+ALTER TABLE raw.rec_registry_mirror
+    ADD COLUMN IF NOT EXISTS status text NOT NULL DEFAULT 'active';
+ALTER TABLE raw.rec_registry_mirror ALTER COLUMN status DROP DEFAULT;
 
 -- Added after the table was first deployed: tables created earlier get it here.
 ALTER TABLE raw.rec_registry_mirror ADD COLUMN IF NOT EXISTS boundary_id text;
@@ -107,8 +127,33 @@ def _registry_url() -> str:
     return os.getenv("CELINE_REC_REGISTRY_URL", "http://host.docker.internal:8004")
 
 
-async def _fetch_yaml(cfg: PipelineConfig) -> str:
-    """Obtain a token via OIDC client credentials and export all RECs as YAML."""
+async def _get_member_export(
+    base_url: str,
+    token_provider: TokenProvider,
+    *,
+    timeout: float = 30.0,
+    transport: httpx.AsyncBaseTransport | None = None,
+) -> dict[str, Any]:
+    """GET /admin/export/members for every community, as the registry answers it.
+
+    No `community` parameter: every community.  A refused or failed request raises
+    (httpx.HTTPStatusError), so the mirror is left as it was.  `transport` is for
+    tests.
+    """
+    token = await token_provider.get_token()
+    async with httpx.AsyncClient(
+        base_url=base_url, timeout=timeout, transport=transport
+    ) as client:
+        response = await client.get(
+            "/admin/export/members",
+            headers={"Authorization": f"Bearer {token.access_token}"},
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+async def _fetch_export(cfg: PipelineConfig) -> dict[str, Any]:
+    """Obtain a token via OIDC client credentials and read the member export."""
     oidc = cfg.sdk.oidc
     if not oidc.client_id or not oidc.client_secret:
         raise ValueError(
@@ -122,95 +167,78 @@ async def _fetch_yaml(cfg: PipelineConfig) -> str:
         scope=oidc.scope,
         verify_ssl=oidc.verify_ssl,
     )
-    client = RecRegistryAdminClient(
-        base_url=_registry_url(),
-        token_provider=provider,
-    )
-    return await client.export_communities()  # all communities, multidoc YAML
+    return await _get_member_export(_registry_url(), provider)
 
 
-def _parse_bundles(yaml_text: str) -> list[dict[str, Any]]:
-    """Parse multidocument YAML into a list of bundle dicts."""
-    docs = [d for d in yaml.safe_load_all(yaml_text) if d]
-    if not docs:
+def _parse_export(payload: Any) -> list[dict[str, Any]]:
+    """The export's community entries; an empty or malformed export raises."""
+    communities = payload.get("communities") if isinstance(payload, dict) else None
+    if not isinstance(communities, list) or not communities:
         raise ValueError("REC Registry returned empty export")
-    return docs
+    return communities
 
 
-def _area_boundary_id(area_data: Any) -> str | None:
-    """The id of an area's boundary, or None when the area has none.
+def _boundary_id(area_data: Any) -> str | None:
+    """An area's boundary id, or None when the area has none.
 
-    A boundary is `{source, id}` (registry schema v0.7).  Anything else — no
-    boundary, a null one, a malformed one, a blank id — is treated as absent,
-    so an area exported before v0.7 mirrors with a null boundary_id.
+    Anything but a non-blank string (no area, a null id, a malformed one) is
+    treated as absent, so an area stored before registry schema v0.7 mirrors with
+    a null boundary_id.
     """
     if not isinstance(area_data, dict):
         return None
-    boundary = area_data.get("boundary")
-    if not isinstance(boundary, dict):
-        return None
-    boundary_id = boundary.get("id")
+    boundary_id = area_data.get("boundary_id")
     if not isinstance(boundary_id, str) or not boundary_id.strip():
         return None
     return boundary_id
 
 
-def _flatten_to_rows(bundles: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def _flatten_to_rows(communities: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
-    Flatten community bundles into one row per active member.
+    Flatten the export's communities into one row per member, whatever its status.
 
-    Members whose status is not 'active' are skipped.
+    Only the columns below are taken from a member; anything else the export
+    might carry is not mirrored.
 
     Columns produced:
-      user_id, community_id, area, role, member_type,
+      member_key, community_id, area, role, member_type, status,
       topology_ids, sensor_ids, boundary_id
     """
     rows: list[dict[str, Any]] = []
 
-    for bundle in bundles:
-        community = bundle.get("community", {})
-        community_id = community.get("id")
+    for entry in communities:
+        community_id = entry.get("community")
         if not community_id:
-            logger.warning("Bundle has no community.id — skipping")
+            logger.warning("Export entry has no community key — skipping")
             continue
 
-        areas: dict[str, Any] = community.get("areas", {})
-        members: dict[str, Any] = bundle.get("members", {})
+        areas: dict[str, Any] = entry.get("areas") or {}
 
-        for member_key, member in members.items():
-            status = member.get("status")
-            if status != "active":
-                logger.debug(
-                    "Skipping member %s in %s (status=%s)", member_key, community_id, status
-                )
-                continue
-
-            user_id = member.get("user_id")
-            if not user_id:
-                logger.warning(
-                    "Member %s in %s has no user_id — skipping", member_key, community_id
-                )
+        for member in entry.get("members") or []:
+            member_key = member.get("key")
+            if not member_key:
+                logger.warning("A member in %s has no key — skipping", community_id)
                 continue
 
             area_key: str | None = member.get("area")
-            area_data: dict = areas.get(area_key, {}) if area_key else {}
-            topology_ids: list[str] = area_data.get("topology") or []
-
-            meter_assets: dict = member.get("assets", {}).get("meter", {})
-            sensor_ids: list[str] = [
-                m["sensor_id"] for m in meter_assets.values() if m.get("sensor_id")
-            ]
+            area_data = areas.get(area_key) if area_key else None
+            topology_ids: list[str] = (
+                (area_data.get("topology_ids") or [])
+                if isinstance(area_data, dict)
+                else []
+            )
 
             rows.append(
                 {
-                    "user_id": user_id,
+                    "member_key": member_key,
                     "community_id": community_id,
                     "area": area_key,
                     "role": member.get("role"),
                     "member_type": member.get("type"),
-                    "topology_ids": topology_ids,
-                    "sensor_ids": sensor_ids,
-                    "boundary_id": _area_boundary_id(area_data),
+                    "status": member.get("status"),
+                    "topology_ids": list(topology_ids),
+                    "sensor_ids": list(member.get("sensor_ids") or []),
+                    "boundary_id": _boundary_id(area_data),
                 }
             )
 
@@ -221,10 +249,11 @@ def _substation_mismatches(rows: list[dict[str, Any]]) -> list[tuple[str, str]]:
     """
     The (community_id, area) pairs whose mirror rows would get the wrong substation.
 
-    rec_device_membership takes topology_ids[1] as a member's substation_id.  For a row whose area has a boundary, that is right only when
+    rec_device_membership takes topology_ids[1] as an active member's
+    substation_id.  For a row whose area has a boundary, that is right only when
     the area lists exactly one topology node and that node's id is the
     boundary id.  Rows without a boundary_id (areas exported before registry
-    schema v0.7) are not checked.
+    schema v0.7) and rows of inactive members are not checked.
 
     Returns each offending pair once, sorted; area keys and community ids only,
     never a member.
@@ -232,7 +261,7 @@ def _substation_mismatches(rows: list[dict[str, Any]]) -> list[tuple[str, str]]:
     bad: set[tuple[str, str]] = set()
     for row in rows:
         boundary_id = row.get("boundary_id")
-        if boundary_id is None:
+        if boundary_id is None or row.get("status") != "active":
             continue
         topology_ids = row.get("topology_ids") or []
         if len(topology_ids) != 1 or topology_ids[0] != boundary_id:
@@ -260,18 +289,18 @@ def ensure_table(cfg: PipelineConfig) -> PipelineTaskResult:
 @task(name="Fetch REC registry", retries=3, retry_delay_seconds=60)
 def fetch_registry(cfg: PipelineConfig) -> list[dict[str, Any]]:
     """
-    Export all REC bundles from the registry API and flatten to row dicts.
+    Read the member export of every community and flatten it to row dicts.
 
-    Only active members are included.
+    Every member is included, with its status.
     Uses OIDC client credentials from PipelineConfig.sdk.oidc.
     """
-    yaml_text = asyncio.run(_fetch_yaml(cfg))
-    bundles = _parse_bundles(yaml_text)
-    rows = _flatten_to_rows(bundles)
+    communities = _parse_export(asyncio.run(_fetch_export(cfg)))
+    rows = _flatten_to_rows(communities)
     logger.info(
-        "Fetched %d bundle(s), %d active member rows from REC Registry",
-        len(bundles),
+        "Fetched %d community(ies), %d member rows (%d active) from REC Registry",
+        len(communities),
         len(rows),
+        sum(1 for r in rows if r["status"] == "active"),
     )
     return rows
 
@@ -282,19 +311,20 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
     Atomically replace raw.rec_registry_mirror:
     TRUNCATE + bulk INSERT in a single transaction.
 
-    **An empty row list still replaces the table** (celine-eu/celine-pipelines#7).
-    The rows are the export's *active* members, so none is a legitimate answer —
-    the last active member of a community suspended — and skipping the truncate
-    kept that member in the mirror, treated as active downstream. A broken or
-    empty fetch never reaches this task: `_parse_bundles` raises on it first.
+    **An empty row list still replaces the table** (celine-eu/celine-pipelines#7):
+    skipping the truncate once kept a suspended member in the mirror, treated as
+    active downstream.  The rows are every member of the export, each with its
+    status, and rec_device_membership keeps the active ones.  A broken or empty
+    fetch never reaches this task: `_parse_export` raises on it first.
     """
     tuples = [
         (
-            r["user_id"],
+            r["member_key"],
             r["community_id"],
             r["area"],
             r["role"],
             r["member_type"],
+            r["status"],
             r["topology_ids"],
             r["sensor_ids"],
             r.get("boundary_id"),
@@ -307,7 +337,7 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
             cur.execute("TRUNCATE TABLE raw.rec_registry_mirror")
             if not tuples:
                 logger.warning(
-                    "The registry export has no active member: raw.rec_registry_mirror "
+                    "The registry export has no member: raw.rec_registry_mirror "
                     "is now empty"
                 )
             else:
@@ -315,13 +345,13 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
                     cur,
                     """
                     INSERT INTO raw.rec_registry_mirror
-                        (user_id, community_id, area, role, member_type,
-                         topology_ids, sensor_ids, boundary_id,
+                        (member_key, community_id, area, role, member_type,
+                         status, topology_ids, sensor_ids, boundary_id,
                          last_updated)
                     VALUES %s
                     """,
                     tuples,
-                    template="(%s, %s, %s, %s, %s, %s, %s, %s, now())",
+                    template="(%s, %s, %s, %s, %s, %s, %s, %s, %s, now())",
                     page_size=500,
                 )
         conn.commit()
@@ -379,7 +409,7 @@ def rec_registry_flow(config: dict[str, Any] | None = None) -> dict:
     """
     Full REC Registry mirror pipeline:
       1. Ensure raw table + indexes exist
-      2. Fetch all active REC members from the registry API
+      2. Read every community's member export from the registry API
       3. Flag areas whose substation_id would not be their boundary id
       4. Truncate + re-insert into raw.rec_registry_mirror
       5. Build rec_device_membership and run its tests

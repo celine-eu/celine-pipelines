@@ -6,5 +6,6 @@ sources:
     tables:
       - name: rec_registry_mirror
         description: >
-          The registry's active members, one row per (user_id, community_id), replaced
-          wholesale on every run of this app's flow (flows/pipeline.py).
+          The registry's members, whatever their status, one row per (member_key,
+          community_id), from the registry's member export (no member identity),
+          replaced wholesale on every run of this app's flow (flows/pipeline.py).
