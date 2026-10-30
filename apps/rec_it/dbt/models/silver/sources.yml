@@ -5,3 +5,12 @@ sources:
     schema: raw
     tables:
       - name: gse_cabine_primarie
+      - name: rec_registry_mirror
+        description: >
+          Read only by tests/rec_registry_mirror_is_fresh.sql: the membership this app
+          computes over (rec_device_membership) is a view on it, and a mirror that stopped
+          refreshing would go unnoticed. No model reads it.
+        loaded_at_field: last_updated
+        freshness:
+          warn_after: {count: 15, period: minute}
+          error_after: {count: 30, period: minute}
