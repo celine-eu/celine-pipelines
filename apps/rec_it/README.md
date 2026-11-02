@@ -26,7 +26,7 @@ The full source contracts are declared in `dbt/models/silver/sources.yml` and `d
 
 #### Membership
 
-`rec_it` keeps no copy of the registry: it reads `rec_device_membership` (rec_registry), whose `substation_id` is `topology_ids[1]` of the member's area. **Substation attribution rests on one invariant: an area lists exactly one topology node, a `primary_substation` whose id is the `cod_ac` of that area's GSE primary-substation boundary.** The registry enforces it from schema v0.7, and `rec_registry`'s singular test `rec_registry_mirror_substation_is_area_boundary` fails its run on an area breaking it (see `apps/rec_registry/README.md`).
+`rec_it` keeps no copy of the registry: it reads `rec_device_membership` (rec_registry), whose `substation_id` is `topology_ids[1]` of the member's area. It reads no supply point in any form: the mirror's POD hashes (`pod_hashes`, `meter_pod_hashes`) are not in `rec_device_membership`. **Substation attribution rests on one invariant: an area lists exactly one topology node, a `primary_substation` whose id is the `cod_ac` of that area's GSE primary-substation boundary.** The registry enforces it from schema v0.7, and `rec_registry`'s singular test `rec_registry_mirror_substation_is_area_boundary` fails its run on an area breaking it (see `apps/rec_registry/README.md`).
 
 A reading counts only when its `(device_id, community_id)` pair is a membership row. A device listed under two communities contributes each reading to the community the reading carries (its upstream topic), once.
 

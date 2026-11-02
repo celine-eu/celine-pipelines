@@ -46,6 +46,14 @@ sources:
       community's slug as community_id, grid area, role, member type, status,
       topology node references and meter sensor IDs. No user id, name, e-mail,
       DID or supply point (POD code).
+      Columns pod_hashes and meter_pod_hashes are pseudonymous identifiers:
+      HMAC-SHA256 hashes of the member's active delivery points (POD codes) and
+      of each meter's, keyed by a secret held only by the production REC Registry.
+      They are stable join keys across datasets and are not reversible without
+      that key, which no pipeline holds; they remain personal data (pseudonymised,
+      not anonymised) and must not be joined with any source of POD codes. Empty
+      when the registry exports none; a value that is not 64-char lowercase hex is
+      dropped before it is stored.
       Intended as a stable raw source for dbt pipelines computing virtual
       self-consumption, billing, and community analytics.
       Access requires membership in a CELINE Renewable Energy Community;
@@ -53,7 +61,7 @@ sources:
       access controls.
     access_level: internal
     classification: yellow
-    tags: [rec-registry, members, raw, mirror]
+    tags: [rec-registry, members, raw, mirror, pseudonymous]
     retention_days: null
     dataspace:
       expose: false

@@ -32,6 +32,8 @@ MIRROR_COLUMNS = {
     "topology_ids",
     "sensor_ids",
     "boundary_id",
+    "pod_hashes",
+    "meter_pod_hashes",
 }
 
 
@@ -141,6 +143,8 @@ def test_every_member_is_mirrored_with_its_status_and_nothing_else():
         "topology_ids": ["AC000E00001"],
         "sensor_ids": ["sensor-ex-00001"],
         "boundary_id": "AC000E00001",
+        "pod_hashes": [],
+        "meter_pod_hashes": {},
     }
 
 

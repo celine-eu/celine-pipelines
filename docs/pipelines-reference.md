@@ -362,7 +362,10 @@ Full-replace mirror of the CELINE REC Registry API's member export
 (`GET /admin/export/members`) into `raw.rec_registry_mirror`, every 5 minutes. One row per
 member/community pair, whatever the member's status: area, role, member type, status,
 topology nodes, the area's boundary id, meter sensors; no user id, name, e-mail or supply
-points. Python-only; no dbt,
+points. Supply points appear only as POD hashes (`pod_hashes` text[], `meter_pod_hashes`
+jsonb): HMAC hashes keyed by a secret only prod's rec-registry holds, pseudonymous
+identifiers, empty when the registry exports none; a value that is not 64-char lowercase
+hex is dropped and only counted in the log. Python-only; no dbt,
 no Meltano. OIDC-authenticated. Each run logs the areas whose `topology_ids[1]` is not their
 boundary id (it flags them; it does not refuse the export).
 

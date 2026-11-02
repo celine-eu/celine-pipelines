@@ -16,6 +16,14 @@ community_id is the export's community key, the community's slug.  sensor_ids
 and topology_ids are stored as Postgres text[] arrays.  No user id, name, e-mail,
 DID or supply point (POD code): the export carries none.
 
+PODs leave prod only as HMAC hashes, keyed by a secret only prod's rec-registry
+holds.  When the registry has the key, the export adds per member `pod_hashes`
+(sorted, the member's active delivery points) and `meter_pod_hashes`
+({sensor_id: hash or null}); the mirror stores them as pod_hashes (text[]) and
+meter_pod_hashes (jsonb), empty when the export has none.  A value that is not
+64-char lowercase hex is dropped before it reaches a row, and only a count per
+community is logged: a raw POD never lands in the mirror or in a log.
+
 boundary_id carries the id of the member's area's boundary (registry schema
 v0.7: the area's GSE primary-substation `cod_ac`); it is null for an area
 without a boundary.  rec_device_membership takes
@@ -30,6 +38,7 @@ Schedule: every 5 minutes.
 import asyncio
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -64,6 +73,8 @@ CREATE TABLE IF NOT EXISTS raw.rec_registry_mirror (
     status              text        NOT NULL,
     topology_ids        text[]      NOT NULL DEFAULT '{}',
     sensor_ids          text[]      NOT NULL DEFAULT '{}',
+    pod_hashes          text[]      NOT NULL DEFAULT '{}',
+    meter_pod_hashes    jsonb       NOT NULL DEFAULT '{}',
     last_updated        timestamptz NOT NULL DEFAULT now(),
     PRIMARY KEY (member_key, community_id)
 );
@@ -94,6 +105,13 @@ ALTER TABLE raw.rec_registry_mirror ADD COLUMN IF NOT EXISTS boundary_id text;
 -- its index with it).
 ALTER TABLE raw.rec_registry_mirror DROP COLUMN IF EXISTS delivery_point_ids;
 
+-- POD hashes, added after the table was first deployed: rows already there get empty
+-- values, the export's own on this run's replace.
+ALTER TABLE raw.rec_registry_mirror
+    ADD COLUMN IF NOT EXISTS pod_hashes text[] NOT NULL DEFAULT '{}';
+ALTER TABLE raw.rec_registry_mirror
+    ADD COLUMN IF NOT EXISTS meter_pod_hashes jsonb NOT NULL DEFAULT '{}';
+
 CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_community_id
     ON raw.rec_registry_mirror (community_id);
 
@@ -105,7 +123,14 @@ CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_role
 
 CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_sensor_ids
     ON raw.rec_registry_mirror USING gin (sensor_ids);
+
+CREATE INDEX IF NOT EXISTS ix_rec_registry_mirror_pod_hashes
+    ON raw.rec_registry_mirror USING gin (pod_hashes);
 """
+
+# A POD hash as the registry exports it: HMAC-SHA256, 64 lowercase hex characters.
+# fullmatch, not match: `$` would accept a trailing newline.
+_POD_HASH = re.compile(r"[0-9a-f]{64}")
 
 
 # ---------------------------------------------------------------------------
@@ -193,16 +218,55 @@ def _boundary_id(area_data: Any) -> str | None:
     return boundary_id
 
 
+def _is_pod_hash(value: Any) -> bool:
+    return isinstance(value, str) and _POD_HASH.fullmatch(value) is not None
+
+
+def _pod_hashes(member: dict[str, Any]) -> tuple[list[str], dict[str, Any], int]:
+    """A member's (pod_hashes, meter_pod_hashes, rejected count).
+
+    Absent or null fields are empty: a registry without the hash key sends none.
+    A value that is not a POD hash is dropped (from pod_hashes the value, from
+    meter_pod_hashes the sensor's entry) and counted, so a raw POD sent by a
+    misbehaving source never reaches a row.  A field of the wrong type counts as
+    one rejection.  A null meter hash is kept: the meter has no delivery point.
+    """
+    rejected = 0
+
+    raw_list = member.get("pod_hashes")
+    if raw_list is None:
+        raw_list = []
+    elif not isinstance(raw_list, list):
+        raw_list, rejected = [], rejected + 1
+    pod_hashes = sorted(v for v in raw_list if _is_pod_hash(v))
+    rejected += len(raw_list) - len(pod_hashes)
+
+    raw_map = member.get("meter_pod_hashes")
+    if raw_map is None:
+        raw_map = {}
+    elif not isinstance(raw_map, dict):
+        raw_map, rejected = {}, rejected + 1
+    meter_pod_hashes: dict[str, Any] = {}
+    for sensor_id, value in raw_map.items():
+        if isinstance(sensor_id, str) and (value is None or _is_pod_hash(value)):
+            meter_pod_hashes[sensor_id] = value
+        else:
+            rejected += 1
+
+    return pod_hashes, meter_pod_hashes, rejected
+
+
 def _flatten_to_rows(communities: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """
     Flatten the export's communities into one row per member, whatever its status.
 
     Only the columns below are taken from a member; anything else the export
-    might carry is not mirrored.
+    might carry is not mirrored.  POD hashes that are not hashes are dropped
+    (`_pod_hashes`); a warning per community gives their count, never a value.
 
     Columns produced:
       member_key, community_id, area, role, member_type, status,
-      topology_ids, sensor_ids, boundary_id
+      topology_ids, sensor_ids, boundary_id, pod_hashes, meter_pod_hashes
     """
     rows: list[dict[str, Any]] = []
 
@@ -213,6 +277,7 @@ def _flatten_to_rows(communities: list[dict[str, Any]]) -> list[dict[str, Any]]:
             continue
 
         areas: dict[str, Any] = entry.get("areas") or {}
+        rejected = 0
 
         for member in entry.get("members") or []:
             member_key = member.get("key")
@@ -228,6 +293,9 @@ def _flatten_to_rows(communities: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 else []
             )
 
+            pod_hashes, meter_pod_hashes, member_rejected = _pod_hashes(member)
+            rejected += member_rejected
+
             rows.append(
                 {
                     "member_key": member_key,
@@ -239,7 +307,16 @@ def _flatten_to_rows(communities: list[dict[str, Any]]) -> list[dict[str, Any]]:
                     "topology_ids": list(topology_ids),
                     "sensor_ids": list(member.get("sensor_ids") or []),
                     "boundary_id": _boundary_id(area_data),
+                    "pod_hashes": pod_hashes,
+                    "meter_pod_hashes": meter_pod_hashes,
                 }
+            )
+
+        if rejected:
+            logger.warning(
+                "%d POD hash value(s) in %s rejected: not 64-char lowercase hex",
+                rejected,
+                community_id,
             )
 
     return rows
@@ -328,6 +405,8 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
             r["topology_ids"],
             r["sensor_ids"],
             r.get("boundary_id"),
+            r.get("pod_hashes") or [],
+            psycopg2.extras.Json(r.get("meter_pod_hashes") or {}),
         )
         for r in rows
     ]
@@ -347,11 +426,11 @@ def mirror_to_db(rows: list[dict[str, Any]], cfg: PipelineConfig) -> PipelineTas
                     INSERT INTO raw.rec_registry_mirror
                         (member_key, community_id, area, role, member_type,
                          status, topology_ids, sensor_ids, boundary_id,
-                         last_updated)
+                         pod_hashes, meter_pod_hashes, last_updated)
                     VALUES %s
                     """,
                     tuples,
-                    template="(%s, %s, %s, %s, %s, %s, %s, %s, %s, now())",
+                    template="(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())",
                     page_size=500,
                 )
         conn.commit()

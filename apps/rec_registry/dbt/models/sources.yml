@@ -9,3 +9,16 @@ sources:
           The registry's members, whatever their status, one row per (member_key,
           community_id), from the registry's member export (no member identity),
           replaced wholesale on every run of this app's flow (flows/pipeline.py).
+        columns:
+          - name: pod_hashes
+            description: >
+              Pseudonymous identifier. Sorted HMAC-SHA256 hashes (64-char lowercase
+              hex) of the member's active delivery points (POD codes), keyed by a
+              secret held only by the production REC Registry. Empty when the
+              registry exports none. Never a POD code: other values are dropped by
+              the flow.
+          - name: meter_pod_hashes
+            description: >
+              Pseudonymous identifier. jsonb {sensor_id: hash or null}: the POD hash
+              behind each of the member's meters, null for a meter without a delivery
+              point. Empty when the registry exports none.
