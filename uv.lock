@@ -289,16 +289,16 @@ wheels = [
 
 [[package]]
 name = "celine-utils"
-version = "2.6.0"
+version = "2.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jsonschema" },
     { name = "pydantic" },
     { name = "pyyaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/17/af/c02f9ad5466554d68324a2d2223bd074f2a586aa51aec5f723185bf906d5/celine_utils-2.6.0.tar.gz", hash = "sha256:9d7b457034ee9dba6defbe45aae403f83db66f849aee0895625307ac1b1afa52", size = 122785, upload-time = "2026-10-06T05:23:43.825Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d7/8b/5d28252de0c715985a86cb75e848d3458f1037390bee58208625a902eaa8/celine_utils-2.9.0.tar.gz", hash = "sha256:5568b393a01b9367aa1cb488d0dfd1cb8ffccc16415ddcb634ad6bc5d195e033", size = 141818, upload-time = "2026-11-05T09:50:19.953Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2d/bb/a67ce3f085d3bb96eb3bc3581ece128aed17d90d3c94b859c925fc959f82/celine_utils-2.6.0-py3-none-any.whl", hash = "sha256:aff9884cf52cf473586c920cc2d3a0c68c0d7163266d96d54a71cc4421ff023d", size = 107307, upload-time = "2026-10-06T05:23:42.324Z" },
+    { url = "https://files.pythonhosted.org/packages/88/a6/161a91d292407e7a956a489793aa8c06e51a65c916086f553b74b3732fbe/celine_utils-2.9.0-py3-none-any.whl", hash = "sha256:b7087404c23bc8d3def792520949a56121324615f8a7d86d5dd7a30f7b347560", size = 120122, upload-time = "2026-11-05T09:50:18.252Z" },
 ]
 
 [package.optional-dependencies]
@@ -306,6 +306,7 @@ all = [
     { name = "celine-sdk" },
     { name = "dbt-core" },
     { name = "dbt-postgres" },
+    { name = "httpx" },
     { name = "meltano" },
     { name = "openlineage-python" },
     { name = "pandas" },
