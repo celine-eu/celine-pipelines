@@ -93,9 +93,18 @@ jobs:
           docker push ${IMAGE}:${VERSION}
           docker push ${IMAGE}:latest
 
+  # Apps build FROM the base tag in version-base.txt. When one commit bumps the base and
+  # the apps, the apps wait for build-base, so they never build against a tag that is not
+  # pushed yet. When the base did not change, build-base is skipped and the apps still run;
+  # when it failed, the apps do not run.
   build-apps:
-    needs: [governance, detect-changes]
-    if: fromJson(needs.detect-changes.outputs.apps_json)[0] != null
+    needs: [governance, detect-changes, build-base]
+    if: >-
+      ${{ !cancelled()
+      && needs.governance.result == 'success'
+      && needs.detect-changes.result == 'success'
+      && (needs.build-base.result == 'success' || needs.build-base.result == 'skipped')
+      && fromJson(needs.detect-changes.outputs.apps_json)[0] != null }}
     runs-on: ubuntu-latest
 
     strategy:
