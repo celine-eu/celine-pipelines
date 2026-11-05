@@ -26,6 +26,10 @@ x-pipeline-service: &pipeline-service
 
     OPENLINEAGE_URL: http://marquez.celine.localhost:5003
 
+    # Run events over HTTP to the sync_tables relay (local mode) that celine-dev starts on
+    # :8095; it publishes them on the broker. Empty: the flows fall back to MQTT_EVENTS_ENABLED.
+    RUN_EVENTS_URLS: ${RUN_EVENTS_URLS-http://host.docker.internal:8095/events}
+
   volumes:
     - ./apps:/pipelines/apps
     - ./config/pipeline/entrypoint.sh:/entrypoint.sh
