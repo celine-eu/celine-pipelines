@@ -221,3 +221,53 @@ anti_gaming:
     re_onboarding_days: 7                # Days of re-onboarding when inactive device returns
     exclude_from_forecast: true          # Inactive devices excluded from community forecast
     exclude_from_aggregation: true       # Inactive devices excluded from surplus/deficit calculation
+
+
+# --- Section 6: Fair gamification (spec 2026-10-07, design approved 2026-10-09) ---
+# Weekly Level / Growth / Actions score computed on the M1 grid-exchange channel of EVERY
+# community POD (rec_fair_* gold models). Percentiles within reference groups
+# (category × PV class; only household / public_entity are peers), kept commitments as a
+# capped accelerator. Runs in shadow next to the settlement points until the BFF variant
+# flag flips at a season start.
+# NOTE: dbt reads every key here as var `fair_<key>` in dbt_project.yml — keep the two
+# in sync (tests/test_config.py::test_fair_block_matches_dbt_vars enforces it).
+# `points_per_level` is consumed by the webapp BFF only (no dbt counterpart).
+# Calibrated on the Jun→Oct 2026 backtest (demo3 src/analysis/fair_gamification): the
+# spec defaults were kept where the sweep's gains were within noise.
+fair:
+  tz: "Europe/Rome"
+  night_start: "21:00"              # night window (local): import here IS consumption
+  night_end: "06:00"
+  midday_start: "11:00"             # hidden-PV detection window
+  midday_end: "15:00"
+  valid_day_min_slots: 87           # of 96 quarter-hours (100 on the DST fall-back day)
+  valid_week_min_days: 5
+  cloudy_pct: 0.30                  # day is cloudy if community export ≤ this quantile …
+  cloudy_lookback_days: 28          # … of the trailing window ending on the week's Sunday
+  min_cloudy_days: 2                # PV devices need this many cloudy valid days for a Level
+  level_carry_max_weeks: 2          # else carry the previous Level this many weeks
+  saturation_pct: 80                # Level percentile at which points saturate to 100
+  growth_max_n: 4                   # Growth windows: n = min(4, floor(valid_weeks / 2)), min 2
+  growth_min_n: 2
+  growth_lookback_weeks: 16
+  growth_prev_floor_kwh_h: 0.02     # previous-window night import below this → Growth undefined
+  min_group_size: 6                 # smaller category×PV groups merge across categories
+  points_per_kept: 5                # fixed points per kept commitment
+  surplus_points_per_hour: 2        # extra per true-surplus hour with import ≥ kept_ratio × baseline
+  actions_weekly_cap: 20
+  kept_ratio: 1.10                  # kept = import over the commitment ≥ ratio × own baseline
+  baseline_floor_kwh: 0.05
+  baseline_days: 28                 # median import per slot/weekday-type over these days before the week
+  silent_days: 14                   # last reading older than this on Sunday → out of the boards
+  import_rise_pct: 0.30             # F1_IMPORT_RISE flag: total import > (1+pct) × own 8-week median …
+  import_median_weeks: 8            # … while the night share fell
+  pv_export_kwh_day: 0.5            # PV if daily export > this on ≥ (1 − quantile) of valid days
+  pv_export_quantile: 0.75
+  hidden_pv_midday_ratio: 0.3       # CF1/CF3: midday import clear/cloudy below this → hidden PV
+  pv_lookback_days: 90
+  substation_min_devices: 6         # true surplus per substation needs this many reporting PODs
+  general_weight_level: 0.5         # Generale = mean(w·L + (1−w)·G; L alone if night already ~0) + Σ A / elapsed weeks
+  recompute_weeks: 20               # completed weeks recomputed on every run
+  history_start: "2026-06-01"       # first day the fair models read
+  default_community_id: ""          # devices with M1 data but no membership row: "" = the community most members belong to
+  points_per_level: 150             # BFF only: Σ weekly points per level
