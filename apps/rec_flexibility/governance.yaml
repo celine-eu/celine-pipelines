@@ -319,6 +319,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
@@ -340,6 +343,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
@@ -359,6 +365,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
@@ -379,6 +388,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
@@ -397,6 +409,9 @@ sources:
       - handler: rec_registry
         args:
           column: device_id
+      # Narrowed per person above; the organization layer admits every row.
+      - handler: allow_all
+        binds: organization
     expose: true
     dataspace:
       purpose: [EnergyCommunityOperation]
@@ -414,8 +429,12 @@ sources:
     expose: true
     row_filters:
       - handler: organization_match
+        binds: organization
         args:
           column: community_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     dataspace:
       purpose: [EnergyCommunityOperation]
       expose: false
@@ -432,8 +451,12 @@ sources:
     expose: true
     row_filters:
       - handler: organization_match
+        binds: organization
         args:
           column: community_id
+      # No person behind these rows: the person layer admits every row.
+      - handler: allow_all
+        binds: person
     dataspace:
       purpose: [EnergyCommunityOperation]
       expose: false
