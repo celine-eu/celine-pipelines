@@ -92,3 +92,40 @@ def test_streak_multiplier_at_boundaries():
     assert st.streak_multiplier(0) == 1.0
     assert st.streak_multiplier(10) == 1.5
     assert st.streak_multiplier(50) == 1.5
+
+
+# ─── Fair gamification: SQL window-function percentile ↔ Python ───────────────────
+
+def sql_hazen_equivalent(values: list[float]) -> list[float | None]:
+    """Mirror the CTE in rec_fair_weekly_scores.sql:
+    n = count(*) over g, r_asc = rank() over (g order by v), cnt_eq = count(*) over (g, v);
+    pct = 100 * ((n - (r_asc - 1) - cnt_eq) + 0.5 * (cnt_eq - 1)) / (n - 1), null when n < 2.
+    """
+    n = len(values)
+    out: list[float | None] = []
+    for v in values:
+        if n < 2:
+            out.append(None)
+            continue
+        r_asc = 1 + sum(1 for x in values if x < v)
+        cnt_eq = sum(1 for x in values if x == v)
+        out.append(100.0 * ((n - (r_asc - 1) - cnt_eq) + 0.5 * (cnt_eq - 1)) / (n - 1))
+    return out
+
+
+@pytest.mark.parametrize(
+    "values",
+    [[0.2, 0.5], [0.3, 0.3, 0.3], [0.4, 0.1, 0.4], [0.1, 0.2, 0.3, 0.4, 0.5, 0.6], [0.7]],
+)
+def test_hazen_percentile_matches_sql_formula(values):
+    from lib import fair_scoring as fs
+
+    assert fs.hazen_percentile(values) == sql_hazen_equivalent(values)
+
+
+def test_level_saturation_matches_sql_least():
+    from lib import fair_scoring as fs
+
+    for pct in (0.0, 40.0, 79.99, 80.0, 95.0, 100.0):
+        sql = min(100.0, pct / 80 * 100)  # least(100, level_pct / fair_saturation_pct * 100)
+        assert fs.level_points(pct, 80) == pytest.approx(sql)

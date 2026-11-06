@@ -472,3 +472,144 @@ models:
       - name: multiplier
         data_tests:
           - not_null
+
+  # ─── Fair gamification (rec_fair_*) ─────────────────────────────────────────
+
+  - name: rec_fair_device_registry
+    description: Fair gamification — every POD with M1 data, its registry category, meter kind and overrides.
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: device_id
+        data_tests: [unique, not_null]
+      - name: category
+        data_tests:
+          - accepted_values:
+              values: ['household', 'public_entity', 'business', 'unknown']
+
+  - name: rec_fair_daily
+    description: Fair gamification — per device and local day, quarters, validity (≥ 87/96) and night/midday import.
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: _id
+        data_tests: [unique, not_null]
+      - name: device_id
+        data_tests: [not_null]
+      - name: local_day
+        data_tests: [not_null]
+
+  - name: rec_fair_community_days
+    description: Fair gamification — community export per day and the causal cloudy-day flag.
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: _id
+        data_tests: [unique, not_null]
+      - name: is_cloudy
+        data_tests: [not_null]
+
+  - name: rec_fair_device_class
+    description: Fair gamification — PV class, category, quarantine, silence and rankability per device-week.
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: _id
+        data_tests: [unique, not_null]
+      - name: pv_class
+        data_tests:
+          - not_null
+          - accepted_values:
+              values: ['pv', 'no_pv']
+      - name: pv_source
+        data_tests:
+          - accepted_values:
+              values: ['export', 'hidden', 'override', 'none']
+
+  - name: rec_fair_import_baseline
+    description: Fair gamification — median import per slot and weekday type over the 28 days before each week.
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: _id
+        data_tests: [unique, not_null]
+
+  - name: rec_fair_surplus_hours
+    description: Fair gamification — true-surplus hours per substation (≥ 6 PODs) or community.
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: _id
+        data_tests: [unique, not_null]
+      - name: scope_type
+        data_tests:
+          - accepted_values:
+              values: ['substation', 'community']
+
+  - name: rec_fair_commitment_outcomes
+    description: Fair gamification — one evaluated outcome per commitment (kept / not_kept / no_window / no_data).
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: commitment_id
+        data_tests: [unique, not_null]
+      - name: reason
+        data_tests:
+          - accepted_values:
+              values: ['kept', 'not_kept', 'no_window', 'no_data', 'duplicate_window']
+
+  - name: rec_fair_weekly_metrics
+    description: Fair gamification — Level and Growth inputs per device-week, reference group.
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: _id
+        data_tests: [unique, not_null]
+      - name: level_source
+        data_tests:
+          - accepted_values:
+              values: ['all_days', 'cloudy_days', 'carry_forward', 'no_cloudy_days', 'no_valid_week']
+
+  - name: rec_fair_weekly_scores
+    description: Fair gamification — Level / Growth / Actions points per device-week with reason codes.
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: _id
+        data_tests: [unique, not_null]
+      - name: level_reason
+        data_tests:
+          - accepted_values:
+              values: ['all_days', 'cloudy_days', 'carry_forward', 'no_cloudy_days', 'no_valid_week', 'saturated', 'not_compared']
+      - name: growth_reason
+        data_tests:
+          - accepted_values:
+              values: ['improving', 'stable', 'worsening', 'need_weeks', 'night_already_zero', 'no_valid_week', 'not_compared']
+      - name: actions_reason
+        data_tests:
+          - accepted_values:
+              values: ['kept', 'none', 'no_commitments', 'capped']
+
+  - name: rec_fair_season_boards
+    description: Fair gamification — season standings per device in the three boards, per category.
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: _id
+        data_tests: [unique, not_null]
+      - name: rank_reason
+        data_tests:
+          - accepted_values:
+              values: ['ranked', 'min_weeks', 'silent', 'quarantined', 'not_in_app', 'category_not_ranked', 'first_week']
+
+  - name: rec_fair_anti_gaming_flags
+    description: Fair gamification — informational flags (F1_IMPORT_RISE).
+    config:
+      tags: ["rec_flexibility", "fair"]
+    columns:
+      - name: _id
+        data_tests: [unique, not_null]
+      - name: flag_type
+        data_tests:
+          - accepted_values:
+              values: ['F1_IMPORT_RISE']

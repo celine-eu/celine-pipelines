@@ -24,6 +24,45 @@ vars:
   season_months: 2
   # v3 window promise — keep in sync with flexibility_config.yaml `window_promise`.
   calibration_lambda: 1.0
+  # Fair gamification (spec 2026-10-07, design 2026-10-09) — keep in sync with
+  # flexibility_config.yaml `fair` (tests/test_config.py enforces equality, key by key).
+  fair_tz: "Europe/Rome"
+  fair_night_start: "21:00"
+  fair_night_end: "06:00"
+  fair_midday_start: "11:00"
+  fair_midday_end: "15:00"
+  fair_valid_day_min_slots: 87
+  fair_valid_week_min_days: 5
+  fair_cloudy_pct: 0.30
+  fair_cloudy_lookback_days: 28
+  fair_min_cloudy_days: 2
+  fair_level_carry_max_weeks: 2
+  fair_saturation_pct: 80
+  fair_growth_max_n: 4
+  fair_growth_min_n: 2
+  fair_growth_lookback_weeks: 16
+  fair_growth_prev_floor_kwh_h: 0.02
+  fair_min_group_size: 6
+  fair_points_per_kept: 5
+  fair_surplus_points_per_hour: 2
+  fair_actions_weekly_cap: 20
+  fair_kept_ratio: 1.10
+  fair_baseline_floor_kwh: 0.05
+  fair_baseline_days: 28
+  fair_silent_days: 14
+  fair_import_rise_pct: 0.30
+  fair_import_median_weeks: 8
+  fair_pv_export_kwh_day: 0.5
+  fair_pv_export_quantile: 0.75
+  fair_hidden_pv_midday_ratio: 0.3
+  fair_pv_lookback_days: 90
+  fair_substation_min_devices: 6
+  fair_general_weight_level: 0.5
+  fair_recompute_weeks: 20
+  fair_history_start: "2026-06-01"
+  fair_default_community_id: ""   # "" = the community most members belong to
+  # Reference "today" for the weekly fair models; empty = current_date. Unit tests pin it.
+  fair_as_of: ""
 
 models:
   rec_flexibility:

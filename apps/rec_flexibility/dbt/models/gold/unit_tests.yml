@@ -1114,3 +1114,1330 @@ unit_tests:
     expect:
       rows:
         - {commitment_id: 'c-01', community_id: 'example-rec', actual_kwh: 3.0, allocated_kwh: 3.0}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_fair_device_registry (fair gamification, spec 2026-10-07 §4.2/§4.7)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: r1_category_mapping_and_override_precedence
+    description: >
+      member_type maps schema:Person → household, schema:GovernmentOrganization and
+      schema:Organization → public_entity, schema:LocalBusiness → business; a
+      category_override wins and is flagged as such.
+    model: rec_fair_device_registry
+    given:
+      - input: source('metering_silver', 'meters_data')
+        rows:
+          - {device_id: 'dev-p', cf_type: 'CF2', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'dev-g', cf_type: 'CF4', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'dev-o', cf_type: 'CF1', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'dev-b', cf_type: 'CF3', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+      - input: source('rec_registry_gold', 'rec_device_membership')
+        rows:
+          - {community_id: 'rec', device_id: 'dev-p', role: 'consumer', member_type: 'schema:Person', substation_id: 'S1'}
+          - {community_id: 'rec', device_id: 'dev-g', role: 'prosumer', member_type: 'schema:GovernmentOrganization', substation_id: 'S1'}
+          - {community_id: 'rec', device_id: 'dev-o', role: 'consumer', member_type: 'schema:Organization', substation_id: 'S2'}
+          - {community_id: 'rec', device_id: 'dev-b', role: 'consumer', member_type: 'schema:LocalBusiness', substation_id: 'S2'}
+      - input: ref('rec_device_overrides')
+        rows:
+          - {device_id: 'dev-b', pv_class_override: null, category_override: 'household', quarantine_from: null, quarantine_reason: null, battery_declared: true}
+    expect:
+      rows:
+        - {device_id: 'dev-p', category: 'household', category_source: 'registry', is_in_app: true, battery_declared: false}
+        - {device_id: 'dev-g', category: 'public_entity', category_source: 'registry', is_in_app: true, battery_declared: false}
+        - {device_id: 'dev-o', category: 'public_entity', category_source: 'registry', is_in_app: true, battery_declared: false}
+        - {device_id: 'dev-b', category: 'household', category_source: 'override', is_in_app: true, battery_declared: true}
+
+  - name: r2_unregistered_device_default_community_unknown_category
+    description: >
+      A device with M1 data but no membership row is kept, not in app, category unknown; with no
+      members at all and an explicit default community var, it takes that community.
+    model: rec_fair_device_registry
+    overrides:
+      vars: {fair_default_community_id: 'unknown'}
+    given:
+      - input: source('metering_silver', 'meters_data')
+        rows:
+          - {device_id: 'dev-x', cf_type: 'CF1', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'dev-m2', cf_type: 'CF101', ts: '2026-09-01 10:00:00+00', meter_type: 'M2', consumption_kwh: 0.0, production_kwh: 0.5}
+      - input: source('rec_registry_gold', 'rec_device_membership')
+        rows: []
+      - input: ref('rec_device_overrides')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'dev-x', community_id: 'unknown', is_in_app: false, category: 'unknown', category_source: 'none'}
+
+  - name: r4_unregistered_device_falls_back_to_the_most_common_community
+    description: With the default community var empty, an unregistered device joins the community most members belong to.
+    model: rec_fair_device_registry
+    overrides:
+      vars: {fair_default_community_id: ''}
+    given:
+      - input: source('metering_silver', 'meters_data')
+        rows:
+          - {device_id: 'dev-x', cf_type: 'CF1', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'dev-a', cf_type: 'CF1', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'dev-b', cf_type: 'CF1', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'dev-c', cf_type: 'CF1', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+      - input: source('rec_registry_gold', 'rec_device_membership')
+        rows:
+          - {community_id: 'big', device_id: 'dev-a', role: 'consumer', member_type: 'schema:Person', substation_id: 'S1'}
+          - {community_id: 'big', device_id: 'dev-b', role: 'consumer', member_type: 'schema:Person', substation_id: 'S1'}
+          - {community_id: 'small', device_id: 'dev-c', role: 'consumer', member_type: 'schema:Person', substation_id: 'S1'}
+      - input: ref('rec_device_overrides')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'dev-x', community_id: 'big', is_in_app: false, category: 'unknown'}
+        - {device_id: 'dev-a', community_id: 'big', is_in_app: true, category: 'household'}
+        - {device_id: 'dev-b', community_id: 'big', is_in_app: true, category: 'household'}
+        - {device_id: 'dev-c', community_id: 'small', is_in_app: true, category: 'household'}
+
+  - name: r3_has_export_register_only_for_cf2_cf4
+    description: CF2/CF4 meters carry an export register; CF1/CF3 do not. Quarantine columns pass through.
+    model: rec_fair_device_registry
+    given:
+      - input: source('metering_silver', 'meters_data')
+        rows:
+          - {device_id: 'd1', cf_type: 'CF1', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'd2', cf_type: 'CF2', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'd3', cf_type: 'CF3', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'd4', cf_type: 'CF4', ts: '2026-09-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+      - input: source('rec_registry_gold', 'rec_device_membership')
+        rows: []
+      - input: ref('rec_device_overrides')
+        rows:
+          - {device_id: 'd4', pv_class_override: 'pv', category_override: null, quarantine_from: '2026-06-01', quarantine_reason: 'test', battery_declared: false}
+    expect:
+      rows:
+        - {device_id: 'd1', has_export_register: false, pv_class_override: null, quarantine_from: null}
+        - {device_id: 'd2', has_export_register: true, pv_class_override: null, quarantine_from: null}
+        - {device_id: 'd3', has_export_register: false, pv_class_override: null, quarantine_from: null}
+        - {device_id: 'd4', has_export_register: true, pv_class_override: 'pv', quarantine_from: '2026-06-01'}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_fair_daily / rec_fair_community_days (fair gamification §4.4/§4.6)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: q1_duplicate_rows_take_max_not_sum
+    description: Two silver rows for the same device/quarter collapse to one slot with max(), never a sum.
+    model: rec_fair_daily
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_meters_15m')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', substation_id: 'S1', ts: '2026-07-01 10:00:00+00', local_day: '2026-07-01', slot: 48, is_weekday: true, is_night: false, is_midday: true, import_kwh: 0.3, export_kwh: 0.0}
+    expect:
+      rows:
+        - {device_id: 'd1', local_day: '2026-07-01', n_slots: 1, import_kwh: 0.3, midday_import_kwh: 0.3, night_slots: 0, is_valid_day: false}
+
+  - name: q2_night_window_21_06_rome
+    description: >
+      21:15 local (19:15 UTC in July) is night; 06:00 local (04:00 UTC) is not; the view computes
+      is_night from the Europe/Rome clock and the daily model sums night import accordingly.
+    model: rec_fair_meters_15m
+    given:
+      - input: source('metering_silver', 'meters_data')
+        rows:
+          - {device_id: 'd1', cf_type: 'CF2', ts: '2026-07-01 19:15:00+00', meter_type: 'M1', consumption_kwh: 0.2, production_kwh: 0.0}
+          - {device_id: 'd1', cf_type: 'CF2', ts: '2026-07-01 04:00:00+00', meter_type: 'M1', consumption_kwh: 0.2, production_kwh: 0.0}
+          - {device_id: 'd1', cf_type: 'CF2', ts: '2026-07-01 03:45:00+00', meter_type: 'M1', consumption_kwh: 0.2, production_kwh: 0.0}
+          - {device_id: 'd1', cf_type: 'CF2', ts: '2026-07-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.1, production_kwh: 0.0}
+          - {device_id: 'd1', cf_type: 'CF2', ts: '2026-07-01 10:00:00+00', meter_type: 'M1', consumption_kwh: 0.3, production_kwh: 0.0}
+          - {device_id: 'd1', cf_type: 'CF101', ts: '2026-07-01 10:00:00+00', meter_type: 'M2', consumption_kwh: 0.0, production_kwh: 0.9}
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', substation_id: 'S1'}
+    expect:
+      rows:
+        - {device_id: 'd1', ts: '2026-07-01 19:15:00+00', local_day: '2026-07-01', slot: 85, is_night: true, is_midday: false, import_kwh: 0.2}
+        - {device_id: 'd1', ts: '2026-07-01 04:00:00+00', local_day: '2026-07-01', slot: 24, is_night: false, is_midday: false, import_kwh: 0.2}
+        - {device_id: 'd1', ts: '2026-07-01 03:45:00+00', local_day: '2026-07-01', slot: 23, is_night: true, is_midday: false, import_kwh: 0.2}
+        - {device_id: 'd1', ts: '2026-07-01 10:00:00+00', local_day: '2026-07-01', slot: 48, is_night: false, is_midday: true, import_kwh: 0.3}
+
+  - name: q3_valid_day_threshold_87_and_night_slots
+    description: 87 quarters make a valid day (86 would not); night quarters are counted and summed.
+    model: rec_fair_daily
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_meters_15m')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, 'S1' as substation_id,
+                 ts, (ts at time zone 'Europe/Rome')::date as local_day, 0 as slot, true as is_weekday,
+                 (n < 36) as is_night, false as is_midday, 0.25::double precision as import_kwh, 0.0::double precision as export_kwh
+          from (select generate_series(1, 87) as n, timestamptz '2026-07-01 00:00:00+02' + (generate_series(1, 87) - 1) * interval '15 minutes' as ts) s
+          union all
+          select 'd2', 'rec', 'S1', ts, (ts at time zone 'Europe/Rome')::date, 0, true, false, false, 0.1, 0.0
+          from (select timestamptz '2026-07-01 00:00:00+02' + (generate_series(1, 86) - 1) * interval '15 minutes' as ts) s
+    expect:
+      rows:
+        - {device_id: 'd1', local_day: '2026-07-01', n_slots: 87, is_valid_day: true, night_slots: 35, night_import_kwh: 8.75}
+        - {device_id: 'd2', local_day: '2026-07-01', n_slots: 86, is_valid_day: false, night_slots: 0, night_import_kwh: 0.0}
+
+  - name: q4_dst_fallback_day_has_100_slots_and_40_night_slots
+    description: On 2026-10-25 the local day has 100 quarters (02:00–03:00 twice); night 21–06 holds 40 of them; the day is valid.
+    model: rec_fair_daily
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_meters_15m')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, 'S1' as substation_id, ts,
+                 (ts at time zone 'Europe/Rome')::date as local_day, 0 as slot, false as is_weekday,
+                 ((ts at time zone 'Europe/Rome')::time >= '21:00' or (ts at time zone 'Europe/Rome')::time < '06:00') as is_night,
+                 false as is_midday, 0.1::double precision as import_kwh, 0.0::double precision as export_kwh
+          from generate_series(timestamptz '2026-10-25 00:00:00+02', timestamptz '2026-10-26 00:00:00+01' - interval '15 minutes', interval '15 minutes') as ts
+    expect:
+      rows:
+        - {device_id: 'd1', local_day: '2026-10-25', n_slots: 100, night_slots: 40, is_valid_day: true}
+
+  - name: c1_cloudy_threshold_trailing_28_days_is_causal
+    description: >
+      A huge export on the last day never changes the previous week's threshold: the window for
+      week W ends on W's Sunday. 35 days of export 10 then one day of 1000 → the week before the
+      last one keeps threshold 10 and all its days cloudy; the last week's threshold is still 10
+      (quantile 0.30 of 27×10 + 1000) and its outlier day is not cloudy.
+    model: rec_fair_community_days
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_daily')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, d::date as local_day, 96 as n_slots, true as is_valid_day,
+                 1.0::double precision as import_kwh,
+                 case when d::date = date '2026-08-09' then 1000.0 else 10.0 end::double precision as export_kwh,
+                 0.0::double precision as night_import_kwh, 36 as night_slots, 0.0::double precision as midday_import_kwh
+          from generate_series(date '2026-07-06', date '2026-08-09', interval '1 day') as d
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', quarantine_from: null}
+    expect:
+      rows:
+        - {community_id: 'rec', local_day: '2026-07-06', week_start: '2026-07-06', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-07', week_start: '2026-07-06', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-08', week_start: '2026-07-06', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-09', week_start: '2026-07-06', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-10', week_start: '2026-07-06', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-11', week_start: '2026-07-06', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-12', week_start: '2026-07-06', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-13', week_start: '2026-07-13', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-14', week_start: '2026-07-13', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-15', week_start: '2026-07-13', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-16', week_start: '2026-07-13', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-17', week_start: '2026-07-13', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-18', week_start: '2026-07-13', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-19', week_start: '2026-07-13', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-20', week_start: '2026-07-20', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-21', week_start: '2026-07-20', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-22', week_start: '2026-07-20', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-23', week_start: '2026-07-20', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-24', week_start: '2026-07-20', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-25', week_start: '2026-07-20', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-26', week_start: '2026-07-20', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-27', week_start: '2026-07-27', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-28', week_start: '2026-07-27', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-29', week_start: '2026-07-27', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-30', week_start: '2026-07-27', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-07-31', week_start: '2026-07-27', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-08-01', week_start: '2026-07-27', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-08-02', week_start: '2026-07-27', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-08-03', week_start: '2026-08-03', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-08-04', week_start: '2026-08-03', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-08-05', week_start: '2026-08-03', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-08-06', week_start: '2026-08-03', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-08-07', week_start: '2026-08-03', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-08-08', week_start: '2026-08-03', cloudy_threshold_kwh: 10.0, is_cloudy: true}
+        - {community_id: 'rec', local_day: '2026-08-09', week_start: '2026-08-03', cloudy_threshold_kwh: 10.0, is_cloudy: false}
+
+  - name: c2_quarantined_device_excluded_from_community_export
+    description: A quarantined device stops contributing to community export from quarantine_from; an invalid day never contributes.
+    model: rec_fair_community_days
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_daily')
+        rows:
+          - {device_id: 'a', community_id: 'rec', local_day: '2026-07-06', n_slots: 96, is_valid_day: true, import_kwh: 1.0, export_kwh: 4.0, night_import_kwh: 0.0, night_slots: 36, midday_import_kwh: 0.0}
+          - {device_id: 'b', community_id: 'rec', local_day: '2026-07-06', n_slots: 96, is_valid_day: true, import_kwh: 1.0, export_kwh: 4.0, night_import_kwh: 0.0, night_slots: 36, midday_import_kwh: 0.0}
+          - {device_id: 'a', community_id: 'rec', local_day: '2026-07-07', n_slots: 96, is_valid_day: true, import_kwh: 1.0, export_kwh: 4.0, night_import_kwh: 0.0, night_slots: 36, midday_import_kwh: 0.0}
+          - {device_id: 'b', community_id: 'rec', local_day: '2026-07-07', n_slots: 96, is_valid_day: true, import_kwh: 1.0, export_kwh: 4.0, night_import_kwh: 0.0, night_slots: 36, midday_import_kwh: 0.0}
+          - {device_id: 'c', community_id: 'rec', local_day: '2026-07-07', n_slots: 50, is_valid_day: false, import_kwh: 1.0, export_kwh: 99.0, night_import_kwh: 0.0, night_slots: 36, midday_import_kwh: 0.0}
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'a', community_id: 'rec', quarantine_from: null}
+          - {device_id: 'b', community_id: 'rec', quarantine_from: '2026-07-07'}
+          - {device_id: 'c', community_id: 'rec', quarantine_from: null}
+    expect:
+      rows:
+        - {community_id: 'rec', local_day: '2026-07-06', community_export_kwh: 8.0, n_reporting: 2}
+        - {community_id: 'rec', local_day: '2026-07-07', community_export_kwh: 4.0, n_reporting: 1}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_fair_device_class (fair gamification §4.2/§4.6) — one completed week pinned
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: d1_export_p75_above_half_kwh_is_pv
+    description: Daily export above 0.5 kWh on ≥25% of valid days (p75) classifies as PV from export.
+    model: rec_fair_device_class
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 1, fair_history_start: '2026-09-28'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', is_in_app: true, category: 'household', has_export_register: true, pv_class_override: null, quarantine_from: null, battery_declared: false}
+      - input: ref('rec_fair_daily')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-09-28', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 1.0}
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-09-29', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 1.0}
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-09-30', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 1.0}
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-10-01', is_valid_day: true, export_kwh: 8.0, midday_import_kwh: 1.0}
+      - input: ref('rec_fair_community_days')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'd1', week_start: '2026-09-28', pv_class: 'pv', pv_source: 'export', export_kwh_day_median: 2.0, category: 'household', is_quarantined: false, is_silent: false, is_rankable: true, ref_group: 'household/pv'}
+
+  - name: d2_cf1_midday_ratio_below_0_3_is_hidden_pv
+    description: No export register and midday import on clear days below 30% of cloudy days → hidden PV.
+    model: rec_fair_device_class
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 1, fair_history_start: '2026-09-28'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', is_in_app: true, category: 'household', has_export_register: false, pv_class_override: null, quarantine_from: null, battery_declared: false}
+      - input: ref('rec_fair_daily')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-09-28', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 0.5}
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-09-29', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 0.5}
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-09-30', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 0.1}
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-10-01', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 0.1}
+      - input: ref('rec_fair_community_days')
+        rows:
+          - {community_id: 'rec', local_day: '2026-09-28', is_cloudy: true}
+          - {community_id: 'rec', local_day: '2026-09-29', is_cloudy: true}
+          - {community_id: 'rec', local_day: '2026-09-30', is_cloudy: false}
+          - {community_id: 'rec', local_day: '2026-10-01', is_cloudy: false}
+    expect:
+      rows:
+        - {device_id: 'd1', week_start: '2026-09-28', pv_class: 'pv', pv_source: 'hidden', midday_clear_cloudy_ratio: 0.2, is_rankable: true}
+
+  - name: d3_override_wins_over_data
+    description: pv_class_override replaces the data-derived class and is flagged as 'override'.
+    model: rec_fair_device_class
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 1, fair_history_start: '2026-09-28'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', is_in_app: true, category: 'household', has_export_register: true, pv_class_override: 'no_pv', quarantine_from: null, battery_declared: false}
+      - input: ref('rec_fair_daily')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-10-01', is_valid_day: true, export_kwh: 5.0, midday_import_kwh: 1.0}
+      - input: ref('rec_fair_community_days')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'd1', week_start: '2026-09-28', pv_class: 'no_pv', pv_source: 'override', ref_group: 'household/no_pv'}
+
+  - name: d4_business_and_not_in_app_not_rankable
+    description: Businesses and devices outside the app are peers, never ranked.
+    model: rec_fair_device_class
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 1, fair_history_start: '2026-09-28'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'b1', community_id: 'rec', is_in_app: true, category: 'business', has_export_register: true, pv_class_override: null, quarantine_from: null, battery_declared: false}
+          - {device_id: 'x1', community_id: 'rec', is_in_app: false, category: 'unknown', has_export_register: true, pv_class_override: null, quarantine_from: null, battery_declared: false}
+      - input: ref('rec_fair_daily')
+        rows:
+          - {device_id: 'b1', community_id: 'rec', local_day: '2026-10-01', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 1.0}
+          - {device_id: 'x1', community_id: 'rec', local_day: '2026-10-01', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 1.0}
+      - input: ref('rec_fair_community_days')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'b1', week_start: '2026-09-28', is_rankable: false, is_in_app: true}
+        - {device_id: 'x1', week_start: '2026-09-28', is_rankable: false, is_in_app: false}
+
+  - name: d5_silent_15_days_not_rankable
+    description: Last reading more than 14 days before the week's Sunday → silent, unranked (not last).
+    model: rec_fair_device_class
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 1, fair_history_start: '2026-09-28'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', is_in_app: true, category: 'household', has_export_register: true, pv_class_override: null, quarantine_from: null, battery_declared: false}
+          - {device_id: 'd2', community_id: 'rec', is_in_app: true, category: 'household', has_export_register: true, pv_class_override: null, quarantine_from: null, battery_declared: false}
+      - input: ref('rec_fair_daily')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-09-19', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 1.0}
+          - {device_id: 'd2', community_id: 'rec', local_day: '2026-09-20', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 1.0}
+      - input: ref('rec_fair_community_days')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'd1', week_start: '2026-09-28', last_reading_at: '2026-09-19', is_silent: true, is_rankable: false}
+        - {device_id: 'd2', week_start: '2026-09-28', last_reading_at: '2026-09-20', is_silent: false, is_rankable: true}
+
+  - name: d6_quarantined_from_date_not_rankable
+    description: quarantine_from on or before the week's Sunday excludes the device; a later date does not.
+    model: rec_fair_device_class
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 1, fair_history_start: '2026-09-28'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', is_in_app: true, category: 'public_entity', has_export_register: true, pv_class_override: null, quarantine_from: '2026-10-04', battery_declared: false}
+          - {device_id: 'd2', community_id: 'rec', is_in_app: true, category: 'public_entity', has_export_register: true, pv_class_override: null, quarantine_from: '2026-10-05', battery_declared: false}
+      - input: ref('rec_fair_daily')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-10-01', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 1.0}
+          - {device_id: 'd2', community_id: 'rec', local_day: '2026-10-01', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 1.0}
+      - input: ref('rec_fair_community_days')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'd1', week_start: '2026-09-28', is_quarantined: true, is_rankable: false}
+        - {device_id: 'd2', week_start: '2026-09-28', is_quarantined: false, is_rankable: true}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_fair_import_baseline / rec_fair_surplus_hours / rec_fair_commitment_outcomes
+  # (fair gamification §4.4 Azioni, design 2026-10-09)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: bl1_baseline_median_per_slot_weekday_over_28_days_before_week
+    description: >
+      For week 2026-09-28 the baseline uses days 2026-08-31 … 2026-09-27 only: weekday slot 48 median 0.2,
+      weekend slot 48 median 0.4; the 9.0 reading inside the week itself is ignored.
+    model: rec_fair_import_baseline
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 1, fair_history_start: '2026-09-28'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_meters_15m')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, 'S1' as substation_id,
+                 (d + time '12:00') at time zone 'Europe/Rome' as ts, (d + time '12:00') as local_ts, d::date as local_day,
+                 48 as slot, extract(isodow from d) <= 5 as is_weekday, false as is_night, true as is_midday,
+                 case when extract(isodow from d) <= 5 then 0.2 else 0.4 end::double precision as import_kwh, 0.0::double precision as export_kwh
+          from generate_series(date '2026-08-24', date '2026-09-27', interval '1 day') as d
+          union all
+          select 'd1', 'rec', 'S1', timestamptz '2026-09-30 12:00:00+02', timestamp '2026-09-30 12:00:00', date '2026-09-30', 48, true, false, true, 9.0, 0.0
+    expect:
+      rows:
+        - {device_id: 'd1', week_start: '2026-09-28', slot: 48, is_weekday: true, baseline_kwh: 0.2}
+        - {device_id: 'd1', week_start: '2026-09-28', slot: 48, is_weekday: false, baseline_kwh: 0.4}
+
+  - name: su1_substation_scope_needs_six_devices_else_community_only
+    description: >
+      Six devices on substation A exporting → an A row (surplus); one device on B → no B row;
+      the community row counts all seven and is in surplus (3.0 kWh export vs 0.25 import).
+    model: rec_fair_surplus_hours
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_meters_15m')
+        format: sql
+        rows: |
+          select 's' || n as device_id, 'rec' as community_id, 'A' as substation_id,
+                 timestamptz '2026-10-01 12:00:00+02' + q * interval '15 minutes' as ts, date '2026-10-01' as local_day,
+                 0.0::double precision as import_kwh, 0.125::double precision as export_kwh
+          from generate_series(1, 6) as n cross join generate_series(0, 3) as q
+          union all
+          select 't0', 'rec', 'B', timestamptz '2026-10-01 12:00:00+02' + q * interval '15 minutes', date '2026-10-01', 0.0625, 0.0
+          from generate_series(0, 3) as q
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 's1', quarantine_from: null}
+          - {device_id: 's2', quarantine_from: null}
+          - {device_id: 's3', quarantine_from: null}
+          - {device_id: 's4', quarantine_from: null}
+          - {device_id: 's5', quarantine_from: null}
+          - {device_id: 's6', quarantine_from: null}
+          - {device_id: 't0', quarantine_from: null}
+    expect:
+      rows:
+        - {community_id: 'rec', scope_type: 'substation', scope_id: 'A', hour_start: '2026-10-01 12:00:00+02', export_kwh: 3.0, import_kwh: 0.0, n_devices: 6, is_surplus: true}
+        - {community_id: 'rec', scope_type: 'community', scope_id: 'rec', hour_start: '2026-10-01 12:00:00+02', export_kwh: 3.0, import_kwh: 0.25, n_devices: 7, is_surplus: true}
+
+  - name: su2_surplus_requires_export_above_import_and_skips_quarantined
+    description: A quarantined device does not count; export equal to import is not surplus.
+    model: rec_fair_surplus_hours
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_meters_15m')
+        rows:
+          - {device_id: 'a', community_id: 'rec', substation_id: null, ts: '2026-10-01 10:00:00+00', local_day: '2026-10-01', import_kwh: 1.0, export_kwh: 1.0}
+          - {device_id: 'q', community_id: 'rec', substation_id: null, ts: '2026-10-01 10:00:00+00', local_day: '2026-10-01', import_kwh: 0.0, export_kwh: 50.0}
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'a', quarantine_from: null}
+          - {device_id: 'q', quarantine_from: '2026-06-01'}
+    expect:
+      rows:
+        - {community_id: 'rec', scope_type: 'community', scope_id: 'rec', hour_start: '2026-10-01 10:00:00+00', export_kwh: 1.0, import_kwh: 1.0, n_devices: 1, is_surplus: false}
+
+  - name: a1_overlap_matches_window_moved_by_one_hour_and_kept_at_125pct
+    description: >
+      Commitment 13:00–14:00 local overlaps the community window 12:00–15:00 (bounds differ) → matched.
+      Import 4×0.25 = 1.0 vs baseline 4×0.2 = 0.8 → ratio 1.25 ≥ 1.10 → kept, 5 points, week of the Monday 2026-09-28.
+    model: rec_fair_commitment_outcomes
+    overrides:
+      vars: {fair_as_of: '2026-10-09'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_commitment_settlement')
+        rows:
+          - {commitment_id: 'c1', device_id: 'd1', community_id: 'rec', period_start: '2026-10-01 13:00:00+02', period_end: '2026-10-01 14:00:00+02', status: 'committed', committed_at: '2026-09-30 18:00:00+02'}
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {community_id: 'rec', ts_date: '2026-10-01', window_start: '2026-10-01 12:00:00', window_end: '2026-10-01 15:00:00'}
+      - input: ref('rec_fair_meters_15m')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, 'A' as substation_id,
+                 timestamptz '2026-10-01 13:00:00+02' + q * interval '15 minutes' as ts, 52 + q as slot, true as is_weekday,
+                 0.25::double precision as import_kwh, 0.0::double precision as export_kwh
+          from generate_series(0, 3) as q
+      - input: ref('rec_fair_import_baseline')
+        rows:
+          - {device_id: 'd1', week_start: '2026-09-28', slot: 52, is_weekday: true, baseline_kwh: 0.2}
+          - {device_id: 'd1', week_start: '2026-09-28', slot: 53, is_weekday: true, baseline_kwh: 0.2}
+          - {device_id: 'd1', week_start: '2026-09-28', slot: 54, is_weekday: true, baseline_kwh: 0.2}
+          - {device_id: 'd1', week_start: '2026-09-28', slot: 55, is_weekday: true, baseline_kwh: 0.2}
+      - input: ref('rec_fair_surplus_hours')
+        rows: []
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', substation_id: 'A'}
+    expect:
+      rows:
+        - {commitment_id: 'c1', device_id: 'd1', week_start: '2026-09-28', matched: true, window_start: '2026-10-01 12:00:00+02', actual_import_kwh: 1.0, baseline_import_kwh: 0.8, is_kept: true, points: 5, surplus_hours_kept: 0, surplus_points: 0, reason: 'kept'}
+
+  - name: a2_kept_threshold_is_110pct_inclusive
+    description: 4×0.2 = 0.8 vs baseline 0.8 → not kept; 4×0.275 = 1.1 vs baseline 1.0 → exactly 110% → kept.
+    model: rec_fair_commitment_outcomes
+    overrides:
+      vars: {fair_as_of: '2026-10-09'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_commitment_settlement')
+        rows:
+          - {commitment_id: 'low', device_id: 'd1', community_id: 'rec', period_start: '2026-10-01 13:00:00+02', period_end: '2026-10-01 14:00:00+02', status: 'settled', committed_at: '2026-09-30 18:00:00+02'}
+          - {commitment_id: 'edge', device_id: 'd2', community_id: 'rec', period_start: '2026-10-01 13:00:00+02', period_end: '2026-10-01 14:00:00+02', status: 'committed', committed_at: '2026-09-30 18:00:00+02'}
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {community_id: 'rec', ts_date: '2026-10-01', window_start: '2026-10-01 13:00:00', window_end: '2026-10-01 14:00:00'}
+      - input: ref('rec_fair_meters_15m')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, 'A' as substation_id,
+                 timestamptz '2026-10-01 13:00:00+02' + q * interval '15 minutes' as ts, 52 + q as slot, true as is_weekday,
+                 0.2::double precision as import_kwh, 0.0::double precision as export_kwh from generate_series(0, 3) as q
+          union all
+          select 'd2', 'rec', 'A', timestamptz '2026-10-01 13:00:00+02' + q * interval '15 minutes', 52 + q, true, 0.275, 0.0 from generate_series(0, 3) as q
+      - input: ref('rec_fair_import_baseline')
+        format: sql
+        rows: |
+          select 'd1' as device_id, date '2026-09-28' as week_start, 52 + q as slot, true as is_weekday, 0.2::double precision as baseline_kwh from generate_series(0, 3) as q
+          union all
+          select 'd2', date '2026-09-28', 52 + q, true, 0.25 from generate_series(0, 3) as q
+      - input: ref('rec_fair_surplus_hours')
+        rows: []
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', substation_id: 'A'}
+          - {device_id: 'd2', substation_id: 'A'}
+    expect:
+      rows:
+        - {commitment_id: 'low', is_kept: false, points: 0, reason: 'not_kept'}
+        - {commitment_id: 'edge', is_kept: true, points: 5, reason: 'kept'}
+
+  - name: a3_two_commitments_on_the_same_window_count_once
+    description: The earliest committed commitment keeps the window; the later one is kept as 'duplicate_window' (0 points) so it can still be settled.
+    model: rec_fair_commitment_outcomes
+    overrides:
+      vars: {fair_as_of: '2026-10-09'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_commitment_settlement')
+        rows:
+          - {commitment_id: 'c2', device_id: 'd1', community_id: 'rec', period_start: '2026-10-01 13:00:00+02', period_end: '2026-10-01 14:00:00+02', status: 'committed', committed_at: '2026-09-30 19:00:00+02'}
+          - {commitment_id: 'c1', device_id: 'd1', community_id: 'rec', period_start: '2026-10-01 12:00:00+02', period_end: '2026-10-01 13:00:00+02', status: 'committed', committed_at: '2026-09-30 18:00:00+02'}
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {community_id: 'rec', ts_date: '2026-10-01', window_start: '2026-10-01 12:00:00', window_end: '2026-10-01 15:00:00'}
+      - input: ref('rec_fair_meters_15m')
+        rows: []
+      - input: ref('rec_fair_import_baseline')
+        rows: []
+      - input: ref('rec_fair_surplus_hours')
+        rows: []
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', substation_id: 'A'}
+    expect:
+      rows:
+        - {commitment_id: 'c1', matched: true, reason: 'no_data', points: 0, surplus_points: 0}
+        - {commitment_id: 'c2', matched: false, reason: 'duplicate_window', points: 0, surplus_points: 0}
+
+  - name: a4_commitment_without_overlapping_window_is_no_window
+    description: A commitment outside every community window is "not evaluable", never "missed".
+    model: rec_fair_commitment_outcomes
+    overrides:
+      vars: {fair_as_of: '2026-10-09'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_commitment_settlement')
+        rows:
+          - {commitment_id: 'c1', device_id: 'd1', community_id: 'rec', period_start: '2026-10-01 15:00:00+02', period_end: '2026-10-01 16:00:00+02', status: 'committed', committed_at: '2026-09-30 18:00:00+02'}
+          - {commitment_id: 'rej', device_id: 'd1', community_id: 'rec', period_start: '2026-10-01 12:00:00+02', period_end: '2026-10-01 13:00:00+02', status: 'rejected', committed_at: '2026-09-30 18:00:00+02'}
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {community_id: 'rec', ts_date: '2026-10-01', window_start: '2026-10-01 12:00:00', window_end: '2026-10-01 15:00:00'}
+      - input: ref('rec_fair_meters_15m')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, 'A' as substation_id,
+                 timestamptz '2026-10-01 15:00:00+02' + q * interval '15 minutes' as ts, 60 + q as slot, true as is_weekday,
+                 0.9::double precision as import_kwh, 0.0::double precision as export_kwh from generate_series(0, 3) as q
+      - input: ref('rec_fair_import_baseline')
+        rows: []
+      - input: ref('rec_fair_surplus_hours')
+        rows: []
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', substation_id: 'A'}
+    expect:
+      rows:
+        - {commitment_id: 'c1', matched: false, is_kept: false, points: 0, surplus_points: 0, reason: 'no_window'}
+
+  - name: a5_surplus_hours_inside_the_commitment_earn_two_points_each
+    description: >
+      The substation of the device is in surplus at 13:00 and the device imports ≥110% of its baseline
+      in that hour → one surplus hour, 2 points; the 14:00 hour is in surplus only at community level
+      while the substation has a (non-surplus) row → not counted.
+    model: rec_fair_commitment_outcomes
+    overrides:
+      vars: {fair_as_of: '2026-10-09'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_commitment_settlement')
+        rows:
+          - {commitment_id: 'c1', device_id: 'd1', community_id: 'rec', period_start: '2026-10-01 13:00:00+02', period_end: '2026-10-01 15:00:00+02', status: 'committed', committed_at: '2026-09-30 18:00:00+02'}
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {community_id: 'rec', ts_date: '2026-10-01', window_start: '2026-10-01 12:00:00', window_end: '2026-10-01 15:00:00'}
+      - input: ref('rec_fair_meters_15m')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, 'A' as substation_id,
+                 timestamptz '2026-10-01 13:00:00+02' + q * interval '15 minutes' as ts, 52 + q as slot, true as is_weekday,
+                 0.5::double precision as import_kwh, 0.0::double precision as export_kwh from generate_series(0, 7) as q
+      - input: ref('rec_fair_import_baseline')
+        format: sql
+        rows: |
+          select 'd1' as device_id, date '2026-09-28' as week_start, 52 + q as slot, true as is_weekday, 0.2::double precision as baseline_kwh from generate_series(0, 7) as q
+      - input: ref('rec_fair_surplus_hours')
+        rows:
+          - {community_id: 'rec', scope_type: 'substation', scope_id: 'A', hour_start: '2026-10-01 13:00:00+02', is_surplus: true}
+          - {community_id: 'rec', scope_type: 'substation', scope_id: 'A', hour_start: '2026-10-01 14:00:00+02', is_surplus: false}
+          - {community_id: 'rec', scope_type: 'community', scope_id: 'rec', hour_start: '2026-10-01 14:00:00+02', is_surplus: true}
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', substation_id: 'A'}
+    expect:
+      rows:
+        - {commitment_id: 'c1', is_kept: true, points: 5, surplus_hours_kept: 1, surplus_points: 2, reason: 'kept'}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_fair_weekly_metrics (fair gamification §4.4 Livello / Crescita inputs)
+  # Weeks pinned with fair_as_of; daily fixtures generated in SQL.
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: m1_growth_windows_grow_with_valid_weeks
+    description: >
+      8 valid weeks (Aug 10 … Sep 28) with night import per day 1,1,1,1,0.8,0.8,0.6,0.6 kWh:
+      growth_n is null until the 4th valid week, then 2,2,3,3,4; deltas 0, −0.1, −0.133333, −0.266667, −0.3.
+    model: rec_fair_weekly_metrics
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 8, fair_history_start: '2026-08-10'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_daily')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, d::date as local_day, 96 as n_slots, true as is_valid_day,
+                 10.0::double precision as import_kwh, 0.0::double precision as export_kwh,
+                 (array[1.0,1.0,1.0,1.0,0.8,0.8,0.6,0.6])[((d::date - date '2026-08-10') / 7) + 1]::double precision as night_import_kwh,
+                 36 as night_slots, 1.0::double precision as midday_import_kwh
+          from generate_series(date '2026-08-10', date '2026-10-04', interval '1 day') as d
+      - input: ref('rec_fair_community_days')
+        rows: []
+      - input: ref('rec_fair_device_class')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, w::date as week_start, 'no_pv' as pv_class, 'household' as category,
+                 'household/no_pv' as ref_group, false as is_quarantined, true as is_rankable
+          from generate_series(date '2026-08-10', date '2026-09-28', interval '7 days') as w
+    expect:
+      rows:
+        - {device_id: 'd1', week_start: '2026-08-10', valid_days: 7, is_valid_week: true, growth_n: null, growth_delta: null}
+        - {device_id: 'd1', week_start: '2026-08-17', valid_days: 7, is_valid_week: true, growth_n: null, growth_delta: null}
+        - {device_id: 'd1', week_start: '2026-08-24', valid_days: 7, is_valid_week: true, growth_n: null, growth_delta: null}
+        - {device_id: 'd1', week_start: '2026-08-31', valid_days: 7, is_valid_week: true, growth_n: 2, growth_delta: 0.0}
+        - {device_id: 'd1', week_start: '2026-09-07', valid_days: 7, is_valid_week: true, growth_n: 2, growth_delta: -0.1}
+        - {device_id: 'd1', week_start: '2026-09-14', valid_days: 7, is_valid_week: true, growth_n: 3, growth_delta: -0.133333}
+        - {device_id: 'd1', week_start: '2026-09-21', valid_days: 7, is_valid_week: true, growth_n: 3, growth_delta: -0.266667}
+        - {device_id: 'd1', week_start: '2026-09-28', valid_days: 7, is_valid_week: true, growth_n: 4, growth_delta: -0.3}
+
+  - name: m4_pv_level_carries_forward_two_weeks_then_none
+    description: PV device, cloudy valid days per week 3,0,0,0 → cloudy_days, carry_forward ×2 (1, 2 weeks), then no_cloudy_days with no Level.
+    model: rec_fair_weekly_metrics
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 4, fair_history_start: '2026-09-07'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_daily')
+        format: sql
+        rows: |
+          select 'p1' as device_id, 'rec' as community_id, d::date as local_day, 96 as n_slots, true as is_valid_day,
+                 10.0::double precision as import_kwh, 5.0::double precision as export_kwh, 4.0::double precision as night_import_kwh,
+                 36 as night_slots, 1.0::double precision as midday_import_kwh
+          from generate_series(date '2026-09-07', date '2026-10-04', interval '1 day') as d
+      - input: ref('rec_fair_community_days')
+        format: sql
+        rows: |
+          select 'rec' as community_id, d::date as local_day, (d::date < date '2026-09-10') as is_cloudy
+          from generate_series(date '2026-09-07', date '2026-10-04', interval '1 day') as d
+      - input: ref('rec_fair_device_class')
+        format: sql
+        rows: |
+          select 'p1' as device_id, 'rec' as community_id, w::date as week_start, 'pv' as pv_class, 'household' as category,
+                 'household/pv' as ref_group, false as is_quarantined, true as is_rankable
+          from generate_series(date '2026-09-07', date '2026-09-28', interval '7 days') as w
+    expect:
+      rows:
+        - {device_id: 'p1', week_start: '2026-09-07', cloudy_valid_days: 3, level_metric: 0.4, level_source: 'cloudy_days', level_carry_weeks: 0}
+        - {device_id: 'p1', week_start: '2026-09-14', cloudy_valid_days: 0, level_metric: 0.4, level_source: 'carry_forward', level_carry_weeks: 1}
+        - {device_id: 'p1', week_start: '2026-09-21', cloudy_valid_days: 0, level_metric: 0.4, level_source: 'carry_forward', level_carry_weeks: 2}
+        - {device_id: 'p1', week_start: '2026-09-28', cloudy_valid_days: 0, level_metric: null, level_source: 'no_cloudy_days', level_carry_weeks: null}
+
+  - name: m6_night_kwh_h_uses_night_slots_and_invalid_week_no_level
+    description: >
+      Week with a 40-slot night (DST day): 7 × 0.9 kWh over 256 night quarters = 6.3 / 64 h = 0.098438 kWh/h.
+      A week with only 4 valid days is invalid: no Level ('no_valid_week').
+    model: rec_fair_weekly_metrics
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 2, fair_history_start: '2026-09-21'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_daily')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, d::date as local_day, 96 as n_slots, true as is_valid_day,
+                 9.0::double precision as import_kwh, 0.0::double precision as export_kwh, 0.9::double precision as night_import_kwh,
+                 case when d::date = date '2026-09-27' then 40 else 36 end as night_slots, 1.0::double precision as midday_import_kwh
+          from generate_series(date '2026-09-21', date '2026-09-27', interval '1 day') as d
+          union all
+          select 'd1' as device_id, 'rec' as community_id, d::date as local_day, 96 as n_slots, (d::date < date '2026-10-02') as is_valid_day,
+                 9.0::double precision as import_kwh, 0.0::double precision as export_kwh, 0.9::double precision as night_import_kwh,
+                 36 as night_slots, 1.0::double precision as midday_import_kwh
+          from generate_series(date '2026-09-28', date '2026-10-04', interval '1 day') as d
+      - input: ref('rec_fair_community_days')
+        rows: []
+      - input: ref('rec_fair_device_class')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, w::date as week_start, 'no_pv' as pv_class, 'household' as category,
+                 'household/no_pv' as ref_group, false as is_quarantined, true as is_rankable
+          from generate_series(date '2026-09-21', date '2026-09-28', interval '7 days') as w
+    expect:
+      rows:
+        - {device_id: 'd1', week_start: '2026-09-21', valid_days: 7, is_valid_week: true, night_slots: 256, night_kwh_h: 0.098438, night_share: 0.1, level_metric: 0.1, level_source: 'all_days'}
+        - {device_id: 'd1', week_start: '2026-09-28', valid_days: 4, is_valid_week: false, night_slots: 144, night_kwh_h: 0.1, night_share: 0.1, level_metric: null, level_source: 'no_valid_week'}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_fair_weekly_scores (fair gamification §4.3/§4.4 percentiles, Azioni, flag)
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: s1_s2_s3_hazen_percentiles_saturation_and_group_merge
+    description: >
+      household/no_pv has 6 members (stands): metrics 0.1 … 0.6 → level_pct 100,80,60,40,20,0 → points
+      100,100,75,50,25,0 (saturation at the 80th). household/pv (2) + public_entity/pv (5) merge into
+      all/pv with n = 7; three tied members there get 50 each... (pv rows carry tied metrics).
+    model: rec_fair_weekly_scores
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_metrics')
+        format: sql
+        rows: |
+          select 'h' || n as device_id, 'rec' as community_id, date '2026-09-28' as week_start, date '2026-09-01' as season_start,
+                 true as is_valid_week, 7 as valid_days, 10.0::double precision as import_kwh, n * 1.0::double precision as night_import_kwh,
+                 252 as night_slots, (n / 10.0)::double precision as night_share, 0.1::double precision as night_kwh_h, 3 as cloudy_valid_days,
+                 null::double precision as cloudy_night_share, (n / 10.0)::double precision as level_metric, 'all_days' as level_source, 0 as level_carry_weeks,
+                 null::int as growth_n, null::double precision as growth_delta, null::double precision as import_median_8w, null::double precision as night_share_prev,
+                 'household/no_pv' as ref_group, 'household/no_pv' as ref_group_effective, 6 as ref_group_n, 'no_pv' as pv_class, 'household' as category, false as is_quarantined, true as is_rankable
+          from generate_series(1, 6) as n
+          union all
+          select 'pv' || n, 'rec', date '2026-09-28', date '2026-09-01', true, 7, 10.0, 3.0, 252, 0.3, 0.1, 3, 0.3, 0.3, 'cloudy_days', 0,
+                 null, null, null, null,
+                 case when n <= 2 then 'household/pv' else 'public_entity/pv' end, 'all/pv', 7, 'pv', case when n <= 2 then 'household' else 'public_entity' end, false, true
+          from generate_series(1, 7) as n
+      - input: ref('rec_fair_device_class')
+        rows: []
+      - input: ref('rec_fair_commitment_outcomes')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'h1', level_pct: 100.0, level_points: 100.0, level_reason: 'saturated', ref_group_effective: 'household/no_pv', ref_group_n: 6}
+        - {device_id: 'h2', level_pct: 80.0, level_points: 100.0, level_reason: 'saturated', ref_group_effective: 'household/no_pv', ref_group_n: 6}
+        - {device_id: 'h3', level_pct: 60.0, level_points: 75.0, level_reason: 'all_days', ref_group_effective: 'household/no_pv', ref_group_n: 6}
+        - {device_id: 'h4', level_pct: 40.0, level_points: 50.0, level_reason: 'all_days', ref_group_effective: 'household/no_pv', ref_group_n: 6}
+        - {device_id: 'h5', level_pct: 20.0, level_points: 25.0, level_reason: 'all_days', ref_group_effective: 'household/no_pv', ref_group_n: 6}
+        - {device_id: 'h6', level_pct: 0.0, level_points: 0.0, level_reason: 'all_days', ref_group_effective: 'household/no_pv', ref_group_n: 6}
+        - {device_id: 'pv1', level_pct: 50.0, level_points: 62.5, level_reason: 'cloudy_days', ref_group_effective: 'all/pv', ref_group_n: 7}
+        - {device_id: 'pv2', level_pct: 50.0, level_points: 62.5, level_reason: 'cloudy_days', ref_group_effective: 'all/pv', ref_group_n: 7}
+        - {device_id: 'pv3', level_pct: 50.0, level_points: 62.5, level_reason: 'cloudy_days', ref_group_effective: 'all/pv', ref_group_n: 7}
+        - {device_id: 'pv4', level_pct: 50.0, level_points: 62.5, level_reason: 'cloudy_days', ref_group_effective: 'all/pv', ref_group_n: 7}
+        - {device_id: 'pv5', level_pct: 50.0, level_points: 62.5, level_reason: 'cloudy_days', ref_group_effective: 'all/pv', ref_group_n: 7}
+        - {device_id: 'pv6', level_pct: 50.0, level_points: 62.5, level_reason: 'cloudy_days', ref_group_effective: 'all/pv', ref_group_n: 7}
+        - {device_id: 'pv7', level_pct: 50.0, level_points: 62.5, level_reason: 'cloudy_days', ref_group_effective: 'all/pv', ref_group_n: 7}
+
+  - name: s4_s5_s7_actions_capped_growth_median_flag_and_reasons
+    description: >
+      Growth: deltas −0.5, −0.3, 0.0 (median −0.3) → adj −0.2, 0, +0.2 → pct 100, 50, 0; reasons improving/stable/worsening.
+      Actions: a=3 kept + 4 surplus hours = 23 → capped 20 ('capped'); b 1 kept = 5 ('kept'); c no commitments.
+      Flag: a imports 14 vs 8-week median 10 (+40%) with night share 0.3 < 0.4 → flagged; b not.
+      growth_n null → 'need_weeks'; growth_delta null with n → 'night_already_zero'.
+    model: rec_fair_weekly_scores
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_metrics')
+        rows:
+          - {device_id: 'a', community_id: 'rec', week_start: '2026-09-28', season_start: '2026-09-01', is_valid_week: true, valid_days: 7, import_kwh: 14.0, night_import_kwh: 4.2, night_slots: 252, night_share: 0.3, night_kwh_h: 0.1, cloudy_valid_days: 3, cloudy_night_share: null, level_metric: 0.3, level_source: 'all_days', level_carry_weeks: 0, growth_n: 2, growth_delta: -0.5, import_median_8w: 10.0, night_share_prev: 0.4, ref_group: 'household/no_pv', ref_group_effective: 'household/no_pv', ref_group_n: 5, pv_class: 'no_pv', category: 'household', is_quarantined: false}
+          - {device_id: 'b', community_id: 'rec', week_start: '2026-09-28', season_start: '2026-09-01', is_valid_week: true, valid_days: 7, import_kwh: 14.0, night_import_kwh: 4.2, night_slots: 252, night_share: 0.3, night_kwh_h: 0.1, cloudy_valid_days: 3, cloudy_night_share: null, level_metric: 0.3, level_source: 'all_days', level_carry_weeks: 0, growth_n: 2, growth_delta: -0.3, import_median_8w: 12.0, night_share_prev: 0.4, ref_group: 'household/no_pv', ref_group_effective: 'household/no_pv', ref_group_n: 5, pv_class: 'no_pv', category: 'household', is_quarantined: false}
+          - {device_id: 'c', community_id: 'rec', week_start: '2026-09-28', season_start: '2026-09-01', is_valid_week: true, valid_days: 7, import_kwh: 14.0, night_import_kwh: 4.2, night_slots: 252, night_share: 0.3, night_kwh_h: 0.1, cloudy_valid_days: 3, cloudy_night_share: null, level_metric: 0.3, level_source: 'all_days', level_carry_weeks: 0, growth_n: 2, growth_delta: 0.0, import_median_8w: 10.0, night_share_prev: 0.2, ref_group: 'household/no_pv', ref_group_effective: 'household/no_pv', ref_group_n: 5, pv_class: 'no_pv', category: 'household', is_quarantined: false}
+          - {device_id: 'd', community_id: 'rec', week_start: '2026-09-28', season_start: '2026-09-01', is_valid_week: true, valid_days: 7, import_kwh: 14.0, night_import_kwh: 4.2, night_slots: 252, night_share: 0.3, night_kwh_h: 0.1, cloudy_valid_days: 3, cloudy_night_share: null, level_metric: 0.3, level_source: 'all_days', level_carry_weeks: 0, growth_n: null, growth_delta: null, import_median_8w: null, night_share_prev: null, ref_group: 'household/no_pv', ref_group_effective: 'household/no_pv', ref_group_n: 5, pv_class: 'no_pv', category: 'household', is_quarantined: false}
+          - {device_id: 'e', community_id: 'rec', week_start: '2026-09-28', season_start: '2026-09-01', is_valid_week: true, valid_days: 7, import_kwh: 14.0, night_import_kwh: 0.0, night_slots: 252, night_share: 0.0, night_kwh_h: 0.0, cloudy_valid_days: 3, cloudy_night_share: null, level_metric: 0.0, level_source: 'all_days', level_carry_weeks: 0, growth_n: 2, growth_delta: null, import_median_8w: 10.0, night_share_prev: 0.0, ref_group: 'household/no_pv', ref_group_effective: 'household/no_pv', ref_group_n: 5, pv_class: 'no_pv', category: 'household', is_quarantined: false}
+      - input: ref('rec_fair_device_class')
+        rows: []
+      - input: ref('rec_fair_commitment_outcomes')
+        rows:
+          - {commitment_id: 'a1', device_id: 'a', week_start: '2026-09-28', is_kept: true, points: 5, surplus_hours_kept: 2, surplus_points: 4}
+          - {commitment_id: 'a2', device_id: 'a', week_start: '2026-09-28', is_kept: true, points: 5, surplus_hours_kept: 2, surplus_points: 4}
+          - {commitment_id: 'a3', device_id: 'a', week_start: '2026-09-28', is_kept: true, points: 5, surplus_hours_kept: 0, surplus_points: 0}
+          - {commitment_id: 'b1', device_id: 'b', week_start: '2026-09-28', is_kept: true, points: 5, surplus_hours_kept: 0, surplus_points: 0}
+          - {commitment_id: 'b2', device_id: 'b', week_start: '2026-09-28', is_kept: false, points: 0, surplus_hours_kept: 0, surplus_points: 0}
+          - {commitment_id: 'e1', device_id: 'e', week_start: '2026-09-28', is_kept: false, points: 0, surplus_hours_kept: 0, surplus_points: 0}
+    expect:
+      rows:
+        # Level: a,b,c,d tied at 0.3 behind e (0.0): pct = (0 worse + 0.5×3 tied)/4 = 37.5 → 46.875 points; e = 100.
+        - {device_id: 'a', level_points: 46.875, growth_group_median: -0.3, growth_delta_adj: -0.2, growth_pct: 100.0, growth_points: 100.0, growth_reason: 'improving', kept_count: 3, surplus_hours: 4, actions_points: 20, actions_reason: 'capped', flag_import_rise: true, weekly_points: 166.875}
+        - {device_id: 'b', level_points: 46.875, growth_group_median: -0.3, growth_delta_adj: 0.0, growth_pct: 50.0, growth_points: 50.0, growth_reason: 'stable', kept_count: 1, surplus_hours: 0, actions_points: 5, actions_reason: 'kept', flag_import_rise: false, weekly_points: 101.875}
+        - {device_id: 'c', level_points: 46.875, growth_group_median: -0.3, growth_delta_adj: 0.3, growth_pct: 0.0, growth_points: 0.0, growth_reason: 'worsening', kept_count: 0, surplus_hours: 0, actions_points: 0, actions_reason: 'no_commitments', flag_import_rise: false, weekly_points: 46.875}
+        - {device_id: 'd', level_points: 46.875, growth_group_median: -0.3, growth_delta_adj: null, growth_pct: null, growth_points: null, growth_reason: 'need_weeks', kept_count: 0, surplus_hours: 0, actions_points: 0, actions_reason: 'no_commitments', flag_import_rise: false, weekly_points: 46.875}
+        - {device_id: 'e', level_points: 100.0, growth_group_median: -0.3, growth_delta_adj: null, growth_pct: null, growth_points: null, growth_reason: 'night_already_zero', kept_count: 0, surplus_hours: 0, actions_points: 0, actions_reason: 'none', flag_import_rise: false, weekly_points: 100.0}
+
+  - name: s6_quarantined_and_invalid_weeks_get_no_percentiles
+    description: A quarantined or invalid week keeps its row but has no level/growth percentile and reasons say why.
+    model: rec_fair_weekly_scores
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_metrics')
+        rows:
+          - {device_id: 'q', community_id: 'rec', week_start: '2026-09-28', season_start: '2026-09-01', is_valid_week: true, valid_days: 7, import_kwh: 10.0, night_import_kwh: 1.0, night_slots: 252, night_share: 0.1, night_kwh_h: 0.1, cloudy_valid_days: 3, cloudy_night_share: null, level_metric: 0.1, level_source: 'all_days', level_carry_weeks: 0, growth_n: 2, growth_delta: -0.1, import_median_8w: 10.0, night_share_prev: 0.1, ref_group: 'household/no_pv', ref_group_effective: 'household/no_pv', ref_group_n: 0, pv_class: 'no_pv', category: 'household', is_quarantined: true}
+          - {device_id: 'i', community_id: 'rec', week_start: '2026-09-28', season_start: '2026-09-01', is_valid_week: false, valid_days: 3, import_kwh: 4.0, night_import_kwh: 1.0, night_slots: 108, night_share: 0.25, night_kwh_h: 0.1, cloudy_valid_days: 1, cloudy_night_share: null, level_metric: null, level_source: 'no_valid_week', level_carry_weeks: null, growth_n: null, growth_delta: null, import_median_8w: null, night_share_prev: null, ref_group: 'household/no_pv', ref_group_effective: 'household/no_pv', ref_group_n: 0, pv_class: 'no_pv', category: 'household', is_quarantined: false}
+      - input: ref('rec_fair_device_class')
+        rows: []
+      - input: ref('rec_fair_commitment_outcomes')
+        rows: []
+    expect:
+      rows:
+        # a quarantined device has no peers: no percentiles; its growth reason falls back to 'stable' (adjusted delta undefined)
+        - {device_id: 'q', level_pct: null, level_points: null, growth_pct: null, weekly_points: 0.0, level_reason: 'all_days', growth_reason: 'stable'}
+        - {device_id: 'i', level_pct: null, level_points: null, growth_pct: null, weekly_points: 0.0, level_reason: 'no_valid_week', growth_reason: 'no_valid_week'}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # rec_fair_season_boards / rec_fair_anti_gaming_flags (fair gamification §4.5)
+  # Season Sep–Oct 2026 (anchor 2025-09-01, 2 months): weeks Sep 7 … Oct 26; as_of pins elapsed weeks.
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: b1_first_week_and_min_weeks_reasons
+    description: >
+      as_of 2026-09-10 → no completed week → every device 'first_week'. as_of 2026-10-19 → 6 elapsed
+      weeks, 3 required: a device with 2 valid weeks is 'min_weeks' and unranked.
+    model: rec_fair_season_boards
+    overrides:
+      vars: {fair_as_of: '2026-10-19'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_scores')
+        rows:
+          - {device_id: 'a', community_id: 'rec', week_start: '2026-09-07', season_start: '2026-09-01', is_valid_week: true, level_points: 50.0, growth_points: 50.0, actions_points: 0, weekly_points: 100.0}
+          - {device_id: 'a', community_id: 'rec', week_start: '2026-09-14', season_start: '2026-09-01', is_valid_week: true, level_points: 50.0, growth_points: 50.0, actions_points: 0, weekly_points: 100.0}
+      - input: ref('rec_fair_device_class')
+        rows:
+          - {device_id: 'a', community_id: 'rec', week_start: '2026-10-12', category: 'household', pv_class: 'no_pv', ref_group: 'household/no_pv', is_in_app: true, is_quarantined: false, is_silent: false}
+      - input: ref('rec_fair_weekly_metrics')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'a', season_start: '2026-09-01', season_end: '2026-11-01', elapsed_weeks: 6, required_weeks: 3, valid_weeks: 2, is_ranked: false, rank_reason: 'min_weeks', general_rank: null, virtuosi_rank: null, is_current_season: true}
+
+  - name: b2_virtuosi_tiebreak_actions_then_weeks_at_100
+    description: >
+      Three households with the same mean Level (93.33): a and c have 10 Actions, b has 0 → b is 3rd;
+      a and c tie on Actions and weeks at 100 → both rank 1. total_ranked_virtuosi = 3.
+    model: rec_fair_season_boards
+    overrides:
+      vars: {fair_as_of: '2026-09-28'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_scores')
+        format: sql
+        rows: |
+          select d as device_id, 'rec' as community_id, w::date as week_start, date '2026-09-01' as season_start, true as is_valid_week,
+                 (array[100.0, 80.0, 100.0])[((w::date - date '2026-09-07') / 7) + 1]::double precision as level_points,
+                 50.0::double precision as growth_points, null::text as growth_reason,
+                 case when d = 'b' then 0 else (array[5, 5, 0])[((w::date - date '2026-09-07') / 7) + 1] end as actions_points,
+                 100.0::double precision as weekly_points
+          from unnest(array['a', 'b', 'c']) as d cross join generate_series(date '2026-09-07', date '2026-09-21', interval '7 days') as w
+      - input: ref('rec_fair_device_class')
+        rows:
+          - {device_id: 'a', community_id: 'rec', week_start: '2026-09-21', category: 'household', pv_class: 'no_pv', ref_group: 'household/no_pv', is_in_app: true, is_quarantined: false, is_silent: false}
+          - {device_id: 'b', community_id: 'rec', week_start: '2026-09-21', category: 'household', pv_class: 'no_pv', ref_group: 'household/no_pv', is_in_app: true, is_quarantined: false, is_silent: false}
+          - {device_id: 'c', community_id: 'rec', week_start: '2026-09-21', category: 'household', pv_class: 'no_pv', ref_group: 'household/no_pv', is_in_app: true, is_quarantined: false, is_silent: false}
+      - input: ref('rec_fair_weekly_metrics')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'a', elapsed_weeks: 3, required_weeks: 2, is_ranked: true, mean_level: 93.333333, actions_sum: 10, weeks_at_100: 2, virtuosi_rank: 1, total_ranked_virtuosi: 3}
+        - {device_id: 'b', elapsed_weeks: 3, required_weeks: 2, is_ranked: true, mean_level: 93.333333, actions_sum: 0, weeks_at_100: 2, virtuosi_rank: 3, total_ranked_virtuosi: 3}
+        - {device_id: 'c', elapsed_weeks: 3, required_weeks: 2, is_ranked: true, mean_level: 93.333333, actions_sum: 10, weeks_at_100: 2, virtuosi_rank: 1, total_ranked_virtuosi: 3}
+
+  - name: b3_general_uses_only_weeks_with_both_and_adds_actions
+    description: >
+      a: week 1 has no Growth (not counted), week 2 L60/G40 → general 50 + mean weekly Actions
+      (Σ 10 / 2 elapsed weeks = 5) = 55; mean_level 80 (spec §4.5, 2026-11-05: Actions as a weekly mean).
+      b: both weeks L20/G20 → 20. a ranks 1st in Generale; b's growth_score is 20, a's 40.
+    model: rec_fair_season_boards
+    overrides:
+      vars: {fair_as_of: '2026-09-21'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_scores')
+        rows:
+          - {device_id: 'a', community_id: 'rec', week_start: '2026-09-07', season_start: '2026-09-01', is_valid_week: true, level_points: 100.0, growth_points: null, actions_points: 5, weekly_points: 105.0}
+          - {device_id: 'a', community_id: 'rec', week_start: '2026-09-14', season_start: '2026-09-01', is_valid_week: true, level_points: 60.0, growth_points: 40.0, actions_points: 5, weekly_points: 105.0}
+          - {device_id: 'b', community_id: 'rec', week_start: '2026-09-07', season_start: '2026-09-01', is_valid_week: true, level_points: 20.0, growth_points: 20.0, actions_points: 0, weekly_points: 40.0}
+          - {device_id: 'b', community_id: 'rec', week_start: '2026-09-14', season_start: '2026-09-01', is_valid_week: true, level_points: 20.0, growth_points: 20.0, actions_points: 0, weekly_points: 40.0}
+      - input: ref('rec_fair_device_class')
+        rows:
+          - {device_id: 'a', community_id: 'rec', week_start: '2026-09-14', category: 'household', pv_class: 'no_pv', ref_group: 'household/no_pv', is_in_app: true, is_quarantined: false, is_silent: false}
+          - {device_id: 'b', community_id: 'rec', week_start: '2026-09-14', category: 'household', pv_class: 'no_pv', ref_group: 'household/no_pv', is_in_app: true, is_quarantined: false, is_silent: false}
+      - input: ref('rec_fair_weekly_metrics')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'a', weeks_with_level: 2, weeks_with_growth: 1, weeks_with_both: 1, mean_level: 80.0, general_score: 55.0, general_rank: 1, growth_score: 40.0, growth_rank: 1, season_points: 210.0}
+        - {device_id: 'b', weeks_with_level: 2, weeks_with_growth: 2, weeks_with_both: 2, mean_level: 20.0, general_score: 20.0, general_rank: 2, growth_score: 20.0, growth_rank: 2, season_points: 80.0}
+
+  - name: b4_unranked_reasons_keep_rows_without_rank
+    description: >
+      Unranked devices keep a row with the reason and no rank; total_ranked_* counts the ranked devices
+      of the row's category (1 household ranked, 0 businesses), so an unranked user can read "1 in classifica".
+    model: rec_fair_season_boards
+    overrides:
+      vars: {fair_as_of: '2026-09-21'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_scores')
+        format: sql
+        rows: |
+          select d as device_id, 'rec' as community_id, w::date as week_start, date '2026-09-01' as season_start, true as is_valid_week,
+                 50.0::double precision as level_points, 50.0::double precision as growth_points, null::text as growth_reason, 0 as actions_points, 100.0::double precision as weekly_points
+          from unnest(array['ok', 'sil', 'qua', 'biz', 'out']) as d cross join generate_series(date '2026-09-07', date '2026-09-14', interval '7 days') as w
+      - input: ref('rec_fair_device_class')
+        rows:
+          - {device_id: 'ok',  community_id: 'rec', week_start: '2026-09-14', category: 'household', pv_class: 'no_pv', ref_group: 'household/no_pv', is_in_app: true,  is_quarantined: false, is_silent: false}
+          - {device_id: 'sil', community_id: 'rec', week_start: '2026-09-14', category: 'household', pv_class: 'no_pv', ref_group: 'household/no_pv', is_in_app: true,  is_quarantined: false, is_silent: true}
+          - {device_id: 'qua', community_id: 'rec', week_start: '2026-09-14', category: 'household', pv_class: 'no_pv', ref_group: 'household/no_pv', is_in_app: true,  is_quarantined: true,  is_silent: false}
+          - {device_id: 'biz', community_id: 'rec', week_start: '2026-09-14', category: 'business',  pv_class: 'no_pv', ref_group: 'business/no_pv',  is_in_app: true,  is_quarantined: false, is_silent: false}
+          - {device_id: 'out', community_id: 'rec', week_start: '2026-09-14', category: 'household', pv_class: 'no_pv', ref_group: 'household/no_pv', is_in_app: false, is_quarantined: false, is_silent: false}
+      - input: ref('rec_fair_weekly_metrics')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'ok',  rank_reason: 'ranked',              is_ranked: true,  virtuosi_rank: 1,    total_ranked_virtuosi: 1}
+        - {device_id: 'sil', rank_reason: 'silent',              is_ranked: false, virtuosi_rank: null, total_ranked_virtuosi: 1}
+        - {device_id: 'qua', rank_reason: 'quarantined',         is_ranked: false, virtuosi_rank: null, total_ranked_virtuosi: 1}
+        - {device_id: 'biz', rank_reason: 'category_not_ranked', is_ranked: false, virtuosi_rank: null, total_ranked_virtuosi: 0}
+        - {device_id: 'out', rank_reason: 'not_in_app',          is_ranked: false, virtuosi_rank: null, total_ranked_virtuosi: 1}
+
+  - name: b5_ranks_are_per_category
+    description: A household and a public entity are ranked in separate tables (both rank 1, total 1 each).
+    model: rec_fair_season_boards
+    overrides:
+      vars: {fair_as_of: '2026-09-21'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_scores')
+        rows:
+          - {device_id: 'h', community_id: 'rec', week_start: '2026-09-07', season_start: '2026-09-01', is_valid_week: true, level_points: 30.0, growth_points: 30.0, actions_points: 0, weekly_points: 60.0}
+          - {device_id: 'p', community_id: 'rec', week_start: '2026-09-07', season_start: '2026-09-01', is_valid_week: true, level_points: 90.0, growth_points: 90.0, actions_points: 0, weekly_points: 180.0}
+      - input: ref('rec_fair_device_class')
+        rows:
+          - {device_id: 'h', community_id: 'rec', week_start: '2026-09-07', category: 'household',     pv_class: 'no_pv', ref_group: 'household/no_pv',     is_in_app: true, is_quarantined: false, is_silent: false}
+          - {device_id: 'p', community_id: 'rec', week_start: '2026-09-07', category: 'public_entity', pv_class: 'pv',    ref_group: 'public_entity/pv',    is_in_app: true, is_quarantined: false, is_silent: false}
+      - input: ref('rec_fair_weekly_metrics')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'h', category: 'household',     general_rank: 1, total_ranked_general: 1, virtuosi_rank: 1, growth_rank: 1}
+        - {device_id: 'p', category: 'public_entity', general_rank: 1, total_ranked_general: 1, virtuosi_rank: 1, growth_rank: 1}
+
+  - name: f1_flag_row_per_flagged_week
+    description: One F1_IMPORT_RISE row per flagged device-week, with the rise and threshold; unflagged weeks produce nothing.
+    model: rec_fair_anti_gaming_flags
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_scores')
+        rows:
+          - {device_id: 'a', community_id: 'rec', week_start: '2026-09-07', flag_import_rise: true,  import_rise_pct: 0.4}
+          - {device_id: 'a', community_id: 'rec', week_start: '2026-09-14', flag_import_rise: false, import_rise_pct: 0.1}
+          - {device_id: 'b', community_id: 'rec', week_start: '2026-09-07', flag_import_rise: false, import_rise_pct: null}
+    expect:
+      rows:
+        - {device_id: 'a', community_id: 'rec', flag_date: '2026-09-07', flag_type: 'F1_IMPORT_RISE', metric_value: 0.4, threshold_value: 0.3, severity: 'warning'}
+
+  - name: a6_current_week_commitment_has_no_outcome_yet
+    description: >
+      Outcomes land once a week: a commitment whose week is not complete at fair_as_of produces no row
+      (the flexibility-api keeps it committed and retries), even when meter rows and a window exist.
+    model: rec_fair_commitment_outcomes
+    overrides:
+      vars: {fair_as_of: '2026-10-02'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_commitment_settlement')
+        rows:
+          - {commitment_id: 'c1', device_id: 'd1', community_id: 'rec', period_start: '2026-10-01 13:00:00+02', period_end: '2026-10-01 14:00:00+02', status: 'committed', committed_at: '2026-09-30 18:00:00+02'}
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {community_id: 'rec', ts_date: '2026-10-01', window_start: '2026-10-01 12:00:00', window_end: '2026-10-01 15:00:00'}
+      - input: ref('rec_fair_meters_15m')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, 'A' as substation_id,
+                 timestamptz '2026-10-01 13:00:00+02' + q * interval '15 minutes' as ts, 52 + q as slot, true as is_weekday,
+                 0.5::double precision as import_kwh, 0.0::double precision as export_kwh from generate_series(0, 3) as q
+      - input: ref('rec_fair_import_baseline')
+        rows: []
+      - input: ref('rec_fair_surplus_hours')
+        rows: []
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', substation_id: 'A'}
+    expect:
+      rows: []
+
+  - name: a7_commitment_without_a_baseline_is_no_data_not_kept
+    description: >
+      Meter rows exist but the device has no baseline for that week (no history in the 28 days before):
+      the commitment is 'no_data', never judged against the 0.05 kWh floor.
+    model: rec_fair_commitment_outcomes
+    overrides:
+      vars: {fair_as_of: '2026-10-09'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_commitment_settlement')
+        rows:
+          - {commitment_id: 'c1', device_id: 'd1', community_id: 'rec', period_start: '2026-10-01 13:00:00+02', period_end: '2026-10-01 14:00:00+02', status: 'committed', committed_at: '2026-09-30 18:00:00+02'}
+      - input: ref('rec_flexibility_windows_community')
+        rows:
+          - {community_id: 'rec', ts_date: '2026-10-01', window_start: '2026-10-01 12:00:00', window_end: '2026-10-01 15:00:00'}
+      - input: ref('rec_fair_meters_15m')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, 'A' as substation_id,
+                 timestamptz '2026-10-01 13:00:00+02' + q * interval '15 minutes' as ts, 52 + q as slot, true as is_weekday,
+                 0.5::double precision as import_kwh, 0.0::double precision as export_kwh from generate_series(0, 3) as q
+      - input: ref('rec_fair_import_baseline')
+        rows: []
+      - input: ref('rec_fair_surplus_hours')
+        rows:
+          - {community_id: 'rec', scope_type: 'substation', scope_id: 'A', hour_start: '2026-10-01 13:00:00+02', is_surplus: true}
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', substation_id: 'A'}
+    expect:
+      rows:
+        - {commitment_id: 'c1', matched: true, actual_import_kwh: 2.0, baseline_import_kwh: null, is_kept: false, points: 0, surplus_hours_kept: 0, surplus_points: 0, reason: 'no_data'}
+
+  - name: m5_small_group_merges_across_categories_same_pv_class
+    description: 4 public entities and 6 households, all no_pv → everyone is compared in 'all/no_pv' (n = 10); the 7 households with PV stand alone.
+    model: rec_fair_weekly_metrics
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 1, fair_history_start: '2026-09-28'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_daily')
+        format: sql
+        rows: |
+          select d as device_id, 'rec' as community_id, day::date as local_day, 96 as n_slots, true as is_valid_day,
+                 10.0::double precision as import_kwh, 0.0::double precision as export_kwh, 3.0::double precision as night_import_kwh,
+                 36 as night_slots, 1.0::double precision as midday_import_kwh
+          from unnest(array['p1','p2','p3','p4','h1','h2','h3','h4','h5','h6','v1','v2','v3','v4','v5','v6','v7']) as d
+          cross join generate_series(date '2026-09-28', date '2026-10-04', interval '1 day') as day
+      - input: ref('rec_fair_community_days')
+        rows: []
+      - input: ref('rec_fair_device_class')
+        format: sql
+        rows: |
+          select d as device_id, 'rec' as community_id, date '2026-09-28' as week_start,
+                 case when d like 'v%' then 'pv' else 'no_pv' end as pv_class,
+                 case when d like 'p%' then 'public_entity' else 'household' end as category,
+                 (case when d like 'p%' then 'public_entity' else 'household' end) || '/' || (case when d like 'v%' then 'pv' else 'no_pv' end) as ref_group,
+                 false as is_quarantined, true as is_rankable
+          from unnest(array['p1','p2','p3','p4','h1','h2','h3','h4','h5','h6','v1','v2','v3','v4','v5','v6','v7']) as d
+    expect:
+      rows:
+        - {device_id: 'p1', ref_group: 'public_entity/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 10}
+        - {device_id: 'p2', ref_group: 'public_entity/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 10}
+        - {device_id: 'p3', ref_group: 'public_entity/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 10}
+        - {device_id: 'p4', ref_group: 'public_entity/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 10}
+        - {device_id: 'h1', ref_group: 'household/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 10}
+        - {device_id: 'h2', ref_group: 'household/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 10}
+        - {device_id: 'h3', ref_group: 'household/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 10}
+        - {device_id: 'h4', ref_group: 'household/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 10}
+        - {device_id: 'h5', ref_group: 'household/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 10}
+        - {device_id: 'h6', ref_group: 'household/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 10}
+        - {device_id: 'v1', ref_group: 'household/pv', ref_group_effective: 'household/pv', ref_group_n: 7}
+        - {device_id: 'v2', ref_group: 'household/pv', ref_group_effective: 'household/pv', ref_group_n: 7}
+        - {device_id: 'v3', ref_group: 'household/pv', ref_group_effective: 'household/pv', ref_group_n: 7}
+        - {device_id: 'v4', ref_group: 'household/pv', ref_group_effective: 'household/pv', ref_group_n: 7}
+        - {device_id: 'v5', ref_group: 'household/pv', ref_group_effective: 'household/pv', ref_group_n: 7}
+        - {device_id: 'v6', ref_group: 'household/pv', ref_group_effective: 'household/pv', ref_group_n: 7}
+        - {device_id: 'v7', ref_group: 'household/pv', ref_group_effective: 'household/pv', ref_group_n: 7}
+
+  - name: m7_growth_history_is_not_truncated_by_the_recompute_window
+    description: >
+      Six valid weeks of history, recompute window of 2: the two output weeks still see all six weeks
+      (k = 5 → n = 2, k = 6 → n = 3) instead of being recomputed from a truncated past.
+    model: rec_fair_weekly_metrics
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 2, fair_history_start: '2026-09-21'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_daily')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, d::date as local_day, 96 as n_slots, true as is_valid_day,
+                 10.0::double precision as import_kwh, 0.0::double precision as export_kwh, 1.0::double precision as night_import_kwh,
+                 36 as night_slots, 1.0::double precision as midday_import_kwh
+          from generate_series(date '2026-08-24', date '2026-10-04', interval '1 day') as d
+      - input: ref('rec_fair_community_days')
+        rows: []
+      - input: ref('rec_fair_device_class')
+        format: sql
+        rows: |
+          select 'd1' as device_id, 'rec' as community_id, w::date as week_start, 'no_pv' as pv_class, 'household' as category,
+                 'household/no_pv' as ref_group, false as is_quarantined, true as is_rankable
+          from generate_series(date '2026-08-24', date '2026-09-28', interval '7 days') as w
+    expect:
+      rows:
+        - {device_id: 'd1', week_start: '2026-09-21', growth_n: 2, import_median_8w: 70.0}
+        - {device_id: 'd1', week_start: '2026-09-28', growth_n: 3, import_median_8w: 70.0}
+
+  - name: d7_full_refresh_series_starts_at_history_start
+    description: On a full refresh the weekly class covers every completed week since fair_history_start, not only the recompute window.
+    model: rec_fair_device_class
+    overrides:
+      vars: {fair_as_of: '2026-10-05', fair_recompute_weeks: 1, fair_history_start: '2026-09-07'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_device_registry')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', is_in_app: true, category: 'household', has_export_register: true, pv_class_override: null, quarantine_from: null, battery_declared: false}
+      - input: ref('rec_fair_daily')
+        rows:
+          - {device_id: 'd1', community_id: 'rec', local_day: '2026-10-01', is_valid_day: true, export_kwh: 0.0, midday_import_kwh: 1.0}
+      - input: ref('rec_fair_community_days')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'd1', week_start: '2026-09-07'}
+        - {device_id: 'd1', week_start: '2026-09-14'}
+        - {device_id: 'd1', week_start: '2026-09-21'}
+        - {device_id: 'd1', week_start: '2026-09-28'}
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # 2026-11-05 (store plan the-fair-generale-compares-like-with-like): reference groups hold only
+  # the playing categories; Actions enter the Generale as a weekly mean; Generale = L alone when
+  # Growth is undefined because the night import is already near zero.
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  - name: m8_businesses_and_unknown_are_not_peers
+    description: >
+      5 households and 2 public entities without PV, plus 9 businesses and 1 unknown device without PV.
+      household/no_pv (5 < 6) merges with public_entity/no_pv only: all/no_pv, n = 7. Businesses and the
+      unknown device are nobody's peers: they keep their own ref_group and ref_group_n = 0.
+    model: rec_fair_weekly_metrics
+    overrides:
+      vars: {fair_as_of: '2026-10-09', fair_recompute_weeks: 1, fair_history_start: '2026-09-28'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_daily')
+        format: sql
+        rows: |
+          select d as device_id, 'rec' as community_id, day::date as local_day, 96 as n_slots, true as is_valid_day,
+                 10.0::double precision as import_kwh, 0.0::double precision as export_kwh, 3.0::double precision as night_import_kwh,
+                 36 as night_slots, 1.0::double precision as midday_import_kwh
+          from unnest(array['h1','h2','h3','h4','h5','p1','p2','b1','b2','b3','b4','b5','b6','b7','b8','b9','u1']) as d
+          cross join generate_series(date '2026-09-28', date '2026-10-04', interval '1 day') as day
+      - input: ref('rec_fair_community_days')
+        rows: []
+      - input: ref('rec_fair_device_class')
+        format: sql
+        rows: |
+          select d as device_id, 'rec' as community_id, date '2026-09-28' as week_start, 'no_pv' as pv_class,
+                 c as category, c || '/no_pv' as ref_group, false as is_quarantined, c in ('household', 'public_entity') as is_rankable
+          from (select d, case left(d, 1) when 'h' then 'household' when 'p' then 'public_entity' when 'b' then 'business' else 'unknown' end as c
+                from unnest(array['h1','h2','h3','h4','h5','p1','p2','b1','b2','b3','b4','b5','b6','b7','b8','b9','u1']) as d) x
+    expect:
+      rows:
+        - {device_id: 'h1', ref_group_effective: 'all/no_pv', ref_group_n: 7}
+        - {device_id: 'h2', ref_group_effective: 'all/no_pv', ref_group_n: 7}
+        - {device_id: 'h3', ref_group_effective: 'all/no_pv', ref_group_n: 7}
+        - {device_id: 'h4', ref_group_effective: 'all/no_pv', ref_group_n: 7}
+        - {device_id: 'h5', ref_group_effective: 'all/no_pv', ref_group_n: 7}
+        - {device_id: 'p1', ref_group_effective: 'all/no_pv', ref_group_n: 7}
+        - {device_id: 'p2', ref_group_effective: 'all/no_pv', ref_group_n: 7}
+        - {device_id: 'b1', ref_group_effective: 'business/no_pv', ref_group_n: 0}
+        - {device_id: 'b2', ref_group_effective: 'business/no_pv', ref_group_n: 0}
+        - {device_id: 'b3', ref_group_effective: 'business/no_pv', ref_group_n: 0}
+        - {device_id: 'b4', ref_group_effective: 'business/no_pv', ref_group_n: 0}
+        - {device_id: 'b5', ref_group_effective: 'business/no_pv', ref_group_n: 0}
+        - {device_id: 'b6', ref_group_effective: 'business/no_pv', ref_group_n: 0}
+        - {device_id: 'b7', ref_group_effective: 'business/no_pv', ref_group_n: 0}
+        - {device_id: 'b8', ref_group_effective: 'business/no_pv', ref_group_n: 0}
+        - {device_id: 'b9', ref_group_effective: 'business/no_pv', ref_group_n: 0}
+        - {device_id: 'u1', ref_group_effective: 'unknown/no_pv', ref_group_n: 0}
+
+  - name: s8_businesses_are_not_in_percentiles_or_the_growth_median
+    description: >
+      Two households and one business share ref_group_effective all/no_pv (as an older row could).
+      The business is not a peer: h1 (0.3) beats h2 (0.5) → 100 / 0; the Growth median is that of h1, h2
+      only (−0.2 and 0.0 → −0.1); the business gets no percentiles, reasons 'not_compared'.
+    model: rec_fair_weekly_scores
+    overrides:
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_metrics')
+        rows:
+          - {device_id: 'h1', community_id: 'rec', week_start: '2026-09-28', season_start: '2026-09-01', is_valid_week: true, valid_days: 7, import_kwh: 10.0, night_import_kwh: 3.0, night_slots: 252, night_share: 0.3, night_kwh_h: 0.1, cloudy_valid_days: 3, cloudy_night_share: null, level_metric: 0.3, level_source: 'all_days', level_carry_weeks: 0, growth_n: 2, growth_delta: -0.2, import_median_8w: 10.0, night_share_prev: 0.3, ref_group: 'household/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 2, pv_class: 'no_pv', category: 'household', is_quarantined: false}
+          - {device_id: 'h2', community_id: 'rec', week_start: '2026-09-28', season_start: '2026-09-01', is_valid_week: true, valid_days: 7, import_kwh: 10.0, night_import_kwh: 5.0, night_slots: 252, night_share: 0.5, night_kwh_h: 0.1, cloudy_valid_days: 3, cloudy_night_share: null, level_metric: 0.5, level_source: 'all_days', level_carry_weeks: 0, growth_n: 2, growth_delta: 0.0, import_median_8w: 10.0, night_share_prev: 0.5, ref_group: 'household/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 2, pv_class: 'no_pv', category: 'household', is_quarantined: false}
+          - {device_id: 'b1', community_id: 'rec', week_start: '2026-09-28', season_start: '2026-09-01', is_valid_week: true, valid_days: 7, import_kwh: 10.0, night_import_kwh: 1.0, night_slots: 252, night_share: 0.1, night_kwh_h: 0.1, cloudy_valid_days: 3, cloudy_night_share: null, level_metric: 0.1, level_source: 'all_days', level_carry_weeks: 0, growth_n: 2, growth_delta: -0.9, import_median_8w: 10.0, night_share_prev: 0.1, ref_group: 'business/no_pv', ref_group_effective: 'all/no_pv', ref_group_n: 0, pv_class: 'no_pv', category: 'business', is_quarantined: false}
+      - input: ref('rec_fair_device_class')
+        rows: []
+      - input: ref('rec_fair_commitment_outcomes')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'h1', level_pct: 100.0, level_points: 100.0, growth_group_median: -0.1, growth_pct: 100.0, level_reason: 'saturated', growth_reason: 'improving'}
+        - {device_id: 'h2', level_pct: 0.0, level_points: 0.0, growth_group_median: -0.1, growth_pct: 0.0, level_reason: 'all_days', growth_reason: 'worsening'}
+        - {device_id: 'b1', level_pct: null, level_points: null, growth_group_median: -0.1, growth_pct: null, level_reason: 'not_compared', growth_reason: 'not_compared'}
+
+  - name: b6_general_is_level_alone_when_night_is_already_zero
+    description: >
+      z: Growth undefined because the night import is already near zero, L 100 both weeks → Generale input
+      L alone → weeks_with_both 2, general_score 100, ranked 1st. n: Growth undefined for lack of weeks
+      (need_weeks) → no Generale input, general_score null, but still in Virtuosi.
+      m: L 60 / G 40 both weeks → 50.
+    model: rec_fair_season_boards
+    overrides:
+      vars: {fair_as_of: '2026-09-21'}
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('rec_fair_weekly_scores')
+        format: sql
+        rows: |
+          select d as device_id, 'rec' as community_id, w::date as week_start, date '2026-09-01' as season_start, true as is_valid_week,
+                 (case d when 'z' then 100.0 when 'n' then 80.0 else 60.0 end)::double precision as level_points,
+                 (case d when 'm' then 40.0 end)::double precision as growth_points,
+                 case d when 'z' then 'night_already_zero' when 'n' then 'need_weeks' else 'stable' end as growth_reason,
+                 0 as actions_points, 100.0::double precision as weekly_points
+          from unnest(array['z', 'n', 'm']) as d cross join generate_series(date '2026-09-07', date '2026-09-14', interval '7 days') as w
+      - input: ref('rec_fair_device_class')
+        rows:
+          - {device_id: 'z', community_id: 'rec', week_start: '2026-09-14', category: 'household', pv_class: 'pv', ref_group: 'household/pv', is_in_app: true, is_quarantined: false, is_silent: false}
+          - {device_id: 'n', community_id: 'rec', week_start: '2026-09-14', category: 'household', pv_class: 'pv', ref_group: 'household/pv', is_in_app: true, is_quarantined: false, is_silent: false}
+          - {device_id: 'm', community_id: 'rec', week_start: '2026-09-14', category: 'household', pv_class: 'pv', ref_group: 'household/pv', is_in_app: true, is_quarantined: false, is_silent: false}
+      - input: ref('rec_fair_weekly_metrics')
+        rows: []
+    expect:
+      rows:
+        - {device_id: 'z', weeks_with_both: 2, mean_general: 100.0, general_score: 100.0, general_rank: 1, virtuosi_rank: 1, total_ranked_general: 2}
+        - {device_id: 'n', weeks_with_both: 0, mean_general: null, general_score: null, general_rank: null, virtuosi_rank: 2, total_ranked_general: 2}
+        - {device_id: 'm', weeks_with_both: 2, mean_general: 50.0, general_score: 50.0, general_rank: 2, virtuosi_rank: 3, total_ranked_general: 2}

@@ -28,6 +28,10 @@ depends_on:
     description: >
       REC membership by device, published by `rec_registry` in this repository: the
       fleet every model computes over.
+  - dataset: datasets.*_silver.meters_data
+    description: >
+      Quarter-hourly readings of EVERY community POD, all meter channels (demo3 metering
+      pipeline). The fair gamification reads its M1 channel for the reference groups.
   - dataset: datasets.raw.flexibility_commitments_mirror
     description: >
       Commitments. Mirrored into `raw` by a pipeline in this repository —
@@ -41,7 +45,9 @@ depends_on:
 
 # Not declared on purpose, so not served by the dataset-api: rec_settlement_points,
 # rec_flexibility_bonus, _rec_device_baselines_raw,
-# _rec_device_streaks_raw, silver_flexibility_commitments. They are intermediate or
+# _rec_device_streaks_raw, silver_flexibility_commitments, and the fair gamification
+# intermediates rec_fair_device_registry, rec_fair_meters_15m, rec_fair_daily,
+# rec_fair_import_baseline, rec_fair_weekly_metrics. They are intermediate or
 # internal tables no reader is meant to reach through the catalogue; their absence here is
 # the intended state, not an omission.
 #
@@ -292,3 +298,144 @@ sources:
     dataspace:
       purpose: [EnergyCommunityOperation]
       expose: false
+
+  # ---------------------------------------------------------------------------
+  # OUTPUTS: Fair gamification (spec 2026-10-07, design 2026-10-09) — weekly Level /
+  # Growth / Actions percentiles and the three season boards. Device grain → rec_registry
+  # on device_id; community grain → organization_match on community_id.
+  # ---------------------------------------------------------------------------
+
+  datasets.ds_dev_gold.rec_fair_season_boards:
+    title: "Fair Gamification Season Boards (Gold)"
+    description: >
+      One row per member device and season: standing in the three boards (Virtuosi = mean
+      Level, In crescita = mean Growth, Generale = ½L + ½G + Σ Actions) within the device's
+      category, the rank reason when unranked (first week, too few valid weeks, silent,
+      quarantined, not in the app, business), weeks counted per board and the season sum of
+      weekly points for personal milestones. Means, not sums: data gaps do not penalise.
+    classification: pii
+    tags: [flexibility, gamification, fair, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    expose: true
+    dataspace:
+      purpose: [EnergyCommunityOperation]
+      expose: false
+      medallion: gold
+      consent_required: true
+
+  datasets.ds_dev_gold.rec_fair_weekly_scores:
+    title: "Fair Gamification Weekly Scores (Gold)"
+    description: >
+      One row per member device and completed ISO week: Level, Growth and Actions points with
+      their percentiles, reference group and size, reason codes and the numbers behind them
+      (night import share, cloudy days used, night-import change, kept commitments, surplus
+      hours) that the app renders as "sei qui perché…". flag_import_rise marks the
+      daytime-waste pattern (no points effect).
+    classification: pii
+    tags: [flexibility, gamification, fair, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    expose: true
+    dataspace:
+      purpose: [EnergyCommunityOperation]
+      expose: false
+      medallion: gold
+      consent_required: true
+
+  datasets.ds_dev_gold.rec_fair_device_class:
+    title: "Fair Gamification Device Class per Week (Gold)"
+    description: >
+      One row per device and week: PV class inferred from the M1 data (export or hidden-PV
+      shape, or an operator override), category from the registry member type, quarantine and
+      silence flags, and whether the device is rankable that week.
+    classification: pii
+    tags: [flexibility, gamification, fair, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    expose: true
+    dataspace:
+      purpose: [EnergyCommunityOperation]
+      expose: false
+      medallion: gold
+      consent_required: true
+
+  datasets.ds_dev_gold.rec_fair_commitment_outcomes:
+    title: "Fair Gamification Commitment Outcomes (Gold)"
+    description: >
+      One row per commitment: the community window it overlapped, the import measured over
+      the commitment against the device's own baseline, whether it was kept (≥ 110%), the fixed
+      points earned and the true-surplus hours inside it. 'no_window' means not evaluable,
+      never missed.
+    classification: pii
+    tags: [flexibility, gamification, fair, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    expose: true
+    dataspace:
+      purpose: [EnergyCommunityOperation]
+      expose: false
+      medallion: gold
+      consent_required: true
+
+  datasets.ds_dev_gold.rec_fair_anti_gaming_flags:
+    title: "Fair Gamification Anti-Gaming Flags (Gold)"
+    description: >
+      One row per flagged device-week. F1_IMPORT_RISE: total import above 130% of the device's
+      own 8-week median while its night share fell (daytime waste). Informational.
+    classification: pii
+    tags: [flexibility, gamification, fair, gold]
+    row_filters:
+      - handler: rec_registry
+        args:
+          column: device_id
+    expose: true
+    dataspace:
+      purpose: [EnergyCommunityOperation]
+      expose: false
+      medallion: gold
+      consent_required: true
+
+  datasets.ds_dev_gold.rec_fair_community_days:
+    title: "Fair Gamification Community Days (Gold)"
+    description: >
+      One row per community and local day: total M1 export of the valid, non-quarantined PODs,
+      how many reported, and the causal cloudy-day flag (export at or below the 30th percentile
+      of the 28 days ending on the week's Sunday).
+    tags: [flexibility, gamification, fair, gold]
+    expose: true
+    row_filters:
+      - handler: organization_match
+        args:
+          column: community_id
+    dataspace:
+      purpose: [EnergyCommunityOperation]
+      expose: false
+      medallion: gold
+      consent_required: false
+
+  datasets.ds_dev_gold.rec_fair_surplus_hours:
+    title: "Fair Gamification True-Surplus Hours (Gold)"
+    description: >
+      One row per scope (primary substation with at least 6 reporting PODs, or the whole
+      community) and hour: M1 export vs import of its non-quarantined PODs and whether the hour
+      was in true surplus.
+    tags: [flexibility, gamification, fair, gold]
+    expose: true
+    row_filters:
+      - handler: organization_match
+        args:
+          column: community_id
+    dataspace:
+      purpose: [EnergyCommunityOperation]
+      expose: false
+      medallion: gold
+      consent_required: false

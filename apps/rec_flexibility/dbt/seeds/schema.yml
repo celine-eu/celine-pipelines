@@ -1,0 +1,20 @@
+version: 2
+
+seeds:
+  - name: co2_factors
+    description: CO2 emission factors by country (kg CO2 per kWh).
+  - name: rec_device_overrides
+    description: >
+      Fair gamification manual corrections (spec §4.7). NOT in git: written at flow start
+      from the REC_FAIR_OVERRIDES_CSV secret by lib.config.write_overrides_seed (header
+      only when unset). pv_class_override/category_override win over the data-derived
+      class; quarantine_from excludes the device from boards and reference groups from
+      that day; battery_declared is informational.
+    config:
+      column_types:
+        device_id: text
+        pv_class_override: text
+        category_override: text
+        quarantine_from: date
+        quarantine_reason: text
+        battery_declared: boolean
