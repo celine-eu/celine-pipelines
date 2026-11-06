@@ -1,3 +1,4 @@
+import os
 import sys
 from pathlib import Path
 from typing import Dict, Any
@@ -19,12 +20,19 @@ if str(_APP_DIR) not in sys.path:
 from flows.auto_commit_task import auto_commit_task  # noqa: E402
 from flows.baseline_task import compute_baselines_task  # noqa: E402
 from flows.streak_task import update_streaks_task  # noqa: E402
+from lib.config import write_overrides_seed  # noqa: E402
 
 # The fleet is the registry's membership (rec_registry's rec_device_membership): it is
 # read by the rec_meters_15m view, so no device list is generated or configured here.
 
 _cfg = PipelineConfig()
 _on_running, _on_completion, _on_failure = flow_hooks(_cfg)
+
+
+@task(name="Write fair overrides seed")
+def write_overrides_task() -> str:
+    """Materialise dbt/seeds/rec_device_overrides.csv from REC_FAIR_OVERRIDES_CSV (header-only when unset)."""
+    return str(write_overrides_seed(_APP_DIR / "dbt" / "seeds", os.environ.get("REC_FAIR_OVERRIDES_CSV")))
 
 
 @task(name="Seed dbt")
@@ -59,7 +67,8 @@ def rec_flexibility_flow(config: Dict[str, Any] | None = None):
     # Phase 1: seed + silver. The Python tasks (baselines, streaks) read the silver
     # view rec_meters_15m, so they wait for it: after a model change (a column the
     # view gained, such as community_id) the old view must be replaced first.
-    seed = seed_task(cfg)
+    overrides = write_overrides_task()
+    seed = seed_task(cfg, wait_for=[overrides])
     silver = transform_silver_layer_task(cfg)
     baselines = compute_baselines_task(cfg, wait_for=[silver])
     streaks = update_streaks_task(cfg, wait_for=[silver])
@@ -79,6 +88,7 @@ def rec_flexibility_flow(config: Dict[str, Any] | None = None):
     tests = run_dbt_tests_task(cfg, wait_for=[gold_final])
 
     return {
+        "overrides": overrides,
         "seed": seed,
         "silver": silver,
         "baselines": baselines,

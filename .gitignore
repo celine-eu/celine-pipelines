@@ -27,5 +27,7 @@ temp*
 # device fleet. The fleet is the registry's membership now and nothing writes the file,
 # but checkouts that ran the old flow still have one: keep it out of git.
 apps/rec_flexibility/dbt/seeds/rec_active_devices.csv
+# fair gamification overrides: device IDs, written at flow start from REC_FAIR_OVERRIDES_CSV
+apps/rec_flexibility/dbt/seeds/rec_device_overrides.csv
 
 .agents/
