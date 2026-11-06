@@ -156,6 +156,46 @@ Per-device daily CO2 avoided from all self-consumed renewable energy (not limite
 
 Community-level daily CO2 avoided scoped to intervals inside flexibility windows only (`window_start IS NOT NULL`), attributing impact to the flexibility programme specifically. Includes `participating_devices` count.
 
+## Fair gamification (`rec_fair_*`, since 0.23.0)
+
+Shadow computation of the fair points described in the demo3 spec
+`docs/superpowers/specs/2026-10-07-gamification-equa-concept.md` (design approved 2026-10-09).
+It runs inside the same flow (`dbt run --select gold` picks up the `fair` tag) and does not
+touch the settlement points; the webapp switches between the two with its own variant flag.
+
+Inputs: the M1 channel of `ds_dev_silver.meters_data` for EVERY community POD (source
+`metering_silver`), `rec_device_membership` (category from `member_type`, substation), the
+durable `rec_commitment_settlement`, `rec_flexibility_windows_community`, and the seed
+`rec_device_overrides` (written at flow start from `REC_FAIR_OVERRIDES_CSV`, never in git).
+
+| Model | Grain | What |
+|---|---|---|
+| `rec_fair_device_registry` (view) | device | category (household / public_entity / business / unknown), meter kind, overrides |
+| `rec_fair_meters_15m` (view) | device × quarter | M1 import/export with Europe/Rome features (night 21–06, midday 11–15) |
+| `rec_fair_daily` | device × day | quarters, valid day (≥ 87), night/midday import |
+| `rec_fair_community_days` | community × day | community export, causal cloudy flag (p30 of the 28 days ending on the week's Sunday) |
+| `rec_fair_device_class` | device × week | PV class from data (export p75 > 0.5 kWh/day, hidden-PV midday dip) or override; quarantine; silence; rankable |
+| `rec_fair_import_baseline` | device × week × slot × weekday | median import over the 28 days before the week |
+| `rec_fair_surplus_hours` | scope × hour | true surplus per substation (≥ 6 PODs) or community |
+| `rec_fair_commitment_outcomes` | commitment | overlap-matched window, kept (import ≥ 110% of baseline), fixed points, surplus hours |
+| `rec_fair_weekly_metrics` | device × week | night share / kWh per night hour, Level metric with carry-forward, Growth windows, reference group (households and public entities only) |
+| `rec_fair_weekly_scores` | device × week | Level / Growth percentiles and points, Actions (capped), weekly points, reason codes, waste flag |
+| `rec_fair_season_boards` | device × season | Virtuosi / In crescita / Generale standings per category (Generale: mean ½L+½G, or L alone when night is already ~0, plus mean weekly Actions), rank reasons, season points |
+| `rec_fair_anti_gaming_flags` | device × week × flag | `F1_IMPORT_RISE` |
+
+Parameters: `flexibility_config.yaml` block `fair` ↔ dbt vars `fair_*` (kept equal by
+`tests/test_config.py`). `fair_as_of` ("" = today) pins the weekly models in unit tests.
+A first build or `--full-refresh` computes every completed week since `fair_history_start`;
+an incremental run recomputes the trailing `fair_recompute_weeks` weeks, reading the whole
+stored history for growth windows, 8-week medians and carry-forward. `rec_fair_season_boards`
+is accumulate-only (`full_refresh=false`): past seasons stay frozen; drop the table by hand if
+it must be recreated. Commitment outcomes are produced only for completed weeks, so a
+commitment is judged once, with its week's baseline, and never revised after settlement.
+
+Local check: `dbt build --select tag:fair` then `dbt test --select tag:fair,test_type:unit`
+(needs `dbt seed --select rec_device_overrides` once). The Python twins of the formulas are
+in `lib/fair_scoring.py`; the reference backtest lives in demo3 `src/analysis/fair_gamification/`.
+
 ## Tests
 
 ### Schema tests (`dbt test --select tag:rec_flexibility`)
